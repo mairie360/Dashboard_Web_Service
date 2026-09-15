@@ -20,7 +20,7 @@ The generic proxy reads the versioned OpenAPI contract to allow paths and method
 
 The following sources and limitations describe the associated BFF, which determines persistence for the displayed data.
 
-BFF User `/me` supplies identity. BFF Project supplies `/projects-page?page=1&limit=6`, followed by each project’s details for tasks. BFF Calendar supplies bootstrap for the date range. The BFF has no database of its own and no business mutations.
+BFF User `/me` supplies identity. BFF Project supplies `/projects-page?page=1&limit=6`, followed by each project’s details for tasks. BFF Calendar supplies bootstrap for the date range; its event dates can be `YYYY-MM-DD` or `DD-MM-YYYY` and are relayed unchanged, so `src/lib/dashboard-view.ts` normalizes them and skips an event whose date cannot be displayed. Project and task due dates are shown in French (`1 déc. 2026`): BFF Project ISO 8601 instants use the Europe/Paris day, date-only values are kept as is, and an unrecognized value is displayed unchanged. The BFF has no database of its own and no business mutations.
 
 The overview is limited and does not replace complete module listings. Unavailable sources are flagged and missing metrics remain null or absent. Reports and population or performance metrics are not supplied by this contract.
 
@@ -82,7 +82,7 @@ These data paths are exposed at the same origin through the proxy; Next.js pages
 | --- | --- | --- | --- |
 | GET | `/health` | — | 200 |
 | GET | `/check_apis` | — | 200, 502 |
-| GET | `/dashboard/bootstrap` | — | 200, 401, 502 |
+| GET | `/dashboard/bootstrap` | — | 200, 401, 502, 503 |
 
 ### Pages and local adapters
 
@@ -101,7 +101,7 @@ These data paths are exposed at the same origin through the proxy; Next.js pages
 
 The `/api/auth/me`, `/api/auth/session` and `/api/user/me` adapters use BFF User for session access; `/api/auth/logout` forwards logout. The generic proxy uses an explicit Bearer header or, when absent, the `accessToken` cookie. Business permissions remain those of the BFF and its sources.
 
-The generic proxy returns 400 for an invalid path, 404 for a path outside the contract, 405 for a disallowed method and 502 when the service is unreachable or times out. Upstream responses are preserved, including empty 204/205/304 bodies.
+The generic proxy returns 400 for an invalid path, 404 for a path outside the contract, 405 for a disallowed method and 502 when the service is unreachable or times out. Upstream responses are preserved, including empty 204/205/304 bodies. On `/dashboard/bootstrap`, BFF_Dashboard keeps upstream 4xx statuses, turns upstream 5xx into 502 and returns 503 when an upstream URL is not configured; the page shows the `error.message` of these responses.
 
 Every response carries `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy`, `Permissions-Policy` and `Cross-Origin-Resource-Policy`, `Cross-Origin-Embedder-Policy` and `Cross-Origin-Opener-Policy` (`next.config.ts`), and `X-Powered-By` is disabled. [src/middleware.ts](../../src/middleware.ts) adds a `Content-Security-Policy` with a per-request nonce to every page (it does not redirect unauthenticated users), which Next.js applies to its scripts. Pages are therefore rendered on demand (`dynamic = "force-dynamic"` in the layout). Stylesheets are limited to the origin and the nonce; only `style` attributes rendered by shared components are allowed through `style-src-attr 'unsafe-inline'`, and `next dev` also allows `'unsafe-eval'`. Any new external resource (image, font, API called from the browser) must be added to the policy in `src/lib/content-security-policy.ts`.
 
@@ -117,7 +117,14 @@ npm run lint
 npm run build
 ```
 
-`contracts:sync` copies the BFF contract and regenerates `src/contracts/bff.d.ts`. `contracts:check` also compares a neighboring BFF when present; in an isolated checkout, it checks types against the local committed snapshot. `test:contracts` runs the Node proxy tests.
+`contracts:sync` copies the BFF contract and regenerates `src/contracts/bff.d.ts`. `contracts:check` also compares a neighboring BFF when present; in an isolated checkout, it checks types against the local committed snapshot. `test:contracts` runs the Node tests without coverage; `npm test` runs the same tests with a 60% minimum on lines, branches and functions (source-mapped onto the `.ts` files).
+
+### Tests against contract-driven mock servers
+
+- `tests/bff.mock-servers.test.cjs` follows each call end to end: same-origin browser `fetch` (`requestBff`) → Next.js route handler → a real local HTTP server simulating the BFF. The BFF_Dashboard mock is driven by the committed `contracts/openapi.json`; the BFF User mock (session adapters) by the installed `@mairie360/bff-user-openapi` package, whose version must match the `bff-user` image of the security/performance stacks. Each mock rejects paths, methods and query parameters missing from its contract and validates the mocked responses; the front refuses any call to another origin. The only deliberate exception is `/openapi.json` / `/swagger.json`, forwarded by the proxy.
+- `tests/network-contract.test.cjs` analyses the sources: every `requestBff` call uses a literal path and method declared in `contracts/openapi.json`, every `userBffRequest` targets a BFF User operation for the method of its handler, and `fetch` is only called by `src/lib/bff-client.ts` and `src/lib/bff-proxy.ts`. It also loads every `src/**/*.ts` module so coverage counts them.
+- `tests/dashboard-view.test.cjs` checks the mapping of `/dashboard/bootstrap` onto `DashboardModule` (`src/lib/dashboard-view.ts`) with contract-valid payloads.
+- `tests/support/openapi-contract.ts`, `contract-mock-server.ts` and `orval-contract.ts` are verbatim copies of the BFFs' ones (`BFF_Dashboard`, `BFF_Calendar`); keep them identical.
 
 The type generator is pinned to `openapi-typescript@7.10.1` in `scripts/contracts.mjs` and runs through npm. For documentation-only changes, check links, accuracy in both languages and `git diff --check`; do not regenerate contracts without changing their source.
 
@@ -125,7 +132,7 @@ The type generator is pinned to `openapi-typescript@7.10.1` in `scripts/contract
 
 The `contracts.yml` job uses Node.js 22, `actions/checkout@v7` and `actions/setup-node@v7`. It runs on pushes, pull requests and manual dispatch; it installs with `npm ci`, checks contracts and runs the associated tests.
 
-`cicd.yml` calls `mairie360/CICD/.github/workflows/frontend-cicd.yml@v2.0.0`, with `cicd_version: v2.0.0` and `node_version: "23"`. Reusable steps and GitHub environments determine actual checks, publications and deployments.
+`cicd.yml` calls `mairie360/CICD/.github/workflows/frontend-cicd.yml@v2.3.1`, with `cicd_version: v2.3.1` and `node_version: "23"`. Reusable steps and GitHub environments determine actual checks, publications and deployments.
 
 The Dockerfile defaults to `NODE_VERSION=23.1.0` and the Next.js `standalone` build; the image command is `["node", "server.js"]`. Image ports and Compose mappings can differ from the local port suggested above.
 
