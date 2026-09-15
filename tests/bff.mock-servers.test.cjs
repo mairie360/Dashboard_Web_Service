@@ -3,30 +3,27 @@ const path = require('node:path');
 const { test, describe, before, after, beforeEach, afterEach } = require('node:test');
 const { ROOT } = require('./support/load-ts.cjs');
 const { FrontApp } = require('./support/front-app.cjs');
-const { bootstrapResponse, sessionResponse } = require('./support/fixtures.cjs');
+const { bootstrapResponse } = require('./support/fixtures.cjs');
 const { ContractMockServer, unreachableUrl } = require('./support/contract-mock-server.ts');
 const { OpenApiContract } = require('./support/openapi-contract.ts');
-const { loadOrvalContract } = require('./support/orval-contract.ts');
 const { requestBff } = require('../src/lib/bff-client.ts');
 const { toDashboardModuleData } = require('../src/lib/dashboard-view.ts');
 
 // Parcours complet d'un appel du front : fetch same-origin du navigateur (src/lib/bff-client.ts) → route
-// handler Next.js → BFF simulé par un vrai serveur HTTP local. BFF_Dashboard est piloté par le contrat
-// committé contracts/openapi.json (celui qui sert aussi de liste blanche au proxy), BFF User par le paquet
-// @mairie360/bff-user-openapi installé. Chaque mock rejette les routes, méthodes et paramètres absents de
-// son contrat et valide les réponses simulées ; le front refuse tout appel vers une autre origine.
-// BFF User : orval ne type que les succès, les erreurs simulées sont donc marquées `outOfContract`.
+// handler Next.js → BFF_Dashboard simulé par un vrai serveur HTTP local, piloté par contracts/openapi.json :
+// ce fichier est reconstruit du paquet publié @mairie360/bff-dashboard-openapi (version X.X.X épinglée) et
+// sert aussi de liste blanche au proxy. Le mock rejette les routes, méthodes et paramètres absents du contrat
+// et valide les réponses de succès ; BFF_Dashboard est le seul service joignable, tout appel vers une autre
+// origine fait échouer le test. Orval ne type que les succès : les erreurs simulées sont `outOfContract`.
 
 const dashboardBff = new ContractMockServer('DASHBOARD_BFF', OpenApiContract.load(path.join(ROOT, 'contracts', 'openapi.json')));
-const userBff = new ContractMockServer('USER_BFF', loadOrvalContract('@mairie360/bff-user-openapi'));
-const mocks = [dashboardBff, userBff];
+const mocks = [dashboardBff];
 const front = new FrontApp();
 const TOKEN = 'contract-session-token';
 
 before(async () => {
   await Promise.all(mocks.map((mock) => mock.start()));
   process.env.DASHBOARD_BFF_URL = dashboardBff.url;
-  process.env.USER_BFF_URL = userBff.url;
   mocks.forEach((mock) => front.allow(mock.url));
   front.install();
 });
@@ -75,8 +72,8 @@ describe('page data: /dashboard/bootstrap through the contract-gated proxy', () 
 
   test('forwards no Authorization header without a session cookie', async () => {
     delete front.cookies.accessToken;
-    dashboardBff.on('get', '/dashboard/bootstrap', { status: 401, body: { error: { message: 'Session invalide' } } });
-    assert.equal(await rejection(requestBff('/dashboard/bootstrap')), 'Session invalide');
+    dashboardBff.on('get', '/dashboard/bootstrap', { status: 401, body: { error: { message: 'Session invalide.' } }, outOfContract: true });
+    assert.equal(await rejection(requestBff('/dashboard/bootstrap')), 'Session invalide.');
     assert.equal(dashboardBff.requests[0].headers.authorization, undefined);
   });
 
@@ -84,16 +81,16 @@ describe('page data: /dashboard/bootstrap through the contract-gated proxy', () 
     // Messages réellement produits par BFF_Dashboard (src/clients/upstream.ts).
     [401, 'Session invalide.'], [502, 'Le service USER_BFF est indisponible.'], [503, 'Le service USER_BFF n’est pas configuré.'],
   ]) {
-    test(`surfaces the documented ${status} error message of the BFF`, async () => {
-      dashboardBff.on('get', '/dashboard/bootstrap', { status, body: { error: { message } } });
+    test(`surfaces the ${status} error message of the BFF`, async () => {
+      dashboardBff.on('get', '/dashboard/bootstrap', { status, body: { error: { message } }, outOfContract: true });
       assert.equal(await rejection(requestBff('/dashboard/bootstrap')), message);
     });
   }
 
   test('reads a flat { message } error body and falls back to the status without JSON body', async () => {
-    dashboardBff.on('get', '/dashboard/bootstrap', { status: 401, body: { message: 'Jeton expiré' } });
+    dashboardBff.on('get', '/dashboard/bootstrap', { status: 401, body: { message: 'Jeton expiré' }, outOfContract: true });
     assert.equal(await rejection(requestBff('/dashboard/bootstrap')), 'Jeton expiré');
-    dashboardBff.on('get', '/dashboard/bootstrap', { status: 503, raw: 'upstream down', contentType: 'text/plain' });
+    dashboardBff.on('get', '/dashboard/bootstrap', { status: 503, raw: 'upstream down', contentType: 'text/plain', outOfContract: true });
     assert.equal(await rejection(requestBff('/dashboard/bootstrap')), 'Le service a répondu 503.');
   });
 
@@ -172,40 +169,5 @@ describe('requests outside the contract never leave the front', () => {
       process.env.DASHBOARD_BFF_URL = dashboardBff.url;
       await metadataBff.stop();
     }
-  });
-});
-
-describe('session adapters backed by BFF User', () => {
-  for (const [route, operation] of [['/api/user/me', '/me'], ['/api/auth/me', '/me'], ['/api/auth/session', '/session/me']]) {
-    test(`GET ${route} → BFF User GET ${operation}`, async () => {
-      userBff.on('get', operation, { body: sessionResponse() });
-      const response = await front.browserFetch(route, { credentials: 'same-origin' });
-      assert.equal(response.status, 200);
-      assert.deepEqual(await response.json(), sessionResponse());
-      assert.deepEqual(upstreamCalls(), [`USER_BFF GET ${operation}`]);
-      assert.equal(userBff.requests[0].headers.authorization, `Bearer ${TOKEN}`);
-    });
-  }
-
-  test('POST /api/auth/logout → BFF User POST /auth/logout and relays the cookie removal', async () => {
-    userBff.on('post', '/auth/logout', { body: { message: 'Déconnecté' }, headers: { 'Set-Cookie': 'accessToken=; Max-Age=0; Path=/; HttpOnly' } });
-    const response = await front.browserFetch('/api/auth/logout', { method: 'POST' });
-    assert.equal(response.status, 200);
-    assert.deepEqual(await response.json(), { message: 'Déconnecté' });
-    assert.match(response.headers.get('set-cookie'), /Max-Age=0/);
-    assert.deepEqual(upstreamCalls(), ['USER_BFF POST /auth/logout']);
-  });
-
-  test('relays a BFF User rejection unchanged', async () => {
-    userBff.on('get', '/me', { status: 401, body: { error: { message: 'Session expirée' } }, outOfContract: true });
-    const response = await front.browserFetch('/api/user/me');
-    assert.equal(response.status, 401);
-    assert.deepEqual(await response.json(), { error: { message: 'Session expirée' } });
-  });
-
-  test('adapters only accept the method they declare', async () => {
-    assert.equal((await front.browserFetch('/api/auth/logout')).status, 405);
-    assert.equal((await front.browserFetch('/api/user/me', { method: 'DELETE' })).status, 405);
-    assert.deepEqual(upstreamCalls(), []);
   });
 });

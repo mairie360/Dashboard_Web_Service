@@ -7,7 +7,7 @@ const { OpenApiContract } = require('./support/openapi-contract.ts');
 const { toDashboardModuleData, formatDueDate, quickActionTarget, REPORTS_UNAVAILABLE } = require('../src/lib/dashboard-view.ts');
 
 // Mapping de la réponse /dashboard/bootstrap vers DashboardModule, alimenté par des charges valides
-// selon contracts/openapi.json.
+// selon contracts/openapi.json (reconstruit du paquet publié @mairie360/bff-dashboard-openapi).
 
 const contract = OpenApiContract.load(path.join(ROOT, 'contracts', 'openapi.json'));
 const bootstrapSchema = contract.responseSchema(contract.match('get', '/dashboard/bootstrap'), 200).schema;
@@ -38,7 +38,7 @@ describe('toDashboardModuleData', () => {
   });
 
   test('every contract project status maps to a status supported by the component', () => {
-    const statuses = contract.schema('DashboardBootstrap').properties.projects.items.properties.status.enum;
+    const statuses = contract.schema('DashboardBootstrapProjectsItemStatus').enum;
     const projects = statuses.map((status, index) => ({ id: `p-${index}`, title: status, progress: 0, status, dueDate: '2026-01-01' }));
     const mapped = toDashboardModuleData(valid({ projects })).projects.map((project) => project.status);
     assert.deepEqual(mapped, statuses.map((status) => (status === 'done' ? 'completed' : 'in-progress')));

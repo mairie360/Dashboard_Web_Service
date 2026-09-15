@@ -8,15 +8,15 @@ const { ROUTES } = require('./support/front-app.cjs');
 const { OpenApiContract } = require('./support/openapi-contract.ts');
 const { loadOrvalContract, resolveOrvalPackage } = require('./support/orval-contract.ts');
 
-// Analyse statique des sources : chaque appel réseau du front doit viser une opération déclarée.
-// - navigateur → front : `requestBff(<chemin littéral>, { method })` doit exister dans contracts/openapi.json ;
-// - serveur → BFF User : `userBffRequest(request, <chemin littéral>)` doit exister, pour la méthode du
-//   handler exporté, dans le contrat du paquet @mairie360/bff-user-openapi installé ;
+// Analyse statique des sources. Un front ne consomme qu'un BFF (BFF_Dashboard) et qu'un contrat : le paquet
+// publié @mairie360/bff-dashboard-openapi en version X.X.X, dont contracts/openapi.json est la reconstruction :
+// - navigateur → front : `requestBff(<chemin littéral>, { method })` doit exister dans le contrat ;
+// - serveur → BFF : le seul route handler est le proxy catch-all, qui ne relaie que vers BFF_Dashboard ;
 // - `fetch` n'est appelé que par ces deux points d'entrée, et aucune autre API réseau n'est utilisée.
 // Les tests avec mock serveurs (tests/bff.mock-servers.test.cjs) vérifient le même périmètre à l'exécution.
 
 const dashboardContract = OpenApiContract.load(path.join(ROOT, 'contracts', 'openapi.json'));
-const userContract = loadOrvalContract('@mairie360/bff-user-openapi');
+const CONTRACT_PACKAGE = '@mairie360/bff-dashboard-openapi';
 const FETCH_OWNERS = ['lib/bff-client.ts', 'lib/bff-proxy.ts'];
 const FORBIDDEN_NETWORK_APIS = ['XMLHttpRequest', 'WebSocket', 'EventSource', 'sendBeacon', 'axios'];
 
@@ -65,16 +65,7 @@ function requestMethod(init) {
   return literal(property.initializer)?.toUpperCase();
 }
 
-/** Nom de la fonction exportée (GET, POST…) qui contient le nœud. */
-function enclosingHandler(node) {
-  for (let current = node.parent; current; current = current.parent) {
-    if (ts.isFunctionDeclaration(current) && current.name) return current.name.text;
-  }
-  return undefined;
-}
-
 const browserCalls = sources.flatMap(({ file, ast }) => (file === 'lib/bff-client.ts' ? [] : calls(ast, 'requestBff').map((node) => ({ ast, node }))));
-const userBffCalls = sources.flatMap(({ ast }) => calls(ast, 'userBffRequest').filter((node) => node.arguments.length === 2).map((node) => ({ ast, node })));
 
 describe('every network call of the front targets an operation of an OpenAPI contract', () => {
   test('the page actually loads its data through requestBff', () => {
@@ -90,17 +81,6 @@ describe('every network call of the front targets an operation of an OpenAPI con
       if (url.search) return [`${where(ast, node)} : ${pathname} ajoute des paramètres de requête`];
       const { match, errors } = dashboardContract.validateRequest(method, url);
       return match ? errors.map((error) => `${where(ast, node)} : ${error}`) : [`${where(ast, node)} : ${method} ${pathname} absent de contracts/openapi.json`];
-    });
-    assert.deepEqual(problems, []);
-  });
-
-  test('session adapters call BFF User operations declared for their own HTTP method', () => {
-    assert.ok(userBffCalls.length > 0);
-    const problems = userBffCalls.flatMap(({ ast, node }) => {
-      const pathname = literal(node.arguments[1]);
-      const method = enclosingHandler(node);
-      if (pathname === undefined || !method) return [`${where(ast, node)} : chemin ou handler non vérifiable`];
-      return userContract.match(method, pathname) ? [] : [`${where(ast, node)} : ${method} ${pathname} absent du contrat ${userContract.title}`];
     });
     assert.deepEqual(problems, []);
   });
@@ -156,13 +136,48 @@ describe('the proxy exposes exactly the contract', () => {
   });
 });
 
-describe('BFF User contract package', () => {
-  test('the installed version is the one pinned in package.json and deployed by the test stacks', () => {
-    const { devDependencies } = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
-    const { version } = resolveOrvalPackage('@mairie360/bff-user-openapi');
-    assert.equal(version, devDependencies['@mairie360/bff-user-openapi']);
+describe('one front, one BFF, one OpenAPI contract', () => {
+  test('contracts/ holds a single OpenAPI contract', () => {
+    assert.deepEqual(fs.readdirSync(path.join(ROOT, 'contracts')), ['openapi.json']);
+  });
+
+  test('the contract-gated catch-all proxy is the only route handler', () => {
+    assert.deepEqual(ROUTES.map(({ segments }) => `/${segments.join('/')}`), ['/[...path]']);
+  });
+
+  test('requests are only forwarded to the BFF_Dashboard URL', () => {
+    const forwards = sources.flatMap(({ file, ast }) => calls(ast, 'forwardToBff').map((node) => `${file} ${node.arguments[1]?.getText()}`));
+    assert.deepEqual(forwards, ['lib/bff-proxy.ts configuredBffUrl()']);
+    const bffVariables = [...new Set(sources.flatMap(({ ast }) => [...ast.text.matchAll(/process\.env\.(\w*BFF\w*)/g)].map(([, name]) => name)))].sort();
+    assert.deepEqual(bffVariables, ['BFF_DASHBOARD_BASE_URL', 'DASHBOARD_BFF_URL']);
+  });
+
+  test('the only OpenAPI package is the published BFF_Dashboard contract, pinned to X.X.X', () => {
+    const { dependencies = {}, devDependencies = {} } = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
+    const all = { ...dependencies, ...devDependencies };
+    assert.deepEqual(Object.keys(all).filter((name) => /openapi/i.test(name)), [CONTRACT_PACKAGE]);
+    assert.match(all[CONTRACT_PACKAGE], /^\d+\.\d+\.\d+$/, 'version publiée exacte attendue, sans plage ni pré-version');
+    assert.equal(resolveOrvalPackage(CONTRACT_PACKAGE).version, all[CONTRACT_PACKAGE]);
+  });
+
+  test('the security and performance stacks run the BFF_Dashboard image of the contract version', () => {
+    const { version } = resolveOrvalPackage(CONTRACT_PACKAGE);
     for (const stack of ['docker-compose-security.yml', 'docker-compose-performance.yml']) {
-      assert.match(fs.readFileSync(path.join(ROOT, stack), 'utf8'), new RegExp(`ghcr\\.io/mairie360/bff-user:${version.replace(/\./g, '\\.')}\\}`), stack);
+      const images = [...fs.readFileSync(path.join(ROOT, stack), 'utf8').matchAll(/ghcr\.io\/mairie360\/bff-dashboard:([^\s}]+)/g)].map(([, tag]) => tag);
+      assert.deepEqual(images, [version], stack);
     }
+  });
+
+  test('response types come from the published package, not from a local copy', () => {
+    assert.equal(fs.existsSync(path.join(SRC, 'contracts')), false);
+    const contractImports = sources.flatMap(({ file, ast }) => ast.statements.filter(ts.isImportDeclaration)
+      .map((statement) => statement.moduleSpecifier.text).filter((specifier) => /contract|openapi/i.test(specifier)).map((specifier) => `${file} ${specifier}`));
+    assert.deepEqual(contractImports, [`lib/bff-proxy.ts ../../contracts/openapi.json`, `lib/dashboard-view.ts ${CONTRACT_PACKAGE}/model`]);
+  });
+
+  test('contracts/openapi.json is the reconstruction of the installed published package', () => {
+    const published = loadOrvalContract(CONTRACT_PACKAGE).document;
+    const { version } = resolveOrvalPackage(CONTRACT_PACKAGE);
+    assert.deepEqual(dashboardContract.document, { openapi: '3.1.0', info: { title: published.info.title, version }, paths: published.paths, components: published.components });
   });
 });

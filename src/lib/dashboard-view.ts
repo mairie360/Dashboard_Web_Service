@@ -1,11 +1,12 @@
 import type { ComponentProps } from 'react';
 import type { DashboardModule } from '@mairie360/lib-components';
-import type { components } from '../contracts/bff';
+import type { DashboardBootstrap } from '@mairie360/bff-dashboard-openapi/model';
 
 // Passage de la réponse /dashboard/bootstrap (contrat BFF_Dashboard) aux props de DashboardModule.
 // Fonctions pures, sans DOM : testées dans tests/dashboard-view.test.cjs.
 
-export type DashboardBootstrap = components['schemas']['DashboardBootstrap'];
+// Type du contrat publié (paquet @mairie360/bff-dashboard-openapi épinglé en X.X.X).
+export type { DashboardBootstrap };
 type ModuleProps = ComponentProps<typeof DashboardModule>;
 export type DashboardQuickActionId = Parameters<NonNullable<ModuleProps['onQuickAction']>>[0];
 
