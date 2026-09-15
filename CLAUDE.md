@@ -20,17 +20,19 @@ npm run test:contracts                   # same tests, no coverage
 node --test --test-name-pattern="<name>" tests/proxy.test.cjs   # single test
 ```
 
-Tests are plain CommonJS `node:test` files: they transpile `src/**/*.ts` on the fly with `typescript.transpileModule` via a temporary `require.extensions['.ts']` hook and stub `global.fetch`. No Jest/Vitest, no DOM tests; new tests must follow that pattern and match `tests/*.test.cjs`.
+Tests are plain CommonJS `node:test` files: they transpile `src/**/*.ts` on the fly with `typescript.transpileModule` via a temporary `require.extensions['.ts']` hook and stub `global.fetch`. No Jest/Vitest, no DOM tests; new tests must follow that pattern and match `tests/*.test.cjs`. The hook does not resolve the `@/*` tsconfig alias, so a module loaded by a test must use relative runtime imports.
 
 ### OpenAPI contract
 
 `contracts/openapi.json` is a committed copy of BFF_Dashboard's contract and `src/contracts/bff.d.ts` is generated from it (`openapi-typescript@7.10.1`, pinned in `scripts/contracts.mjs`). Never hand-edit either file.
 
 ```bash
-npm run contracts:sync      # copy from ../BFF_Dashboard/contracts (or $BFF_CONTRACT_DIR) and regenerate types
+BFF_CONTRACT_DIR=../../BFFs/BFF_Dashboard/contracts npm run contracts:sync   # copy the BFF contract and regenerate types
 npm run contracts:generate  # regenerate types from the local snapshot
-npm run contracts:check     # fail if types are stale, or if a neighbouring BFF checkout has a different contract
+npm run contracts:check     # fail if types are stale, or if the BFF checkout at $BFF_CONTRACT_DIR has a different contract
 ```
+
+The script's default source `../BFF_Dashboard/contracts` resolves to `Fronts/BFF_Dashboard`, which does not exist in the EIP checkout, so always set `BFF_CONTRACT_DIR` (without it, `check` silently skips the BFF comparison). All three commands `npm exec` `openapi-typescript`, so they need network access.
 
 ## Architecture
 
@@ -40,8 +42,8 @@ npm run contracts:check     # fail if types are stale, or if a neighbouring BFF 
 - **Session adapters** — `src/app/api/{user/me,auth/me,auth/session,auth/logout}/route.ts` call `userBffRequest` (`src/lib/user-bff-proxy.ts`), which reuses `forwardToBff` against BFF User (`USER_BFF_URL` → `BFF_USER_API_URL`, fallback `http://localhost:4000`).
 - **Client calls** — pages call same-origin paths (e.g. `/dashboard/bootstrap`) through `requestBff` (`src/lib/bff-client.ts`), which parses `{ error: { message } }` / `{ message }` bodies into `BffRequestError`; authentication relies solely on the `accessToken` cookie.
 - `src/app/page.tsx` makes a single `requestBff('/dashboard/bootstrap')` call (`src/lib/bff-client.ts`), maps it onto `DashboardModule` from `@mairie360/lib-components` and shows per-source unavailability. Quick actions link to other fronts via `NEXT_PUBLIC_*_FRONT_URL`; reports are explicitly marked unavailable.
-- There is no `src/middleware.ts` and no `auth-session.ts` here: unauthenticated users are not redirected by this app.
-- `next.config.ts` sets `output: 'standalone'` (required by the Dockerfile) and inlines the `*_FRONT_URL` values at **build time** (defaults `https://<module>.dev.mairie360-eip.fr/`), so changing them requires a rebuild.
+- **Security headers** — `src/middleware.ts` (matcher excludes `/api`, `/_next/*` and paths with a dot) only sets a per-request nonce `Content-Security-Policy` (built in `src/lib/content-security-policy.ts`, forwarded to Next.js via request headers); there is no auth gate and no `auth-session.ts`, so unauthenticated users are not redirected by this app. `src/app/layout.tsx` forces dynamic rendering for that reason: a prerendered page would carry no nonce and its scripts would be blocked. Any new external origin (images, fonts, browser-side API calls) must be added to that policy.
+- `next.config.ts` sets `output: 'standalone'` (required by the Dockerfile), `poweredByHeader: false` and static security headers on every route (`tests/security-headers.test.cjs` pins them, and the ZAP baseline fails without them). The `NEXT_PUBLIC_*_FRONT_URL` links used by `page.tsx` are inlined at **build time** (defaults `https://<module>.dev.mairie360-eip.fr/`), so changing them requires a rebuild.
 
 ## CI/CD
 
