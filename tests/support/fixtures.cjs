@@ -1,4 +1,4 @@
-// Réponses simulées des BFFs. Leur conformité aux contrats est vérifiée par les mocks à chaque réponse
+// Réponses simulées de BFF_Dashboard. Leur conformité au contrat est vérifiée par le mock à chaque réponse
 // (et explicitement dans tests/dashboard-view.test.cjs pour le bootstrap).
 
 function bootstrapResponse(overrides = {}) {
@@ -23,12 +23,4 @@ function bootstrapResponse(overrides = {}) {
   };
 }
 
-function sessionResponse() {
-  return {
-    user: { id: 2, first_name: 'Alice', last_name: 'Martin', email: 'alice.martin@mairie.test', phone: null, status: 'active', role: 'User' },
-    groups: [{ id: 1, name: 'Service urbanisme', owner_id: 1, description: null }],
-    roles: [{ id: 3, name: 'User' }],
-  };
-}
-
-module.exports = { bootstrapResponse, sessionResponse };
+module.exports = { bootstrapResponse };

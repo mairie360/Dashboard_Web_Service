@@ -7,8 +7,8 @@
 # k6-perf-test sort en échec si un seuil de load-test.js est dépassé.
 # TARGET_IMAGE (optionnel) : image front pré-construite à tester au lieu du build local.
 #
-# Le Dashboard agrège trois BFFs métier : la stack monte toute la chaîne amont
-# réelle (BFF User / Project / Calendar + leurs APIs) + base partagée + redis.
+# Le front ne parle qu'à BFF Dashboard, qui agrège trois BFFs : la stack monte toute
+# la chaîne amont réelle (BFF User / Project / Calendar + leurs APIs) + base partagée + redis.
 
 volumes:
   postgres-data:
@@ -26,7 +26,7 @@ x-db-env: &db-env
   DB_PORT: 5432
 
 # JWT_SECRET identique sur toute la chaîne : le cookie accessToken du front est
-# relayé tel quel (Bearer) à BFF User, aux BFFs métier et aux APIs.
+# relayé tel quel (Bearer) à BFF Dashboard, puis à BFF User, aux BFFs métier et aux APIs.
 x-api-env: &api-env
   <<: *db-env
   HOST: "0.0.0.0"
@@ -304,7 +304,7 @@ services:
       - backend
 
   bff-dashboard:
-    image: ${BFF_DASHBOARD_IMAGE:-ghcr.io/mairie360/bff-dashboard:dev-latest}
+    image: ${BFF_DASHBOARD_IMAGE:-ghcr.io/mairie360/bff-dashboard:1.0.0}
     container_name: dashboard-front-perf-bff-dashboard
     depends_on:
       seeder:
@@ -351,19 +351,12 @@ services:
       args:
         NODE_AUTH_TOKEN: ${NODE_AUTH_TOKEN:-}
     depends_on:
-      bff-user-ready:
-        condition: service_completed_successfully
-      bff-project-ready:
-        condition: service_completed_successfully
-      bff-calendar-ready:
-        condition: service_completed_successfully
       bff-dashboard-ready:
         condition: service_completed_successfully
     environment:
       HOSTNAME: "0.0.0.0"
       PORT: 5000
       DASHBOARD_BFF_URL: http://bff-dashboard:4007
-      USER_BFF_URL: http://bff-user:4000
     expose:
       - "5000"
     networks:

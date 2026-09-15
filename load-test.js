@@ -6,7 +6,6 @@ import encoding from 'k6/encoding';
 // ---------------------------------------------------------------------------
 // Test de charge k6 pour le front Dashboard (Dashboard_Web_Service).
 // Cible les routes réellement servies par le serveur Next.js : les pages (rendu Next.js),
-// l'adaptateur de session /api/user/me (-> BFF User),
 // /health, puis l'agrégation /dashboard/bootstrap relayée par le proxy same-origin vers BFF Dashboard (fan-out User / Project / Calendar).
 // L'authentification passe par le cookie accessToken, comme dans le navigateur :
 // le proxy le convertit en Authorization: Bearer vers le BFF.
@@ -29,7 +28,6 @@ export const options = {
     checks: ['rate>0.99'],                                   // une redirection (307) n'est pas une erreur HTTP : les checks la détectent
     'http_req_duration{endpoint:page}': ['p(95)<800'],       // rendu page Next.js
     'http_req_duration{endpoint:health}': ['p(95)<150'],     // proxy same-origin -> BFF /health
-    'http_req_duration{endpoint:session}': ['p(95)<500'],    // /api/user/me -> BFF User -> Core
     'http_req_duration{endpoint:dashboard}': ['p(95)<1200'], // proxy + agrégation BFF + upstream
   },
 };
@@ -67,11 +65,6 @@ export default function (data) {
   group('health', () => {
     const res = http.get(`${BASE_URL}/health`, { headers: cookie, redirects: 0, tags: { endpoint: 'health' } });
     check(res, { 'health 200': (r) => r.status === 200 });
-  });
-
-  group('session', () => {
-    const me = http.get(`${BASE_URL}/api/user/me`, { headers: cookie, redirects: 0, tags: { endpoint: 'session' } });
-    check(me, { '/api/user/me 200': (r) => r.status === 200 });
   });
 
   group('dashboard reads', () => {

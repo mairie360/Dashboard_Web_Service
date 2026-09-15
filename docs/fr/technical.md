@@ -36,14 +36,13 @@ Les dépendances privées `@mairie360/*` nécessitent un accès GitHub Packages.
 npm ci
 ```
 
-Créer `.env.local` à la racine. Exemple pour des BFF exécutés sur la même machine:
+Créer `.env.local` à la racine. Exemple pour BFF_Dashboard exécuté sur la même machine:
 
 ```dotenv
 DASHBOARD_BFF_URL=http://localhost:4007
-USER_BFF_URL=http://localhost:4000
 ```
 
-Démarrer le BFF associé et BFF User pour les parcours de session, puis lancer le web service. Le port `5007` ci-dessous est un choix local explicite pour éviter les collisions; ce n’est pas une affirmation sur les ports de tous les fichiers Compose.
+Démarrer BFF_Dashboard (et les services dont il dépend), puis lancer le web service. Le port `5007` ci-dessous est un choix local explicite pour éviter les collisions; ce n’est pas une affirmation sur les ports de tous les fichiers Compose.
 
 ```bash
 npm run dev -- --port 5007
@@ -63,8 +62,6 @@ Les valeurs ci-dessous sont des exemples locaux ou des comportements expliciteme
 | Variable ou priorité | Exemple / repli indiqué | Rôle |
 | --- | --- | --- |
 | `DASHBOARD_BFF_URL` → `BFF_DASHBOARD_BASE_URL` | http://localhost:4007 | Priorité de gauche à droite dans le proxy; l’URL indiquée est le repli local. |
-| `USER_BFF_URL` → `BFF_USER_API_URL` | http://localhost:4000 | Priorité propre aux adaptateurs de session vers BFF User. |
-| `BFF_CONTRACT_DIR` | ../BFF_Dashboard/contracts | Répertoire des contrats BFF pour les scripts de synchronisation et de contrôle. |
 | `NEXT_PUBLIC_CALENDAR_FRONT_URL` | — | Destination de navigation; voir le fichier source qui la lit. Les variables injectées par `next.config.ts` ou préfixées `NEXT_PUBLIC_` sont publiques et prises en compte lors du build. |
 | `NEXT_PUBLIC_FILES_FRONT_URL` | — | Destination de navigation; voir le fichier source qui la lit. Les variables injectées par `next.config.ts` ou préfixées `NEXT_PUBLIC_` sont publiques et prises en compte lors du build. |
 | `NEXT_PUBLIC_MESSAGE_FRONT_URL` | — | Destination de navigation; voir le fichier source qui la lit. Les variables injectées par `next.config.ts` ou préfixées `NEXT_PUBLIC_` sont publiques et prises en compte lors du build. |
@@ -74,15 +71,15 @@ Dans un conteneur, `localhost` désigne le conteneur lui-même. Utiliser le nom 
 
 ## Routes et contrat de données
 
-Inventaire extrait de `contracts/openapi.json`. Les paramètres entre accolades sont remplacés par des identifiants réels. Les types détaillés, champs requis, réponses et exemples éventuels sont définis dans ce contrat; les statuts du tableau sont ceux déclarés, sans prétendre lister toutes les erreurs de transport ou de validation.
+Inventaire extrait de `contracts/openapi.json`, reconstruit du paquet publié `@mairie360/bff-dashboard-openapi` (version épinglée dans `package.json`). Les paramètres entre accolades sont remplacés par des identifiants réels. Les types détaillés, champs requis, réponses et exemples éventuels sont définis dans ce contrat; le paquet, généré par orval, ne type que les réponses de succès (`2XX`): les erreurs du BFF ne figurent pas dans le contrat et sont relayées telles quelles.
 
 Ces chemins de données sont exposés à la même origine par le proxy; les pages Next.js sont distinctes. `/openapi.json` et `/swagger.json` sont également relayés. L’interface Swagger `/docs` se consulte directement sur le BFF.
 
-| Méthode | Chemin | Corps déclaré | Statuts déclarés |
+| Méthode | Chemin | Corps déclaré | Réponse de succès |
 | --- | --- | --- | --- |
-| GET | `/health` | — | 200 |
-| GET | `/check_apis` | — | 200, 502 |
-| GET | `/dashboard/bootstrap` | — | 200, 401, 502, 503 |
+| GET | `/health` | — | 2XX, sans corps typé |
+| GET | `/check_apis` | — | 2XX, sans corps typé |
+| GET | `/dashboard/bootstrap` | — | 2XX `DashboardBootstrap` |
 
 ### Pages et adaptateurs locaux
 
@@ -90,26 +87,22 @@ Ces chemins de données sont exposés à la même origine par le proxy; les page
 | --- | --- |
 | `/` | [src/app/page.tsx](../../src/app/page.tsx) |
 
-| Méthode | Route locale | Source |
-| --- | --- | --- |
-| GET | `/api/user/me` | [src/app/api/user/me/route.ts](../../src/app/api/user/me/route.ts) |
-| POST | `/api/auth/logout` | [src/app/api/auth/logout/route.ts](../../src/app/api/auth/logout/route.ts) |
-| GET | `/api/auth/me` | [src/app/api/auth/me/route.ts](../../src/app/api/auth/me/route.ts) |
-| GET | `/api/auth/session` | [src/app/api/auth/session/route.ts](../../src/app/api/auth/session/route.ts) |
+Le seul route handler est le proxy [src/app/[...path]/route.ts](../../src/app/%5B...path%5D/route.ts): toutes les données passent par les opérations de `contracts/openapi.json`.
 
 ## Session, permissions et erreurs
 
-Les adaptateurs `/api/auth/me`, `/api/auth/session` et `/api/user/me` utilisent BFF User pour la session; `/api/auth/logout` relaie la déconnexion. Le proxy générique utilise le Bearer explicite ou, en son absence, le cookie `accessToken`. Les permissions métier restent celles du BFF et de ses sources.
+Ce front ne consomme qu’un BFF, BFF_Dashboard, et qu’un contrat OpenAPI; il n’appelle pas BFF User directement (le prénom affiché vient de `/dashboard/bootstrap`). Le proxy générique utilise le Bearer explicite ou, en son absence, le cookie `accessToken`. Les permissions métier restent celles du BFF et de ses sources.
 
-Le proxy générique répond 400 pour un chemin invalide, 404 pour un chemin hors contrat, 405 pour une méthode interdite et 502 si le service est injoignable ou dépasse le délai. Les réponses amont sont conservées, y compris les corps vides 204/205/304. Sur `/dashboard/bootstrap`, BFF_Dashboard conserve les statuts 4xx amont, transforme les 5xx amont en 502 et répond 503 si une URL amont n’est pas configurée; la page affiche le `error.message` de ces réponses.
+Le proxy générique répond 400 pour un chemin invalide, 404 pour un chemin hors contrat, 405 pour une méthode interdite et 502 si le service est injoignable ou dépasse le délai. Les réponses amont sont conservées, y compris les corps vides 204/205/304. Sur `/dashboard/bootstrap`, BFF_Dashboard répond 401 pour une session refusée et 502 si le contexte utilisateur est indisponible (et, à partir de sa branche `mair-121`, 503 si une URL amont n’est pas configurée); la page affiche le `error.message` de ces réponses.
 
 Toutes les réponses portent `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy`, `Permissions-Policy` et `Cross-Origin-Resource-Policy`, `Cross-Origin-Embedder-Policy` et `Cross-Origin-Opener-Policy` (`next.config.ts`), et `X-Powered-By` est désactivé. [src/middleware.ts](../../src/middleware.ts) ajoute sur chaque page une `Content-Security-Policy` avec un nonce propre à chaque requête (il ne redirige pas les utilisateurs non authentifiés), que Next.js applique à ses scripts. Les pages sont donc rendues à la demande (`dynamic = "force-dynamic"` dans le layout). Les feuilles de style sont limitées à l'origine et au nonce ; seuls les attributs `style` rendus par les composants partagés passent par `style-src-attr 'unsafe-inline'`, et `next dev` autorise aussi `'unsafe-eval'`. Toute nouvelle ressource externe (image, police, API appelée depuis le navigateur) doit être ajoutée à la politique dans `src/lib/content-security-policy.ts`.
 
 ## Synchronisation et vérifications
 
-Après une modification de routes ou de schémas, exporter le contrat dans **BFF_Dashboard** avec `npm run contracts:generate`, puis exécuter dans ce dépôt:
+Le seul contrat de ce front est le paquet publié `@mairie360/bff-dashboard-openapi`, épinglé sur une version exacte `X.X.X` (ni plage, ni pré-version `0.0.0-dev`/`staging`), jamais le checkout local du BFF. Pour adopter une nouvelle version publiée:
 
 ```bash
+npm install --save-exact @mairie360/bff-dashboard-openapi@X.X.X
 npm run contracts:sync
 npm run contracts:check
 npm run test:contracts
@@ -117,16 +110,16 @@ npm run lint
 npm run build
 ```
 
-`contracts:sync` copie le contrat BFF et régénère `src/contracts/bff.d.ts`. `contracts:check` compare aussi le BFF voisin lorsqu’il est présent; dans un checkout isolé, il vérifie les types contre la copie locale versionnée. `test:contracts` exécute les tests Node sans couverture; `npm test` exécute les mêmes tests avec un minimum de 60 % sur les lignes, branches et fonctions (rapporté sur les fichiers `.ts` grâce aux source maps).
+`contracts:sync` reconstruit `contracts/openapi.json` depuis le paquet installé (sortie orval lue par `tests/support/orval-contract.ts`, partagé avec les BFF). Le code importe ses types directement du paquet (`@mairie360/bff-dashboard-openapi/model`); aucun `.d.ts` n’est généré. `contracts:check` échoue si la version n’est pas `X.X.X`, si le paquet installé diffère de `package.json`, si `contracts/openapi.json` ne correspond plus au paquet. Les stacks de sécurité et de performance utilisent l’image `ghcr.io/mairie360/bff-dashboard` de la même version (vérifié par un test). Ces commandes nécessitent le paquet installé avec `NODE_AUTH_TOKEN` (paquet privé). `test:contracts` exécute les tests Node sans couverture; `npm test` exécute les mêmes tests avec un minimum de 60 % sur les lignes, branches et fonctions (rapporté sur les fichiers `.ts` grâce aux source maps).
 
-### Tests contre des mock serveurs pilotés par les contrats
+### Tests contre un mock serveur piloté par le contrat
 
-- `tests/bff.mock-servers.test.cjs` suit chaque appel de bout en bout: `fetch` same-origin du navigateur (`requestBff`) → route handler Next.js → vrai serveur HTTP local simulant le BFF. Le mock BFF_Dashboard est piloté par `contracts/openapi.json` versionné; le mock BFF User (adaptateurs de session) par le paquet installé `@mairie360/bff-user-openapi`, dont la version doit correspondre à l’image `bff-user` des stacks de sécurité et de performance. Chaque mock rejette les chemins, méthodes et paramètres de requête absents de son contrat et valide les réponses simulées; le front refuse tout appel vers une autre origine. Seule exception volontaire: `/openapi.json` / `/swagger.json`, relayés par le proxy.
-- `tests/network-contract.test.cjs` analyse les sources: chaque appel `requestBff` utilise un chemin et une méthode littéraux déclarés dans `contracts/openapi.json`, chaque `userBffRequest` vise une opération BFF User pour la méthode de son handler, et `fetch` n’est appelé que par `src/lib/bff-client.ts` et `src/lib/bff-proxy.ts`. Il charge aussi chaque module `src/**/*.ts` pour que la couverture les compte.
+- `tests/bff.mock-servers.test.cjs` suit chaque appel de bout en bout: `fetch` same-origin du navigateur (`requestBff`) → route handler Next.js → vrai serveur HTTP local simulant BFF_Dashboard, piloté par `contracts/openapi.json`, donc par le contrat publié. Le mock rejette les chemins, méthodes et paramètres de requête absents du contrat et valide les réponses de succès (les erreurs simulées sont marquées `outOfContract`, orval ne les typant pas); BFF_Dashboard est la seule origine joignable, tout autre appel fait échouer le test. Seule exception volontaire: `/openapi.json` / `/swagger.json`, relayés par le proxy.
+- `tests/network-contract.test.cjs` analyse les sources: chaque appel `requestBff` utilise un chemin et une méthode littéraux déclarés dans `contracts/openapi.json` et `fetch` n’est appelé que par `src/lib/bff-client.ts` et `src/lib/bff-proxy.ts`. Il vérifie aussi qu’il n’y a qu’un contrat dans `contracts/`, que le proxy catch-all est le seul route handler, qu’il ne relaie que vers l’URL de BFF_Dashboard que le seul paquet OpenAPI installé est `@mairie360/bff-dashboard-openapi` en version `X.X.X`, et que `contracts/openapi.json` est exactement sa reconstruction. Il charge aussi chaque module `src/**/*.ts` pour que la couverture les compte.
 - `tests/dashboard-view.test.cjs` vérifie le passage de `/dashboard/bootstrap` vers `DashboardModule` (`src/lib/dashboard-view.ts`) avec des données conformes au contrat.
 - `tests/support/openapi-contract.ts`, `contract-mock-server.ts` et `orval-contract.ts` sont des copies à l’identique de celles des BFF (`BFF_Dashboard`, `BFF_Calendar`); les garder identiques.
 
-Le générateur de types est fixé à `openapi-typescript@7.10.1` dans `scripts/contracts.mjs` et s’exécute via npm. Pour une modification uniquement documentaire, vérifier les liens, l’exactitude des deux langues et `git diff --check`; ne pas régénérer les contrats sans modification de leur source.
+Pour une modification uniquement documentaire, vérifier les liens, l’exactitude des deux langues et `git diff --check`; ne pas régénérer les contrats sans modification de leur source.
 
 ## CI/CD et exécution Docker
 
@@ -150,9 +143,8 @@ En cas d’erreur de proxy, comparer la route et la méthode à l’inventaire, 
 - [src/lib/bff-client.ts](../../src/lib/bff-client.ts)
 - [src/lib/bff-proxy.ts](../../src/lib/bff-proxy.ts)
 - [src/app/[...path]/route.ts](../../src/app/%5B...path%5D/route.ts)
-- [src/lib/user-bff-proxy.ts](../../src/lib/user-bff-proxy.ts)
 - [contracts/openapi.json](../../contracts/openapi.json)
-- [src/contracts/bff.d.ts](../../src/contracts/bff.d.ts)
+- [src/lib/dashboard-view.ts](../../src/lib/dashboard-view.ts)
 - [scripts/contracts.mjs](../../scripts/contracts.mjs)
 - [package.json](../../package.json)
 - [.github/workflows/contracts.yml](../../.github/workflows/contracts.yml)

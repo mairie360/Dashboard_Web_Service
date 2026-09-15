@@ -4,6 +4,48 @@
     "title": "bff_dashboard",
     "version": "1.0.0"
   },
+  "paths": {
+    "/health": {
+      "get": {
+        "operationId": "getHealth",
+        "parameters": [],
+        "responses": {
+          "2XX": {
+            "description": "Succès (seul statut typé par orval)"
+          }
+        }
+      }
+    },
+    "/check_apis": {
+      "get": {
+        "operationId": "getCheckApis",
+        "parameters": [],
+        "responses": {
+          "2XX": {
+            "description": "Succès (seul statut typé par orval)"
+          }
+        }
+      }
+    },
+    "/dashboard/bootstrap": {
+      "get": {
+        "operationId": "getDashboardBootstrap",
+        "parameters": [],
+        "responses": {
+          "2XX": {
+            "description": "Succès (seul statut typé par orval)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardBootstrap"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
   "components": {
     "schemas": {
       "DashboardBootstrap": {
@@ -15,157 +57,26 @@
           "projects": {
             "type": "array",
             "items": {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "type": "string"
-                },
-                "title": {
-                  "type": "string"
-                },
-                "progress": {
-                  "type": "number"
-                },
-                "status": {
-                  "type": "string",
-                  "enum": [
-                    "todo",
-                    "in-progress",
-                    "review",
-                    "done"
-                  ]
-                },
-                "dueDate": {
-                  "type": "string"
-                }
-              },
-              "required": [
-                "id",
-                "title",
-                "progress",
-                "status",
-                "dueDate"
-              ]
+              "$ref": "#/components/schemas/DashboardBootstrapProjectsItem"
             }
           },
           "tasks": {
             "type": "array",
             "items": {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "type": "string"
-                },
-                "title": {
-                  "type": "string"
-                },
-                "dueDate": {
-                  "type": "string"
-                },
-                "priority": {
-                  "type": "string",
-                  "enum": [
-                    "high",
-                    "medium",
-                    "low"
-                  ]
-                },
-                "completed": {
-                  "type": "boolean"
-                },
-                "projectId": {
-                  "type": "string"
-                }
-              },
-              "required": [
-                "id",
-                "title",
-                "dueDate",
-                "priority",
-                "completed",
-                "projectId"
-              ]
+              "$ref": "#/components/schemas/DashboardBootstrapTasksItem"
             }
           },
           "events": {
             "type": "array",
             "items": {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "anyOf": [
-                    {
-                      "type": "string"
-                    },
-                    {
-                      "type": "number"
-                    }
-                  ]
-                },
-                "title": {
-                  "type": "string"
-                },
-                "date": {
-                  "type": "string"
-                },
-                "startTime": {
-                  "type": "string"
-                },
-                "location": {
-                  "type": "string"
-                }
-              },
-              "required": [
-                "id",
-                "title",
-                "date"
-              ]
+              "$ref": "#/components/schemas/DashboardBootstrapEventsItem"
             }
           },
           "metrics": {
-            "type": "object",
-            "properties": {
-              "totalProjects": {
-                "type": [
-                  "number",
-                  "null"
-                ]
-              }
-            },
-            "required": [
-              "totalProjects"
-            ]
+            "$ref": "#/components/schemas/DashboardBootstrapMetrics"
           },
           "sources": {
-            "type": "object",
-            "properties": {
-              "projects": {
-                "type": "string",
-                "enum": [
-                  "available",
-                  "unavailable"
-                ]
-              },
-              "tasks": {
-                "type": "string",
-                "enum": [
-                  "available",
-                  "unavailable"
-                ]
-              },
-              "calendar": {
-                "type": "string",
-                "enum": [
-                  "available",
-                  "unavailable"
-                ]
-              }
-            },
-            "required": [
-              "projects",
-              "tasks",
-              "calendar"
-            ]
+            "$ref": "#/components/schemas/DashboardBootstrapSources"
           }
         },
         "required": [
@@ -176,61 +87,164 @@
           "metrics",
           "sources"
         ]
-      }
-    },
-    "parameters": {}
-  },
-  "paths": {
-    "/health": {
-      "get": {
-        "tags": [
-          "Connectivity"
-        ],
-        "summary": "Vérifie la santé du BFF",
-        "responses": {
-          "200": {
-            "description": "OK"
+      },
+      "DashboardBootstrapEventsItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": [
+              "string",
+              "number"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string"
+          },
+          "startTime": {
+            "type": "string"
+          },
+          "location": {
+            "type": "string"
           }
-        }
-      }
-    },
-    "/check_apis": {
-      "get": {
-        "responses": {
-          "200": {
-            "description": "Services disponibles"
-          },
-          "502": {
-            "description": "Service indisponible"
+        },
+        "required": [
+          "id",
+          "title",
+          "date"
+        ]
+      },
+      "DashboardBootstrapMetrics": {
+        "type": "object",
+        "properties": {
+          "totalProjects": {
+            "type": [
+              "number",
+              "null"
+            ]
           }
-        }
-      }
-    },
-    "/dashboard/bootstrap": {
-      "get": {
-        "responses": {
-          "200": {
-            "description": "Données des mêmes BFF que les pages métier, dans le périmètre de la session",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DashboardBootstrap"
-                }
-              }
-            }
+        },
+        "required": [
+          "totalProjects"
+        ]
+      },
+      "DashboardBootstrapProjectsItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
           },
-          "401": {
-            "description": "Session invalide"
+          "title": {
+            "type": "string"
           },
-          "502": {
-            "description": "Contexte utilisateur indisponible"
+          "progress": {
+            "type": "number"
           },
-          "503": {
-            "description": "Service amont non configuré"
+          "status": {
+            "$ref": "#/components/schemas/DashboardBootstrapProjectsItemStatus"
+          },
+          "dueDate": {
+            "type": "string"
           }
-        }
+        },
+        "required": [
+          "id",
+          "title",
+          "progress",
+          "status",
+          "dueDate"
+        ]
+      },
+      "DashboardBootstrapProjectsItemStatus": {
+        "type": "string",
+        "enum": [
+          "todo",
+          "in-progress",
+          "review",
+          "done"
+        ]
+      },
+      "DashboardBootstrapSources": {
+        "type": "object",
+        "properties": {
+          "projects": {
+            "$ref": "#/components/schemas/DashboardBootstrapSourcesProjects"
+          },
+          "tasks": {
+            "$ref": "#/components/schemas/DashboardBootstrapSourcesTasks"
+          },
+          "calendar": {
+            "$ref": "#/components/schemas/DashboardBootstrapSourcesCalendar"
+          }
+        },
+        "required": [
+          "projects",
+          "tasks",
+          "calendar"
+        ]
+      },
+      "DashboardBootstrapSourcesCalendar": {
+        "type": "string",
+        "enum": [
+          "available",
+          "unavailable"
+        ]
+      },
+      "DashboardBootstrapSourcesProjects": {
+        "type": "string",
+        "enum": [
+          "available",
+          "unavailable"
+        ]
+      },
+      "DashboardBootstrapSourcesTasks": {
+        "type": "string",
+        "enum": [
+          "available",
+          "unavailable"
+        ]
+      },
+      "DashboardBootstrapTasksItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "dueDate": {
+            "type": "string"
+          },
+          "priority": {
+            "$ref": "#/components/schemas/DashboardBootstrapTasksItemPriority"
+          },
+          "completed": {
+            "type": "boolean"
+          },
+          "projectId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "dueDate",
+          "priority",
+          "completed",
+          "projectId"
+        ]
+      },
+      "DashboardBootstrapTasksItemPriority": {
+        "type": "string",
+        "enum": [
+          "high",
+          "medium",
+          "low"
+        ]
       }
     }
-  },
-  "webhooks": {}
+  }
 }
