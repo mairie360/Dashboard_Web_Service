@@ -308,7 +308,7 @@ services:
       - backend
 
   bff-dashboard:
-    image: ${BFF_DASHBOARD_IMAGE:-ghcr.io/mairie360/bff-dashboard:1.0.0}
+    image: ${BFF_DASHBOARD_IMAGE:-ghcr.io/mairie360/bff-dashboard:1.1.0}
     container_name: dashboard-front-sec-bff-dashboard
     depends_on:
       seeder:

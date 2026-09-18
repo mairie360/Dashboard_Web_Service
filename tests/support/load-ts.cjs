@@ -17,6 +17,7 @@ const compilerOptions = {
   // Source maps : la couverture (--enable-source-maps) est rapportée sur les lignes du fichier .ts.
   inlineSourceMap: true,
   inlineSources: true,
+  jsx: ts.JsxEmit.ReactJSX,
 };
 
 const resolveFilename = Module._resolveFilename;
@@ -24,6 +25,8 @@ Module._resolveFilename = function resolveAlias(request, ...rest) {
   return resolveFilename.call(this, request.startsWith('@/') ? path.join(SRC, request.slice(2)) : request, ...rest);
 };
 
-require.extensions['.ts'] = (module, filename) => module._compile(ts.transpileModule(fs.readFileSync(filename, 'utf8'), { compilerOptions, fileName: filename }).outputText, filename);
+const compile = (module, filename) => module._compile(ts.transpileModule(fs.readFileSync(filename, 'utf8'), { compilerOptions, fileName: filename }).outputText, filename);
+require.extensions['.ts'] = compile;
+require.extensions['.tsx'] = compile;
 
 module.exports = { ROOT, SRC };
