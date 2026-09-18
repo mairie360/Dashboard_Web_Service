@@ -13,6 +13,10 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+// Rendu à la demande obligatoire : une page prérendue au build ne porterait pas le
+// nonce CSP propre à chaque requête, et ses scripts seraient bloqués.
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Tableau de bord | Mairie360",
   description: "Vue d’ensemble des activités Mairie360.",
