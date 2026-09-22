@@ -15,6 +15,6 @@ jobs:
     uses: mairie360/CICD/.github/workflows/frontend-cicd.yml@v2.3.3
     with:
       package_name: "dashboard-front"
-      node_version: "23"
+      node_version: "22"
       cicd_version: "v2.3.3"
     secrets: inherit

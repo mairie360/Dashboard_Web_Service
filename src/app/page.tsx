@@ -3,14 +3,17 @@
 import { DashboardModule } from "@mairie360/lib-components";
 import { useEffect, useState } from "react";
 import { requestBff } from "@/lib/bff-client";
-import { type DashboardBootstrap, quickActionTarget, REPORTS_UNAVAILABLE, toDashboardModuleData } from "@/lib/dashboard-view";
+import { frontUrl } from "@/lib/front-urls";
+import { type DashboardBootstrap, type FrontUrls, quickActionTarget, REPORTS_UNAVAILABLE, toDashboardModuleData } from "@/lib/dashboard-view";
 
-const urls = {
-  project: process.env.NEXT_PUBLIC_PROJECT_FRONT_URL ?? "https://project.dev.mairie360-eip.fr/",
-  calendar: process.env.NEXT_PUBLIC_CALENDAR_FRONT_URL ?? "https://calendar.dev.mairie360-eip.fr/",
-  files: process.env.NEXT_PUBLIC_FILES_FRONT_URL ?? "https://files.dev.mairie360-eip.fr/",
-  message: process.env.NEXT_PUBLIC_MESSAGE_FRONT_URL ?? "https://message.dev.mairie360-eip.fr/",
+// Resolved on use from the runtime environment (src/lib/front-urls.ts), never inlined at build time.
+const urls: FrontUrls = {
+  get project() { return frontUrl("PROJECT_FRONT_URL"); },
+  get calendar() { return frontUrl("CALENDAR_FRONT_URL"); },
+  get files() { return frontUrl("FILES_FRONT_URL"); },
+  get message() { return frontUrl("MESSAGE_FRONT_URL"); },
 };
+const goTo = (href: string | undefined) => { if (href) window.location.href = href; };
 export default function Home() {
   const [data, setData] = useState<DashboardBootstrap | null>(null);
   const [error, setError] = useState("");
@@ -33,11 +36,11 @@ export default function Home() {
           onQuickAction={(action) => {
             const target = quickActionTarget(action, urls);
             if (target === null) { setNotice(REPORTS_UNAVAILABLE); return; }
-            window.location.href = target;
+            goTo(target);
           }}
-          onViewAllProjects={() => { window.location.href = urls.project; }} onViewAllTasks={() => { window.location.href = urls.project; }}
-          onProjectSelect={() => { window.location.href = urls.project; }} onTaskSelect={() => { window.location.href = urls.project; }}
-          onOpenCalendar={() => { window.location.href = urls.calendar; }} onEventSelect={() => { window.location.href = urls.calendar; }} />
+          onViewAllProjects={() => { goTo(urls.project); }} onViewAllTasks={() => { goTo(urls.project); }}
+          onProjectSelect={() => { goTo(urls.project); }} onTaskSelect={() => { goTo(urls.project); }}
+          onOpenCalendar={() => { goTo(urls.calendar); }} onEventSelect={() => { goTo(urls.calendar); }} />
       </>}
     </main>
   );
