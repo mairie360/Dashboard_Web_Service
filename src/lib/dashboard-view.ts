@@ -10,7 +10,8 @@ export type { DashboardBootstrap };
 type ModuleProps = ComponentProps<typeof DashboardModule>;
 export type DashboardQuickActionId = Parameters<NonNullable<ModuleProps['onQuickAction']>>[0];
 
-export type FrontUrls = { project: string; calendar: string; files: string; message: string };
+// A URL is undefined when the instance does not configure that front.
+export type FrontUrls = { project?: string; calendar?: string; files?: string; message?: string };
 
 // BFF Calendar accepte YYYY-MM-DD ou DD-MM-YYYY, que BFF_Dashboard relaie tels quels.
 const isoDate = (date: string) => date.replace(/^(\d{2})-(\d{2})-(\d{4})$/, '$3-$2-$1');
@@ -57,8 +58,8 @@ export function toDashboardModuleData(data: DashboardBootstrap) {
   } satisfies Pick<ModuleProps, 'projects' | 'tasks' | 'events'> & Record<string, unknown>;
 }
 
-/** Destination d'une action rapide : URL d'un autre front, ou `null` quand l'action n'est pas disponible. */
-export function quickActionTarget(action: DashboardQuickActionId, urls: FrontUrls): string | null {
+/** Destination of a quick action: another front's URL (undefined when not configured), or `null` when the action is not available. */
+export function quickActionTarget(action: DashboardQuickActionId, urls: FrontUrls): string | null | undefined {
   if (action === 'view-reports') return null;
   if (action === 'schedule-event') return urls.calendar;
   if (action === 'new-document') return urls.files;

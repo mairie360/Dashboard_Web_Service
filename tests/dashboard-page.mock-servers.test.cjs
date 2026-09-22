@@ -16,6 +16,7 @@ const { bootstrapResponse } = require('./support/fixtures.cjs');
 const { ContractMockServer } = require('./support/contract-mock-server.ts');
 const { OpenApiContract } = require('./support/openapi-contract.ts');
 const { REPORTS_UNAVAILABLE } = require('../src/lib/dashboard-view.ts');
+const { setBrowserFrontUrls } = require('../src/lib/front-urls.ts');
 const Home = require('../src/app/page.tsx').default;
 
 const dashboardBff = new ContractMockServer('DASHBOARD_BFF', OpenApiContract.load(path.join(ROOT, 'contracts', 'openapi.json')));
@@ -27,6 +28,8 @@ before(async () => {
   await dashboardBff.start();
   process.env.DASHBOARD_BFF_URL = dashboardBff.url;
   front.allow(dashboardBff.url).install();
+  // What the root layout reads from the runtime environment and hands to the browser.
+  setBrowserFrontUrls({ CALENDAR_FRONT_URL: 'https://calendar.test.example/', PROJECT_FRONT_URL: 'https://project.test.example/' });
 });
 after(async () => {
   front.uninstall();
@@ -118,9 +121,9 @@ test('quick actions either navigate to another front or show the notice for repo
   assert.equal(window.location.href, '');
 
   await view.act(() => view.props('DashboardModule').onQuickAction('schedule-event'));
-  assert.equal(window.location.href, process.env.NEXT_PUBLIC_CALENDAR_FRONT_URL ?? 'https://calendar.dev.mairie360-eip.fr/');
+  assert.equal(window.location.href, 'https://calendar.test.example/');
 
   await view.act(() => view.props('DashboardModule').onViewAllProjects());
-  assert.equal(window.location.href, process.env.NEXT_PUBLIC_PROJECT_FRONT_URL ?? 'https://project.dev.mairie360-eip.fr/');
+  assert.equal(window.location.href, 'https://project.test.example/');
   assert.deepEqual(upstreamCalls(), ['GET /dashboard/bootstrap'], 'navigation never calls the BFF again');
 });
