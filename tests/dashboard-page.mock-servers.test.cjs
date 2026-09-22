@@ -29,7 +29,12 @@ before(async () => {
   process.env.DASHBOARD_BFF_URL = dashboardBff.url;
   front.allow(dashboardBff.url).install();
   // What the root layout reads from the runtime environment and hands to the browser.
-  setBrowserFrontUrls({ CALENDAR_FRONT_URL: 'https://calendar.test.example/', PROJECT_FRONT_URL: 'https://project.test.example/' });
+  setBrowserFrontUrls({
+    CALENDAR_FRONT_URL: 'https://calendar.test.example/',
+    PROJECT_FRONT_URL: 'https://project.test.example/',
+    FILES_FRONT_URL: 'https://files.test.example/',
+    MESSAGE_FRONT_URL: 'https://message.test.example/',
+  });
 });
 after(async () => {
   front.uninstall();
@@ -125,5 +130,11 @@ test('quick actions either navigate to another front or show the notice for repo
 
   await view.act(() => view.props('DashboardModule').onViewAllProjects());
   assert.equal(window.location.href, 'https://project.test.example/');
+
+  await view.act(() => view.props('DashboardModule').onQuickAction('new-document'));
+  assert.equal(window.location.href, 'https://files.test.example/');
+
+  await view.act(() => view.props('DashboardModule').onQuickAction('contact-team'));
+  assert.equal(window.location.href, 'https://message.test.example/');
   assert.deepEqual(upstreamCalls(), ['GET /dashboard/bootstrap'], 'navigation never calls the BFF again');
 });
