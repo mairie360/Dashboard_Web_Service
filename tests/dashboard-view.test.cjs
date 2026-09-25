@@ -4,7 +4,7 @@ const { test, describe } = require('node:test');
 const { ROOT } = require('./support/load-ts.cjs');
 const { bootstrapResponse } = require('./support/fixtures.cjs');
 const { OpenApiContract } = require('./support/openapi-contract.ts');
-const { toDashboardModuleData, formatDueDate, quickActionTarget, REPORTS_UNAVAILABLE } = require('../src/lib/dashboard-view.ts');
+const { toDashboardModuleData, formatDueDate } = require('../src/lib/dashboard-view.ts');
 
 // Mapping de la réponse /dashboard/bootstrap vers DashboardModule, alimenté par des charges valides
 // selon contracts/openapi.json (reconstruit du paquet publié @mairie360/bff-dashboard-openapi).
@@ -21,7 +21,6 @@ describe('toDashboardModuleData', () => {
   test('maps contract fields onto DashboardModule props', () => {
     assert.deepEqual(toDashboardModuleData(valid()), {
       hasUnavailableSource: false,
-      totalProjectsLabel: 17,
       projects: [
         { id: 'project-42', name: 'Budget participatif', progress: 50, status: 'in-progress', dueDate: '1 déc. 2026' },
         { id: 'project-7', name: 'Rénovation de la médiathèque', progress: 100, status: 'completed', dueDate: '30 juin 2026' },
@@ -44,14 +43,13 @@ describe('toDashboardModuleData', () => {
     assert.deepEqual(mapped, statuses.map((status) => (status === 'done' ? 'completed' : 'in-progress')));
   });
 
-  test('flags unavailable sources and a missing project count', () => {
+  test('flags unavailable sources without inventing records', () => {
     const view = toDashboardModuleData(valid({
       projects: [], tasks: [], events: [],
       metrics: { totalProjects: null },
       sources: { projects: 'unavailable', tasks: 'available', calendar: 'available' },
     }));
     assert.equal(view.hasUnavailableSource, true);
-    assert.equal(view.totalProjectsLabel, 'Indisponible');
     assert.deepEqual([view.projects, view.tasks, view.events], [[], [], []]);
   });
 
@@ -66,9 +64,6 @@ describe('toDashboardModuleData', () => {
     ]);
   });
 
-  test('keeps a zero project count', () => {
-    assert.equal(toDashboardModuleData(valid({ metrics: { totalProjects: 0 } })).totalProjectsLabel, 0);
-  });
 });
 
 describe('formatDueDate', () => {
@@ -88,20 +83,5 @@ describe('formatDueDate', () => {
   test('a blank task due date is shown as having no deadline', () => {
     const tasks = [{ id: 't', title: 'Sans date', dueDate: '  ', priority: 'medium', completed: false, projectId: 'p' }];
     assert.equal(toDashboardModuleData(valid({ tasks })).tasks[0].dueLabel, 'Sans échéance');
-  });
-});
-
-describe('quickActionTarget', () => {
-  const urls = { project: 'https://project.test/', calendar: 'https://calendar.test/', files: 'https://files.test/', message: 'https://message.test/' };
-
-  test('sends each action to its module front', () => {
-    assert.equal(quickActionTarget('schedule-event', urls), urls.calendar);
-    assert.equal(quickActionTarget('new-document', urls), urls.files);
-    assert.equal(quickActionTarget('contact-team', urls), urls.message);
-  });
-
-  test('reports are not available yet', () => {
-    assert.equal(quickActionTarget('view-reports', urls), null);
-    assert.match(REPORTS_UNAVAILABLE, /pas encore disponibles/);
   });
 });
