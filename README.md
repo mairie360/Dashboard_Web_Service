@@ -13,6 +13,12 @@ Afficher une synthèse personnalisée des projets, tâches et événements, avec
 
 The guides describe the implemented module, its current limitations, local setup, routes, data, verification and CI/CD.
 
+`npm test` runs the existing contract/network suite and the Vitest component
+suite. Use `npm run test:components` to check the dashboard's bootstrap states,
+real-data rendering, keyboard focus and serious/critical axe findings alone.
+The component fixtures are synthetic and stay in `tests/`; they are never
+rendered in production.
+
 Les guides décrivent le module implémenté, ses limites actuelles, le démarrage local, les routes, les données, les vérifications et la CI/CD.
 
 ## Contracts and background / Contrats et compléments
