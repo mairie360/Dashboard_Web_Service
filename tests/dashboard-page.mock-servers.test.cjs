@@ -137,11 +137,27 @@ test('real sections navigate to the configured project and calendar fronts', asy
   assert.deepEqual(upstreamCalls(), ['GET /dashboard/bootstrap'], 'navigation never calls the BFF again');
 });
 
+test('selecting an upcoming event deep-links to its date and ID without another BFF call', async () => {
+  setBrowserFrontUrls({ CALENDAR_FRONT_URL: 'https://calendar.test.example/?source=dashboard' });
+  await renderLoadedPage();
+
+  const section = view.props('DashboardUpcomingEvents');
+  await view.act(() => section.onSelect(section.events[0]));
+
+  const destination = new URL(window.location.href);
+  assert.equal(destination.origin, 'https://calendar.test.example');
+  assert.equal(destination.searchParams.get('source'), 'dashboard');
+  assert.equal(destination.searchParams.get('date'), section.events[0].startsAt.slice(0, 10));
+  assert.equal(destination.searchParams.get('event'), section.events[0].id);
+  assert.deepEqual(upstreamCalls(), ['GET /dashboard/bootstrap']);
+});
+
 test('section actions do not navigate when their front URL is not configured', async () => {
   setBrowserFrontUrls({});
   await renderLoadedPage();
 
   await view.act(() => view.props('DashboardRecentProjects').onViewAll());
   await view.act(() => view.props('DashboardUpcomingEvents').onOpenCalendar());
+  await view.act(() => view.props('DashboardUpcomingEvents').onSelect(view.props('DashboardUpcomingEvents').events[0]));
   assert.equal(window.location.href, '');
 });

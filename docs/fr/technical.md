@@ -14,6 +14,8 @@ flowchart LR
 
 La page charge une seule réponse bootstrap, mappe ses données vers `DashboardModule` et affiche les indisponibilités. Les actions rapides naviguent vers les interfaces concernées. Les rapports restent annoncés comme indisponibles.
 
+La sélection d’un événement à venir utilise `CALENDAR_FRONT_URL` fourni à l’exécution et ajoute les paramètres `date` (`YYYY-MM-DD`) et `event` (identifiant). Les paramètres existants sont conservés; l’action générale Calendrier ouvre toujours son URL de base. La page ne contient ni événement de démonstration ni hôte de déploiement en dur.
+
 Le proxy générique lit le contrat OpenAPI versionné pour autoriser chemins et méthodes. Il conserve paramètres de requête, corps binaire, statuts et en-têtes utiles, filtre les en-têtes de transport, désactive le cache et n’effectue pas de suivi automatique des redirections. Son délai est de 15 secondes.
 
 ## Données et persistance

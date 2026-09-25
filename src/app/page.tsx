@@ -16,6 +16,15 @@ const urls = {
   get calendar() { return frontUrl("CALENDAR_FRONT_URL"); },
 };
 const goTo = (href: string | undefined) => { if (href) window.location.href = href; };
+const goToCalendarEvent = (event: { id: string; startsAt: string }) => {
+  const calendarUrl = urls.calendar;
+  if (!calendarUrl) return;
+
+  const destination = new URL(calendarUrl);
+  destination.searchParams.set("date", event.startsAt.slice(0, 10));
+  destination.searchParams.set("event", event.id);
+  goTo(destination.toString());
+};
 export default function Home() {
   const [data, setData] = useState<DashboardBootstrap | null>(null);
   const [error, setError] = useState("");
@@ -41,7 +50,7 @@ export default function Home() {
             <DashboardPendingTasks tasks={view.tasks}
               onViewAll={() => goTo(urls.project)} onSelect={() => goTo(urls.project)} />
             <DashboardUpcomingEvents className="xl:col-span-2" events={view.events}
-              onOpenCalendar={() => goTo(urls.calendar)} onSelect={() => goTo(urls.calendar)} />
+              onOpenCalendar={() => goTo(urls.calendar)} onSelect={goToCalendarEvent} />
           </div>
         </section>
       </>}
