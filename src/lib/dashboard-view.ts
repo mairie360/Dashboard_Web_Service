@@ -8,10 +8,6 @@ import type { DashboardBootstrap } from '@mairie360/bff-dashboard-openapi/model'
 // Type du contrat publié (paquet @mairie360/bff-dashboard-openapi épinglé en X.X.X).
 export type { DashboardBootstrap };
 type ModuleProps = ComponentProps<typeof DashboardModule>;
-export type DashboardQuickActionId = Parameters<NonNullable<ModuleProps['onQuickAction']>>[0];
-
-// A URL is undefined when the instance does not configure that front.
-export type FrontUrls = { project?: string; calendar?: string; files?: string; message?: string };
 
 // BFF Calendar accepte YYYY-MM-DD ou DD-MM-YYYY, que BFF_Dashboard relaie tels quels.
 const isoDate = (date: string) => date.replace(/^(\d{2})-(\d{2})-(\d{4})$/, '$3-$2-$1');
@@ -31,12 +27,9 @@ export function formatDueDate(value: string): string {
   return (DATE_ONLY.test(normalized) ? dateOnlyFormat : instantFormat).format(timestamp);
 }
 
-export const REPORTS_UNAVAILABLE = 'Les rapports ne sont pas encore disponibles.';
-
 export function toDashboardModuleData(data: DashboardBootstrap) {
   return {
     hasUnavailableSource: Object.values(data.sources).includes('unavailable'),
-    totalProjectsLabel: data.metrics.totalProjects ?? 'Indisponible',
     projects: data.projects.map((project) => ({
       id: project.id,
       name: project.title,
@@ -56,12 +49,4 @@ export function toDashboardModuleData(data: DashboardBootstrap) {
       return Number.isNaN(Date.parse(startsAt)) ? [] : [{ id: String(event.id), title: event.title, location: event.location ?? '', startsAt }];
     }),
   } satisfies Pick<ModuleProps, 'projects' | 'tasks' | 'events'> & Record<string, unknown>;
-}
-
-/** Destination of a quick action: another front's URL (undefined when not configured), or `null` when the action is not available. */
-export function quickActionTarget(action: DashboardQuickActionId, urls: FrontUrls): string | null | undefined {
-  if (action === 'view-reports') return null;
-  if (action === 'schedule-event') return urls.calendar;
-  if (action === 'new-document') return urls.files;
-  return urls.message;
 }

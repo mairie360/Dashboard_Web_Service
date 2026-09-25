@@ -5,7 +5,7 @@ const { ROOT } = require('./support/load-ts.cjs');
 const { installReactRuntime, mount } = require('./support/server-view.cjs');
 
 // HTML of the dashboard page (src/app/page.tsx) rendered with react-dom/server against the mocked
-// BFF_Dashboard: the real page and the real DashboardModule of @mairie360/lib-components are rendered, the
+// BFF_Dashboard: the real page and the Dashboard section components of @mairie360/lib-components are rendered, the
 // hook state is kept between render passes (tests/support/server-view.cjs), so the markup reflects what the
 // BFF answered through the contract-gated proxy.
 
@@ -15,7 +15,6 @@ const { FrontApp } = require('./support/front-app.cjs');
 const { bootstrapResponse } = require('./support/fixtures.cjs');
 const { ContractMockServer } = require('./support/contract-mock-server.ts');
 const { OpenApiContract } = require('./support/openapi-contract.ts');
-const { REPORTS_UNAVAILABLE } = require('../src/lib/dashboard-view.ts');
 const { setBrowserFrontUrls } = require('../src/lib/front-urls.ts');
 const Home = require('../src/app/page.tsx').default;
 
@@ -67,29 +66,38 @@ test('the first pass renders the loading state, the next one the data of GET /da
 
   assert.equal(view.passes, 1);
   assert.match(view.html, /<p role="status">Chargement du tableau de bord…<\/p>/);
-  assert.equal(view.find('DashboardModule').length, 0);
+  assert.equal(view.find('DashboardRecentProjects').length, 0);
 
   const html = await view.waitFor((current) => !current.includes('Chargement du tableau de bord'));
 
   assert.deepEqual(upstreamCalls(), ['GET /dashboard/bootstrap']);
   assert.equal(dashboardBff.requests[0].headers.authorization, `Bearer ${TOKEN}`);
   assert.doesNotMatch(html, /role="alert"/);
-  assert.match(view.text(), /Projets accessibles : 17\./);
+  assert.match(view.text(), /Bienvenue Alice/);
+  assert.doesNotMatch(view.text(), /Projets accessibles|Actions rapides|Voir les rapports/);
   for (const expected of ['Budget participatif', 'Rénovation de la médiathèque', 'Validation', 'Relecture', 'Conseil municipal', 'Permanence']) {
     assert.match(view.text(), new RegExp(expected), `${expected} is rendered`);
   }
-  const module = view.props('DashboardModule');
-  assert.equal(module.userFirstName, 'Alice');
-  assert.deepEqual(module.projects.map((project) => project.status), ['in-progress', 'completed']);
+  assert.deepEqual(view.props('DashboardRecentProjects').projects.map((project) => project.status), ['in-progress', 'completed']);
+  assert.equal(view.find('DashboardQuickActions').length, 0);
   assert.match(view.text(), /1 déc\. 2026/);
   assert.match(view.text(), /Sans échéance/);
 });
 
-test('an unavailable source is announced above the module', async () => {
+test('an unavailable source is announced above the real sections', async () => {
   const html = await renderLoadedPage(bootstrapResponse({ sources: { projects: 'available', tasks: 'unavailable', calendar: 'available' } }));
 
   assert.match(html, /<p role="status"[^>]*>Certaines données sont temporairement indisponibles\.<\/p>/);
   assert.match(view.text(), /Budget participatif/);
+});
+
+test('empty BFF collections stay empty instead of showing library fixtures', async () => {
+  const html = await renderLoadedPage(bootstrapResponse({ projects: [], tasks: [], events: [], metrics: { totalProjects: 0 } }));
+
+  assert.match(html, /Aucun projet récent\./);
+  assert.match(html, /Aucune tâche en attente\./);
+  assert.match(html, /Aucun événement à venir\./);
+  assert.doesNotMatch(html, /Actions rapides|Voir les rapports|Budget participatif|Conseil municipal/);
 });
 
 test('a BFF error is rendered as an alert and the dashboard stays unavailable', async () => {
@@ -100,7 +108,7 @@ test('a BFF error is rendered as an alert and the dashboard stays unavailable', 
 
   assert.match(html, /<p role="alert"[^>]*>BFF Project injoignable<\/p>/);
   assert.match(html, /<p role="status">Le tableau de bord est indisponible\.<\/p>/);
-  assert.equal(view.find('DashboardModule').length, 0);
+  assert.equal(view.find('DashboardRecentProjects').length, 0);
 });
 
 test('an unreachable proxy target becomes the controlled error of the page', async () => {
@@ -117,24 +125,23 @@ test('an unreachable proxy target becomes the controlled error of the page', asy
   }
 });
 
-test('quick actions either navigate to another front or show the notice for reports', async () => {
+test('real sections navigate to the configured project and calendar fronts', async () => {
   await renderLoadedPage();
-  const module = view.props('DashboardModule');
-
-  await view.act(() => module.onQuickAction('view-reports'));
-  assert.match(view.html, new RegExp(`<p role="status"[^>]*>${REPORTS_UNAVAILABLE.replace('.', '\\.')}</p>`));
-  assert.equal(window.location.href, '');
-
-  await view.act(() => view.props('DashboardModule').onQuickAction('schedule-event'));
-  assert.equal(window.location.href, 'https://calendar.test.example/');
-
-  await view.act(() => view.props('DashboardModule').onViewAllProjects());
+  assert.doesNotMatch(view.html, /Actions rapides|Voir les rapports|Projets accessibles/);
+  await view.act(() => view.props('DashboardRecentProjects').onViewAll());
   assert.equal(window.location.href, 'https://project.test.example/');
-
-  await view.act(() => view.props('DashboardModule').onQuickAction('new-document'));
-  assert.equal(window.location.href, 'https://files.test.example/');
-
-  await view.act(() => view.props('DashboardModule').onQuickAction('contact-team'));
-  assert.equal(window.location.href, 'https://message.test.example/');
+  await view.act(() => view.props('DashboardPendingTasks').onSelect(view.props('DashboardPendingTasks').tasks[0]));
+  assert.equal(window.location.href, 'https://project.test.example/');
+  await view.act(() => view.props('DashboardUpcomingEvents').onOpenCalendar());
+  assert.equal(window.location.href, 'https://calendar.test.example/');
   assert.deepEqual(upstreamCalls(), ['GET /dashboard/bootstrap'], 'navigation never calls the BFF again');
+});
+
+test('section actions do not navigate when their front URL is not configured', async () => {
+  setBrowserFrontUrls({});
+  await renderLoadedPage();
+
+  await view.act(() => view.props('DashboardRecentProjects').onViewAll());
+  await view.act(() => view.props('DashboardUpcomingEvents').onOpenCalendar());
+  assert.equal(window.location.href, '');
 });
