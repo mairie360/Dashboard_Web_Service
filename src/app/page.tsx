@@ -16,6 +16,15 @@ const urls = {
   get calendar() { return frontUrl("CALENDAR_FRONT_URL"); },
 };
 const goTo = (href: string | undefined) => { if (href) window.location.href = href; };
+const goToProject = (projectId: string, taskId?: string) => {
+  const projectUrl = urls.project;
+  if (!projectUrl || !projectId) return;
+
+  const destination = new URL(projectUrl);
+  destination.searchParams.set("project", projectId);
+  if (taskId) destination.searchParams.set("task", taskId);
+  goTo(destination.toString());
+};
 const goToCalendarEvent = (event: { id: string; startsAt: string }) => {
   const calendarUrl = urls.calendar;
   if (!calendarUrl) return;
@@ -46,9 +55,13 @@ export default function Home() {
           </header>
           <div className="grid gap-6 xl:grid-cols-2">
             <DashboardRecentProjects projects={view.projects}
-              onViewAll={() => goTo(urls.project)} onSelect={() => goTo(urls.project)} />
+              onViewAll={() => goTo(urls.project)} onSelect={(project) => goToProject(project.id)} />
             <DashboardPendingTasks tasks={view.tasks}
-              onViewAll={() => goTo(urls.project)} onSelect={() => goTo(urls.project)} />
+              onViewAll={() => goTo(urls.project)} onSelect={(selected) => {
+                const task = data.tasks.find((candidate: { projectId: string; id: string }) =>
+                  `${candidate.projectId}:${candidate.id}` === selected.id);
+                if (task) goToProject(task.projectId, task.id);
+              }} />
             <DashboardUpcomingEvents className="xl:col-span-2" events={view.events}
               onOpenCalendar={() => goTo(urls.calendar)} onSelect={goToCalendarEvent} />
           </div>

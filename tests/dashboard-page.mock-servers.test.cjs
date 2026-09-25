@@ -130,11 +130,28 @@ test('real sections navigate to the configured project and calendar fronts', asy
   assert.doesNotMatch(view.html, /Actions rapides|Voir les rapports|Projets accessibles/);
   await view.act(() => view.props('DashboardRecentProjects').onViewAll());
   assert.equal(window.location.href, 'https://project.test.example/');
+  await view.act(() => view.props('DashboardRecentProjects').onSelect(view.props('DashboardRecentProjects').projects[0]));
+  assert.equal(window.location.href, 'https://project.test.example/?project=project-42');
   await view.act(() => view.props('DashboardPendingTasks').onSelect(view.props('DashboardPendingTasks').tasks[0]));
-  assert.equal(window.location.href, 'https://project.test.example/');
+  assert.equal(window.location.href, 'https://project.test.example/?project=project-42&task=task-2');
   await view.act(() => view.props('DashboardUpcomingEvents').onOpenCalendar());
   assert.equal(window.location.href, 'https://calendar.test.example/');
   assert.deepEqual(upstreamCalls(), ['GET /dashboard/bootstrap'], 'navigation never calls the BFF again');
+});
+
+test('project links preserve configured query values and encode BFF identifiers', async () => {
+  setBrowserFrontUrls({ PROJECT_FRONT_URL: 'https://project.test.example/?source=dashboard' });
+  await renderLoadedPage(bootstrapResponse({
+    projects: [{ id: 'project/42', title: 'Budget', progress: 0, status: 'review', dueDate: '2026-12-01' }],
+    tasks: [{ id: 'task & 2', title: 'Validation', dueDate: '', priority: 'high', completed: false, projectId: 'project/42' }],
+  }));
+
+  await view.act(() => view.props('DashboardPendingTasks').onSelect(view.props('DashboardPendingTasks').tasks[0]));
+  const destination = new URL(window.location.href);
+  assert.equal(destination.searchParams.get('source'), 'dashboard');
+  assert.equal(destination.searchParams.get('project'), 'project/42');
+  assert.equal(destination.searchParams.get('task'), 'task & 2');
+  assert.deepEqual(upstreamCalls(), ['GET /dashboard/bootstrap']);
 });
 
 test('selecting an upcoming event deep-links to its date and ID without another BFF call', async () => {
@@ -157,6 +174,8 @@ test('section actions do not navigate when their front URL is not configured', a
   await renderLoadedPage();
 
   await view.act(() => view.props('DashboardRecentProjects').onViewAll());
+  await view.act(() => view.props('DashboardRecentProjects').onSelect(view.props('DashboardRecentProjects').projects[0]));
+  await view.act(() => view.props('DashboardPendingTasks').onSelect(view.props('DashboardPendingTasks').tasks[0]));
   await view.act(() => view.props('DashboardUpcomingEvents').onOpenCalendar());
   await view.act(() => view.props('DashboardUpcomingEvents').onSelect(view.props('DashboardUpcomingEvents').events[0]));
   assert.equal(window.location.href, '');
