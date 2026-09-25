@@ -14,6 +14,8 @@ flowchart LR
 
 The page loads one bootstrap response, maps it to `DashboardModule` and displays source unavailability. Quick actions navigate to the relevant interfaces. Reports remain marked as unavailable.
 
+An upcoming-event selection uses the runtime `CALENDAR_FRONT_URL` and appends the mapped event's `date` (`YYYY-MM-DD`) and `event` (ID) query parameters. Existing query parameters are preserved; the general Calendar action still opens its configured base URL. No event fixture or deployment host is embedded in the page.
+
 The generic proxy reads the versioned OpenAPI contract to allow paths and methods. It preserves query parameters, binary bodies, statuses and useful headers, filters transport headers, disables caching and does not automatically follow redirects. Its timeout is 15 seconds.
 
 ## Data and persistence

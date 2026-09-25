@@ -15,12 +15,13 @@ Business domain: Dashboard.
 - Display aggregated `/dashboard/bootstrap` data.
 - Report temporarily unavailable sources.
 - Navigate to Projects, Calendar, Messages and Files through configurable URLs.
+- Open an upcoming event directly in Calendar from its dashboard card.
 
 ## Typical workflow
 
 1. Load `/dashboard/bootstrap` with the session.
 2. Inspect available projects, tasks and events.
-3. Open the relevant business module to continue an action.
+3. Open the relevant business module, or select an event to see it in Calendar.
 
 ## Role within Mairie360
 

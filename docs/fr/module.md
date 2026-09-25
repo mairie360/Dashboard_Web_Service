@@ -15,12 +15,13 @@ Domaine fonctionnel: Tableau de bord.
 - Affichage des données agrégées de `/dashboard/bootstrap`.
 - Signalement des sources temporairement indisponibles.
 - Navigation vers Projets, Calendrier, Messages et Fichiers par URL configurable.
+- Ouverture directe d’un événement du tableau de bord dans Calendrier.
 
 ## Parcours type
 
 1. Charger `/dashboard/bootstrap` avec la session.
 2. Consulter les projets, tâches et événements disponibles.
-3. Ouvrir le module métier concerné pour poursuivre une action.
+3. Ouvrir le module métier concerné ou sélectionner un événement pour le voir dans Calendrier.
 
 ## Place dans Mairie360
 
