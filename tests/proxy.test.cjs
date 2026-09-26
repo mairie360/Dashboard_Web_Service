@@ -4,9 +4,18 @@ require('./support/load-ts.cjs');
 const { NextRequest } = require('next/server');
 const { proxyBffRequest, forwardToBff } = require('../src/lib/bff-proxy.ts');
 const originalFetch = global.fetch;
-afterEach(() => { global.fetch = originalFetch; });
+const originalBffUrl = process.env.DASHBOARD_BFF_URL;
+const originalFallbackUrl = process.env.BFF_DASHBOARD_BASE_URL;
+afterEach(() => {
+  global.fetch = originalFetch;
+  if (originalBffUrl === undefined) delete process.env.DASHBOARD_BFF_URL;
+  else process.env.DASHBOARD_BFF_URL = originalBffUrl;
+  if (originalFallbackUrl === undefined) delete process.env.BFF_DASHBOARD_BASE_URL;
+  else process.env.BFF_DASHBOARD_BASE_URL = originalFallbackUrl;
+});
 
 test('proxy preserves query, authorization, data, and upstream status', async () => {
+  process.env.DASHBOARD_BFF_URL = 'http://bff.example';
   let called;
   global.fetch = async (url, init) => { called = { url: String(url), init }; return Response.json({ id: '42', value: null }, { status: 201 }); };
   const request = new NextRequest('http://localhost/health?q=a%26b', { headers: { cookie: 'accessToken=test-session', Authorization: 'Bearer explicit-session' } });
@@ -42,3 +51,24 @@ test('unavailable BFF produces a controlled error', async () => {
   const result = await forwardToBff(new NextRequest('http://localhost/health'), 'http://bff.example', '/health');
   assert.equal(result.status, 502); assert.equal(result.headers.get('Cache-Control'), 'no-store');
 });
+
+for (const [name, value] of [
+  ['missing', undefined],
+  ['empty', ''],
+  ['malformed', 'not-a-url'],
+  ['unsupported protocol', 'file:///tmp/bff'],
+  ['embedded credentials', 'http://user:password@example.test'],
+]) {
+  test(`${name} BFF URL returns an uncached 503 without an upstream call`, async () => {
+    if (value === undefined) delete process.env.DASHBOARD_BFF_URL;
+    else process.env.DASHBOARD_BFF_URL = value;
+    delete process.env.BFF_DASHBOARD_BASE_URL;
+    global.fetch = async () => { throw new Error('must not be called'); };
+
+    const response = await proxyBffRequest(new NextRequest('http://localhost/health'), { params: Promise.resolve({ path: ['health'] }) });
+
+    assert.equal(response.status, 503);
+    assert.equal(response.headers.get('Cache-Control'), 'no-store');
+    assert.deepEqual(await response.json(), { error: { message: 'Le service n’est pas configuré.' } });
+  });
+}
