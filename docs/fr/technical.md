@@ -125,9 +125,9 @@ Pour une modification uniquement documentaire, vérifier les liens, l’exactitu
 
 ## CI/CD et exécution Docker
 
-Le job `contracts.yml` utilise Node.js 22, `actions/checkout@v7` et `actions/setup-node@v7`. Il s’exécute sur push, pull request et lancement manuel; il installe avec `npm ci`, contrôle les contrats et lance les tests dédiés.
+Le job `contracts.yml` utilise Node.js 24 et des références de commit immuables pour `actions/checkout` et `actions/setup-node` (tous deux v7). Il s’exécute sur push, pull request et lancement manuel; il installe avec `npm ci`, contrôle les contrats et lance les tests dédiés.
 
-`cicd.yml` appelle `mairie360/CICD/.github/workflows/frontend-cicd.yml@v2.3.1`, avec `cicd_version: v2.3.1` et `node_version: "23"`. Les étapes réutilisables et les environnements GitHub déterminent les contrôles, publications et déploiements effectifs.
+`cicd.yml` appelle `mairie360/CICD/.github/workflows/frontend-cicd.yml@v3.1.1`, avec `cicd_version: v3.1.1` et `node_version: "24"`. Le job Semgrep requis s’exécute avec le lint et l’audit npm ; seuls les secrets Codecov et n8n déclarés par le workflow réutilisable sont transmis. `.npmrc` impose un âge minimal de sept jours aux nouvelles résolutions de paquets, sans exclusion. Les étapes réutilisables et les environnements GitHub déterminent les contrôles, publications et déploiements effectifs.
 
 Le Dockerfile utilise par défaut `NODE_VERSION=23.1.0` et le build Next.js `standalone`; la commande de l’image est `["node", "server.js"]`. Le port de l’image et les mappings Compose peuvent différer du port local proposé plus haut.
 
