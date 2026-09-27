@@ -48,7 +48,7 @@ export default function Home() {
       {error && <p role="alert" className="mb-4 rounded bg-white p-4 text-red-700">{error}</p>}
       {!data || !view ? <p role="status">{error ? "Le tableau de bord est indisponible." : "Chargement du tableau de bord…"}</p> : <>
         {view.hasUnavailableSource && <p role="status" className="mb-4 rounded bg-white p-4">Certaines données sont temporairement indisponibles.</p>}
-        <section className="mx-auto max-w-[1520px] space-y-6">
+        <section className="mx-auto max-w-[1520px] space-y-4">
           <header>
             <h1 className="text-[28px] font-bold leading-tight">Tableau de Bord</h1>
             <p className="mt-1 text-base text-[#687385]">Bienvenue {data.userFirstName}, voici un aperçu de vos activités</p>
