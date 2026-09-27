@@ -67,6 +67,26 @@ describe("Dashboard page", () => {
     expect(screen.queryByRole("button", { name: /Projet test|Tâche test|Événement test/ })).toBeNull();
   });
 
+  it("keeps upcoming events in a responsive grid without changing their chronological order", async () => {
+    vi.mocked(requestBff).mockResolvedValue(bootstrap({
+      events: [
+        { id: 3, title: "Dernier rendez-vous", date: "2026-09-24", startTime: "14:00", location: "Salle C" },
+        { id: 1, title: "Premier rendez-vous", date: "2026-09-22", startTime: "09:00", location: "Salle A" },
+        { id: 2, title: "Deuxième rendez-vous", date: "2026-09-23", startTime: "11:00", location: "Salle B" },
+      ],
+    }));
+    await openDashboard();
+
+    const events = screen.getByRole("heading", { name: "Événements à venir" }).closest("section");
+    expect(events.classList.contains("dashboard-upcoming-events-grid")).toBe(true);
+    expect(within(events).getAllByRole("button").slice(1).map((button) => button.textContent)).toEqual([
+      expect.stringContaining("Premier rendez-vous"),
+      expect.stringContaining("Deuxième rendez-vous"),
+      expect.stringContaining("Dernier rendez-vous"),
+    ]);
+    expect(within(events).getByRole("button", { name: "Calendrier" })).toBeTruthy();
+  });
+
   it("warns when one BFF source is unavailable without inventing its data", async () => {
     vi.mocked(requestBff).mockResolvedValue(bootstrap({
       events: [],

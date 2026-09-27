@@ -62,7 +62,7 @@ export default function Home() {
                   `${candidate.projectId}:${candidate.id}` === selected.id);
                 if (task) goToProject(task.projectId, task.id);
               }} />
-            <DashboardUpcomingEvents className="xl:col-span-2" events={view.events}
+            <DashboardUpcomingEvents className="dashboard-upcoming-events-grid xl:col-span-2" events={view.events}
               onOpenCalendar={() => goTo(urls.calendar)} onSelect={goToCalendarEvent} />
           </div>
         </section>
