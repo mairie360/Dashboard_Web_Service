@@ -125,9 +125,9 @@ For documentation-only changes, check links, accuracy in both languages and `git
 
 ## CI/CD and Docker execution
 
-The `contracts.yml` job uses Node.js 22, `actions/checkout@v7` and `actions/setup-node@v7`. It runs on pushes, pull requests and manual dispatch; it installs with `npm ci`, checks contracts and runs the associated tests.
+The `contracts.yml` job uses Node.js 24 and immutable commit references for `actions/checkout` and `actions/setup-node` (both v7). It runs on pushes, pull requests and manual dispatch; it installs with `npm ci`, checks contracts and runs the associated tests.
 
-`cicd.yml` calls `mairie360/CICD/.github/workflows/frontend-cicd.yml@v2.3.1`, with `cicd_version: v2.3.1` and `node_version: "23"`. Reusable steps and GitHub environments determine actual checks, publications and deployments.
+`cicd.yml` calls `mairie360/CICD/.github/workflows/frontend-cicd.yml@v3.1.1`, with `cicd_version: v3.1.1` and `node_version: "24"`. The required Semgrep job runs alongside lint and npm audit; only the reusable workflow's declared Codecov and n8n secrets are passed. `.npmrc` applies a seven-day minimum release age to new package resolutions without an exclusion. Reusable steps and GitHub environments determine actual checks, publications and deployments.
 
 The Dockerfile defaults to `NODE_VERSION=23.1.0` and the Next.js `standalone` build; the image command is `["node", "server.js"]`. Image ports and Compose mappings can differ from the local port suggested above.
 
