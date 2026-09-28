@@ -71,6 +71,28 @@ describe("Dashboard page", () => {
     expect(within(pageSection).getByRole("heading", { name: "Événements à venir" })).toBeTruthy();
   });
 
+  it("uses the same neutral action on all three BFF-backed cards", async () => {
+    const user = await openDashboard();
+    const sections = ["Projets récents", "Tâches en attente", "Événements à venir"]
+      .map((name) => screen.getByRole("heading", { name }).closest("section"));
+    const actions = sections.map((section) => within(section).getByRole("button", { name: "Voir tout" }));
+
+    expect(actions.map((action) => action.className)).toEqual([
+      actions[0].className,
+      actions[0].className,
+      actions[0].className,
+    ]);
+    expect(actions[0].className).toContain("border-[#d8d2ca]");
+    expect(actions[0].className).toContain("bg-[#fbfaf9]");
+
+    vi.mocked(frontUrl).mockClear();
+    for (const action of actions) await user.click(action);
+    expect(frontUrl).toHaveBeenNthCalledWith(1, "PROJECT_FRONT_URL");
+    expect(frontUrl).toHaveBeenNthCalledWith(2, "PROJECT_FRONT_URL");
+    expect(frontUrl).toHaveBeenNthCalledWith(3, "CALENDAR_FRONT_URL");
+    expect(frontUrl).toHaveBeenCalledTimes(3);
+  });
+
   it("shows empty sections instead of invented cards", async () => {
     vi.mocked(requestBff).mockResolvedValue(bootstrap({ projects: [], tasks: [], events: [] }));
     await openDashboard();
@@ -98,7 +120,7 @@ describe("Dashboard page", () => {
       expect.stringContaining("Deuxième rendez-vous"),
       expect.stringContaining("Dernier rendez-vous"),
     ]);
-    expect(within(events).getByRole("button", { name: "Calendrier" })).toBeTruthy();
+    expect(within(events).getByRole("button", { name: "Voir tout" })).toBeTruthy();
   });
 
   it("warns when one BFF source is unavailable without inventing its data", async () => {
@@ -125,9 +147,9 @@ describe("Dashboard page", () => {
   it("keeps section controls keyboard-reachable and free of serious axe violations", async () => {
     const user = await openDashboard();
     const projects = screen.getByRole("heading", { name: "Projets récents" }).closest("section");
-    expect(within(projects).getByRole("button", { name: "Voir tous" })).toBeTruthy();
+    expect(within(projects).getByRole("button", { name: "Voir tout" })).toBeTruthy();
     await user.tab();
-    expect(document.activeElement).toBe(within(projects).getByRole("button", { name: "Voir tous" }));
+    expect(document.activeElement).toBe(within(projects).getByRole("button", { name: "Voir tout" }));
 
     const results = await axe(document.querySelector("main"));
     expect(results.violations.filter(({ impact }) => impact === "serious" || impact === "critical")).toEqual([]);
