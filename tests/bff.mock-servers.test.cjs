@@ -87,11 +87,16 @@ describe('page data: /dashboard/bootstrap through the contract-gated proxy', () 
     });
   }
 
-  test('reads a flat { message } error body and falls back to the status without JSON body', async () => {
+  test('reads a flat { message } error body and uses an agent-readable fallback without JSON', async () => {
     dashboardBff.on('get', '/dashboard/bootstrap', { status: 401, body: { message: 'Jeton expiré' }, outOfContract: true });
     assert.equal(await rejection(requestBff('/dashboard/bootstrap')), 'Jeton expiré');
     dashboardBff.on('get', '/dashboard/bootstrap', { status: 503, raw: 'upstream down', contentType: 'text/plain', outOfContract: true });
-    assert.equal(await rejection(requestBff('/dashboard/bootstrap')), 'Le service a répondu 503.');
+    assert.equal(await rejection(requestBff('/dashboard/bootstrap')), 'Le service est momentanément indisponible. Veuillez réessayer plus tard.');
+  });
+
+  test('uses an agent-readable fallback for a blank 4xx business message', async () => {
+    dashboardBff.on('get', '/dashboard/bootstrap', { status: 400, body: { error: { message: ' ' } }, outOfContract: true });
+    assert.equal(await rejection(requestBff('/dashboard/bootstrap')), 'La demande n’a pas pu aboutir. Veuillez réessayer.');
   });
 
   test('flags a BFF response that breaks the contract', async () => {
