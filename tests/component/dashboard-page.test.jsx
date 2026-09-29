@@ -103,6 +103,25 @@ describe("Dashboard page", () => {
     expect(screen.queryByRole("button", { name: /Projet test|Tâche test|Événement test/ })).toBeNull();
   });
 
+  it.each(["", "   "])("shows a neutral greeting without a first name (%j)", async (userFirstName) => {
+    vi.mocked(requestBff).mockResolvedValue(bootstrap({ userFirstName }));
+    await openDashboard();
+
+    expect(screen.getByText("Voici un aperçu de vos activités")).toBeTruthy();
+    expect(screen.queryByText(/Bienvenue\s*,/)).toBeNull();
+    expect(screen.queryByRole("button", { name: "Utilisateur" })).toBeNull();
+    expect(screen.getByRole("button", { name: /Projet test/ })).toBeTruthy();
+  });
+
+  it("trims a nonblank first name in the greeting and account menu", async () => {
+    vi.mocked(requestBff).mockResolvedValue(bootstrap({ userFirstName: "  Alice  " }));
+    await openDashboard();
+
+    expect(screen.getByText("Bienvenue Alice, voici un aperçu de vos activités")).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Alice/ })).toBeTruthy();
+    expect(screen.queryByText(/Bienvenue\s{2}|Alice\s{2}/)).toBeNull();
+  });
+
   it("keeps upcoming events in a responsive grid without changing their chronological order", async () => {
     vi.mocked(requestBff).mockResolvedValue(bootstrap({
       events: [
