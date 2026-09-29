@@ -17,7 +17,7 @@ const { loadOrvalContract, resolveOrvalPackage } = require('./support/orval-cont
 
 const dashboardContract = OpenApiContract.load(path.join(ROOT, 'contracts', 'openapi.json'));
 const CONTRACT_PACKAGE = '@mairie360/bff-dashboard-openapi';
-const FETCH_OWNERS = ['lib/bff-client.ts', 'lib/bff-proxy.ts', 'lib/logout.ts'];
+const FETCH_OWNERS = ['lib/bff-client.ts', 'lib/bff-proxy.ts'];
 const FORBIDDEN_NETWORK_APIS = ['XMLHttpRequest', 'WebSocket', 'EventSource', 'sendBeacon', 'axios'];
 
 function sourceFiles(dir = SRC) {
@@ -85,7 +85,7 @@ describe('every network call of the front targets an operation of an OpenAPI con
     assert.deepEqual(problems, []);
   });
 
-  test('fetch is only called by the same-origin client, local logout and contract-gated proxy', () => {
+  test('fetch is only called by the same-origin client and contract-gated proxy', () => {
     const owners = sources.filter(({ ast }) => calls(ast, 'fetch').length > 0).map(({ file }) => file).sort();
     assert.deepEqual(owners, FETCH_OWNERS);
   });
@@ -141,8 +141,8 @@ describe('one front, one BFF, one OpenAPI contract', () => {
     assert.deepEqual(fs.readdirSync(path.join(ROOT, 'contracts')), ['openapi.json']);
   });
 
-  test('the contract-gated proxy and frontend-local logout are the only route handlers', () => {
-    assert.deepEqual(ROUTES.map(({ segments }) => `/${segments.join('/')}`).sort(), ['/[...path]', '/api/auth/logout']);
+  test('the contract-gated proxy is the only route handler', () => {
+    assert.deepEqual(ROUTES.map(({ segments }) => `/${segments.join('/')}`).sort(), ['/[...path]']);
   });
 
   test('requests are only forwarded to the BFF_Dashboard URL', () => {

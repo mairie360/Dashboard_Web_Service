@@ -52,7 +52,6 @@ afterEach(() => {
   view?.unmount();
   view = undefined;
   delete global.window;
-  delete process.env.COOKIE_DOMAIN;
   assert.deepEqual([...front.violations, ...dashboardBff.violations], []);
 });
 
@@ -95,18 +94,16 @@ test('the first pass renders the loading state, the next one the data of GET /da
   assert.match(view.text(), /Sans échéance/);
 });
 
-test('the account-menu logout calls only the local route and leaves for Login', async () => {
-  process.env.COOKIE_DOMAIN = '.front.test';
+test('the account-menu logout hands off to Login without another BFF call', async () => {
   const destinations = [];
   global.window.location.replace = (href) => destinations.push(href);
   await renderLoadedPage();
   await view.act(() => view.props('AppShell').onLogout());
 
-  assert.deepEqual(destinations, ['https://login.test.example/']);
+  assert.deepEqual(destinations, ['https://login.test.example/logout']);
   assert.deepEqual(front.calls.map(({ side, method, url }) => `${side} ${method} ${url.pathname}`), [
     'browser GET /dashboard/bootstrap',
     'server GET /dashboard/bootstrap',
-    'browser POST /api/auth/logout',
   ]);
   assert.deepEqual(upstreamCalls(), ['GET /dashboard/bootstrap']);
 });
