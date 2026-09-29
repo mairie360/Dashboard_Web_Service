@@ -64,9 +64,8 @@ Les valeurs ci-dessous sont des exemples locaux ou des comportements expliciteme
 | Variable ou priorité | Exemple / repli indiqué | Rôle |
 | --- | --- | --- |
 | `DASHBOARD_BFF_URL` → `BFF_DASHBOARD_BASE_URL` | http://localhost:4007 | Priorité de gauche à droite dans le proxy ; configurer explicitement une URL HTTP(S). Une configuration absente ou invalide renvoie un 503 non mis en cache, sans appel réseau. |
-| `LOGIN_FRONT_URL` | — | Destination validée à l’exécution après une déconnexion réussie. |
+| `LOGIN_FRONT_URL` | — | Origine Login validée à l’exécution pour ouvrir `/logout`. |
 | `PROJECT_FRONT_URL`, `CALENDAR_FRONT_URL`, `MESSAGE_FRONT_URL`, `ELEARNING_FRONT_URL`, `SETTINGS_FRONT_URL`, `ADMINISTRATION_FRONT_URL` | — | Destinations des modules actifs lues à l’exécution ; les URL invalides sont masquées. |
-| `COOKIE_DOMAIN` | — | Domaine du cookie partagé utilisé par Login. Requis dans les environnements déployés en mode production pour la déconnexion locale ; une valeur absente renvoie 503. |
 
 Dans un conteneur, `localhost` désigne le conteneur lui-même. Utiliser le nom DNS du service BFF sur le réseau Docker, ou une adresse d’hôte accessible. Les fichiers Compose incluent parfois d’autres services et des paramètres hérités; vérifier les URL et ports effectifs avant de les employer.
 
@@ -88,13 +87,13 @@ Ces chemins de données sont exposés à la même origine par le proxy; les page
 | --- | --- |
 | `/` | [src/app/page.tsx](../../src/app/page.tsx) |
 
-Le seul route handler vers le BFF est le proxy [src/app/[...path]/route.ts](../../src/app/%5B...path%5D/route.ts): toutes les données métier passent par les opérations de `contracts/openapi.json`. Le `POST /api/auth/logout` distinct reste local au front et expire seulement le cookie de session.
+Le seul route handler est le proxy BFF [src/app/[...path]/route.ts](../../src/app/%5B...path%5D/route.ts) : toutes les données métier passent par les opérations de `contracts/openapi.json`. La déconnexion est une navigation vers `/logout` sur Login, pas une route Dashboard.
 
 ## Session, permissions et erreurs
 
 Ce front ne consomme qu’un BFF, BFF_Dashboard, et qu’un contrat OpenAPI; il n’appelle pas BFF User directement (le prénom affiché vient de `/dashboard/bootstrap`). Le proxy générique utilise le Bearer explicite ou, en son absence, le cookie `accessToken`. Les permissions métier restent celles du BFF et de ses sources.
 
-Le menu de compte de l’AppShell poste vers la route locale de déconnexion puis, en cas de succès, remplace la page par `LOGIN_FRONT_URL` validée à l’exécution. La route expire `accessToken` sur `COOKIE_DOMAIN` configuré ; en production, elle renvoie 503 si cette valeur manque, et l’interface reste en place avec une erreur. Cela retire uniquement le cookie du navigateur : la révocation côté serveur et la déconnexion Keycloak globale restent suivies par MAIR-143/MAIR-226. Le front Dashboard ne contacte jamais un deuxième BFF.
+Le menu de compte de l’AppShell valide `LOGIN_FRONT_URL` à l’exécution puis ouvre sa page `/logout`. Si cette URL manque ou est invalide, Dashboard reste en place et signale l’erreur. Login gère l’expiration du cookie partagé et son appel à BFF User ; Dashboard n’envoie aucune requête de déconnexion et ne contacte jamais un deuxième BFF. La déconnexion authentifiée de bout en bout et la révocation Keycloak restent à vérifier dans MAIR-143/MAIR-226.
 
 Le proxy générique répond 400 pour un chemin invalide, 404 pour un chemin hors contrat, 405 pour une méthode interdite et 502 si le service est injoignable ou dépasse le délai. Les réponses amont sont conservées, y compris les corps vides 204/205/304. Sur `/dashboard/bootstrap`, BFF_Dashboard répond 401 pour une session refusée et 502 si le contexte utilisateur est indisponible (et, à partir de sa branche `mair-121`, 503 si une URL amont n’est pas configurée); la page affiche le `error.message` de ces réponses.
 
@@ -118,7 +117,7 @@ npm run build
 ### Tests contre un mock serveur piloté par le contrat
 
 - `tests/bff.mock-servers.test.cjs` suit chaque appel de bout en bout: `fetch` same-origin du navigateur (`requestBff`) → route handler Next.js → vrai serveur HTTP local simulant BFF_Dashboard, piloté par `contracts/openapi.json`, donc par le contrat publié. Le mock rejette les chemins, méthodes et paramètres de requête absents du contrat et valide les réponses de succès (les erreurs simulées sont marquées `outOfContract`, orval ne les typant pas); BFF_Dashboard est la seule origine joignable, tout autre appel fait échouer le test. Seule exception volontaire: `/openapi.json` / `/swagger.json`, relayés par le proxy.
-- `tests/network-contract.test.cjs` analyse les sources: chaque appel `requestBff` utilise un chemin et une méthode littéraux déclarés dans `contracts/openapi.json` et `fetch` n’est appelé que par `src/lib/bff-client.ts`, `src/lib/logout.ts` et `src/lib/bff-proxy.ts`. Il vérifie aussi qu’il n’y a qu’un contrat dans `contracts/`, que le proxy catch-all et la déconnexion locale sont les seuls route handlers, que seul le proxy relaie vers BFF_Dashboard et que le paquet de contrat publié correspond à sa reconstruction. Il charge aussi chaque module `src/**/*.ts` pour que la couverture les compte.
+- `tests/network-contract.test.cjs` analyse les sources : chaque appel `requestBff` utilise un chemin et une méthode littéraux déclarés dans `contracts/openapi.json` et `fetch` n’est appelé que par `src/lib/bff-client.ts` et `src/lib/bff-proxy.ts`. Il vérifie aussi qu’il n’y a qu’un contrat dans `contracts/`, que le proxy catch-all est le seul route handler, que lui seul relaie vers BFF_Dashboard et que le paquet de contrat publié correspond à sa reconstruction. Il charge aussi chaque module `src/**/*.ts` pour que la couverture les compte.
 - `tests/dashboard-view.test.cjs` vérifie le passage de `/dashboard/bootstrap` vers `DashboardModule` (`src/lib/dashboard-view.ts`) avec des données conformes au contrat.
 - `tests/support/openapi-contract.ts`, `contract-mock-server.ts` et `orval-contract.ts` sont des copies à l’identique de celles des BFF (`BFF_Dashboard`, `BFF_Calendar`); les garder identiques.
 
