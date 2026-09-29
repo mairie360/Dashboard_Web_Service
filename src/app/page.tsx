@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  AppShell,
   DashboardPendingTasks,
   DashboardRecentProjects,
   DashboardUpcomingEvents,
@@ -8,6 +9,7 @@ import {
 import { useEffect, useState } from "react";
 import { requestBff } from "@/lib/bff-client";
 import { frontUrl } from "@/lib/front-urls";
+import { getActiveFrontHrefs } from "@/lib/navigation";
 import { type DashboardBootstrap, toDashboardModuleData } from "@/lib/dashboard-view";
 
 // Resolved on use from the runtime environment (src/lib/front-urls.ts), never inlined at build time.
@@ -44,7 +46,12 @@ export default function Home() {
   }, []);
   const view = data && toDashboardModuleData(data);
   return (
-    <main className="min-h-screen bg-[#f5f3f0] text-[#172033] px-4 py-6 sm:px-6 lg:px-8">
+    <AppShell
+      activeItem="dashboard"
+      hrefs={getActiveFrontHrefs()}
+      user={data?.userFirstName ? { first_name: data.userFirstName } : undefined}
+      sidebarProps={{ brandLogoSrc: "/mairie360-logo.png" }}
+    >
       {error && <p role="alert" className="mb-4 rounded bg-white p-4 text-red-700">{error}</p>}
       {!data || !view ? <p role="status">{error ? "Le tableau de bord est indisponible." : "Chargement du tableau de bord…"}</p> : <>
         {view.hasUnavailableSource && <p role="status" className="mb-4 rounded bg-white p-4">Certaines données sont temporairement indisponibles.</p>}
@@ -67,6 +74,6 @@ export default function Home() {
           </div>
         </section>
       </>}
-    </main>
+    </AppShell>
   );
 }

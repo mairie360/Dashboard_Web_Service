@@ -33,6 +33,8 @@ before(async () => {
     PROJECT_FRONT_URL: 'https://project.test.example/',
     FILES_FRONT_URL: 'https://files.test.example/',
     MESSAGE_FRONT_URL: 'https://message.test.example/',
+    SETTINGS_FRONT_URL: 'https://settings.test.example/',
+    ADMINISTRATION_FRONT_URL: 'https://admin.test.example/',
   });
 });
 after(async () => {
@@ -74,6 +76,12 @@ test('the first pass renders the loading state, the next one the data of GET /da
   assert.equal(dashboardBff.requests[0].headers.authorization, `Bearer ${TOKEN}`);
   assert.doesNotMatch(html, /role="alert"/);
   assert.match(view.text(), /Bienvenue Alice/);
+  assert.equal(view.find('AppShell').length, 1);
+  assert.equal(view.props('AppShell').activeItem, 'dashboard');
+  assert.equal(view.props('AppShell').user.first_name, 'Alice');
+  assert.equal(view.props('AppShell').hrefs.profile, 'https://settings.test.example/');
+  assert.equal(view.props('AppShell').isAdmin, undefined);
+  assert.doesNotMatch(html, /aria-label="Notifications"|>Administration</);
   assert.doesNotMatch(view.text(), /Projets accessibles|Actions rapides|Voir les rapports/);
   for (const expected of ['Budget participatif', 'Rénovation de la médiathèque', 'Validation', 'Relecture', 'Conseil municipal', 'Permanence']) {
     assert.match(view.text(), new RegExp(expected), `${expected} is rendered`);
@@ -89,6 +97,18 @@ test('an unavailable source is announced above the real sections', async () => {
 
   assert.match(html, /<p role="status"[^>]*>Certaines données sont temporairement indisponibles\.<\/p>/);
   assert.match(view.text(), /Budget participatif/);
+});
+
+test('the shared sidebar opens the configured Settings front without exposing an unknown admin role', async () => {
+  const assigned = [];
+  global.window.location.assign = (href) => assigned.push(href);
+  const html = await renderLoadedPage();
+  const sidebar = view.props('Sidebar');
+
+  assert.equal(sidebar.isAdmin, false);
+  assert.doesNotMatch(html, />Administration</);
+  await view.act(() => sidebar.onItemSelect(sidebar.items.find((item) => item.id === 'settings')));
+  assert.deepEqual(assigned, ['https://settings.test.example/']);
 });
 
 test('empty BFF collections stay empty instead of showing library fixtures', async () => {
