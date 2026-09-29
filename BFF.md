@@ -4,7 +4,7 @@ Ce web service consomme **BFF_Dashboard** à travers son contrat publié `@mairi
 
 ## Routes implémentées
 
-Les chemins sont relatifs au BFF. Les proxies web conservent méthode, paramètres, contenu binaire, statuts et cookies. Ce web service ne consomme que BFF_Dashboard et ce seul contrat ; les pages Next.js sont distinctes des routes de données.
+Les chemins métier sont relatifs au BFF. Les proxies web conservent méthode, paramètres, contenu binaire, statuts et cookies. Ce web service ne consomme que BFF_Dashboard et ce seul contrat ; les pages Next.js sont distinctes des routes de données. Le menu de compte redirige vers `/logout` sur le front Login configuré : Dashboard ne possède ni route locale de déconnexion ni appel direct à BFF User.
 
 | Méthode | Route | Réponse / schéma |
 | --- | --- | --- |

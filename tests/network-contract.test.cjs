@@ -85,7 +85,7 @@ describe('every network call of the front targets an operation of an OpenAPI con
     assert.deepEqual(problems, []);
   });
 
-  test('fetch is only called by the same-origin client and the contract-gated proxy', () => {
+  test('fetch is only called by the same-origin client and contract-gated proxy', () => {
     const owners = sources.filter(({ ast }) => calls(ast, 'fetch').length > 0).map(({ file }) => file).sort();
     assert.deepEqual(owners, FETCH_OWNERS);
   });
@@ -141,8 +141,8 @@ describe('one front, one BFF, one OpenAPI contract', () => {
     assert.deepEqual(fs.readdirSync(path.join(ROOT, 'contracts')), ['openapi.json']);
   });
 
-  test('the contract-gated catch-all proxy is the only route handler', () => {
-    assert.deepEqual(ROUTES.map(({ segments }) => `/${segments.join('/')}`), ['/[...path]']);
+  test('the contract-gated proxy is the only route handler', () => {
+    assert.deepEqual(ROUTES.map(({ segments }) => `/${segments.join('/')}`).sort(), ['/[...path]']);
   });
 
   test('requests are only forwarded to the BFF_Dashboard URL', () => {

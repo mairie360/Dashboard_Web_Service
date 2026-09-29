@@ -10,6 +10,7 @@ import { useEffect, useState } from "react";
 import { requestBff } from "@/lib/bff-client";
 import { frontUrl } from "@/lib/front-urls";
 import { getActiveFrontHrefs } from "@/lib/navigation";
+import { logoutAndRedirect } from "@/lib/logout";
 import { type DashboardBootstrap, toDashboardModuleData } from "@/lib/dashboard-view";
 
 // Resolved on use from the runtime environment (src/lib/front-urls.ts), never inlined at build time.
@@ -51,6 +52,7 @@ export default function Home() {
       activeItem="dashboard"
       hrefs={getActiveFrontHrefs()}
       user={userFirstName ? { first_name: userFirstName } : undefined}
+      onLogout={() => void logoutAndRedirect().catch(() => setError("La déconnexion est temporairement indisponible."))}
       sidebarProps={{ brandLogoSrc: "/mairie360-logo.png" }}
     >
       {error && <p role="alert" className="mb-4 rounded bg-white p-4 text-red-700">{error}</p>}

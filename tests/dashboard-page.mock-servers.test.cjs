@@ -27,8 +27,15 @@ before(async () => {
   await dashboardBff.start();
   process.env.DASHBOARD_BFF_URL = dashboardBff.url;
   front.allow(dashboardBff.url).install();
+});
+after(async () => {
+  front.uninstall();
+  await dashboardBff.stop();
+});
+beforeEach(() => {
   // What the root layout reads from the runtime environment and hands to the browser.
   setBrowserFrontUrls({
+    LOGIN_FRONT_URL: 'https://login.test.example/',
     CALENDAR_FRONT_URL: 'https://calendar.test.example/',
     PROJECT_FRONT_URL: 'https://project.test.example/',
     FILES_FRONT_URL: 'https://files.test.example/',
@@ -36,12 +43,6 @@ before(async () => {
     SETTINGS_FRONT_URL: 'https://settings.test.example/',
     ADMINISTRATION_FRONT_URL: 'https://admin.test.example/',
   });
-});
-after(async () => {
-  front.uninstall();
-  await dashboardBff.stop();
-});
-beforeEach(() => {
   dashboardBff.reset();
   front.reset();
   front.cookies.accessToken = TOKEN;
@@ -81,6 +82,7 @@ test('the first pass renders the loading state, the next one the data of GET /da
   assert.equal(view.props('AppShell').user.first_name, 'Alice');
   assert.equal(view.props('AppShell').hrefs.profile, 'https://settings.test.example/');
   assert.equal(view.props('AppShell').isAdmin, undefined);
+  assert.equal(typeof view.props('AppShell').onLogout, 'function');
   assert.doesNotMatch(html, /aria-label="Notifications"|>Administration</);
   assert.doesNotMatch(view.text(), /Projets accessibles|Actions rapides|Voir les rapports/);
   for (const expected of ['Budget participatif', 'Rénovation de la médiathèque', 'Validation', 'Relecture', 'Conseil municipal', 'Permanence']) {
@@ -90,6 +92,20 @@ test('the first pass renders the loading state, the next one the data of GET /da
   assert.equal(view.find('DashboardQuickActions').length, 0);
   assert.match(view.text(), /1 déc\. 2026/);
   assert.match(view.text(), /Sans échéance/);
+});
+
+test('the account-menu logout hands off to Login without another BFF call', async () => {
+  const destinations = [];
+  global.window.location.replace = (href) => destinations.push(href);
+  await renderLoadedPage();
+  await view.act(() => view.props('AppShell').onLogout());
+
+  assert.deepEqual(destinations, ['https://login.test.example/logout']);
+  assert.deepEqual(front.calls.map(({ side, method, url }) => `${side} ${method} ${url.pathname}`), [
+    'browser GET /dashboard/bootstrap',
+    'server GET /dashboard/bootstrap',
+  ]);
+  assert.deepEqual(upstreamCalls(), ['GET /dashboard/bootstrap']);
 });
 
 test('an unavailable source is announced above the real sections', async () => {

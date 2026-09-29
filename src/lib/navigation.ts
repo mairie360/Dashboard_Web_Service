@@ -15,6 +15,10 @@ function configuredFrontUrl(key: FrontUrlKey): string | undefined {
   }
 }
 
+export function getLoginFrontHref() {
+  return configuredFrontUrl("LOGIN_FRONT_URL");
+}
+
 /** Only configured, active frontend destinations are exposed by the shell. */
 export function getActiveFrontHrefs() {
   const settings = configuredFrontUrl("SETTINGS_FRONT_URL");
