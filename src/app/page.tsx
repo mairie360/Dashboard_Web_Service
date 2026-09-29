@@ -45,11 +45,12 @@ export default function Home() {
     return () => controller.abort();
   }, []);
   const view = data && toDashboardModuleData(data);
+  const userFirstName = data?.userFirstName.trim() ?? "";
   return (
     <AppShell
       activeItem="dashboard"
       hrefs={getActiveFrontHrefs()}
-      user={data?.userFirstName ? { first_name: data.userFirstName } : undefined}
+      user={userFirstName ? { first_name: userFirstName } : undefined}
       sidebarProps={{ brandLogoSrc: "/mairie360-logo.png" }}
     >
       {error && <p role="alert" className="mb-4 rounded bg-white p-4 text-red-700">{error}</p>}
@@ -58,7 +59,11 @@ export default function Home() {
         <section className="mx-auto max-w-[1520px] space-y-4">
           <header>
             <h1 className="text-[28px] font-bold leading-tight">Tableau de Bord</h1>
-            <p className="mt-1 text-base text-[#687385]">Bienvenue {data.userFirstName}, voici un aperçu de vos activités</p>
+            <p className="mt-1 text-base text-[#687385]">
+              {userFirstName
+                ? `Bienvenue ${userFirstName}, voici un aperçu de vos activités`
+                : "Voici un aperçu de vos activités"}
+            </p>
           </header>
           <div className="grid gap-6 xl:grid-cols-2">
             <DashboardRecentProjects projects={view.projects}
