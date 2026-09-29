@@ -4,7 +4,7 @@ Ce web service consomme **BFF_Dashboard** à travers son contrat publié `@mairi
 
 ## Routes implémentées
 
-Les chemins sont relatifs au BFF. Les proxies web conservent méthode, paramètres, contenu binaire, statuts et cookies. Ce web service ne consomme que BFF_Dashboard et ce seul contrat ; les pages Next.js sont distinctes des routes de données.
+Les chemins métier sont relatifs au BFF. Les proxies web conservent méthode, paramètres, contenu binaire, statuts et cookies. Ce web service ne consomme que BFF_Dashboard et ce seul contrat ; les pages Next.js sont distinctes des routes de données. `POST /api/auth/logout` est une exception locale au front : elle expire le cookie `accessToken` sans appeler de BFF et ne révoque pas la session côté serveur.
 
 | Méthode | Route | Réponse / schéma |
 | --- | --- | --- |

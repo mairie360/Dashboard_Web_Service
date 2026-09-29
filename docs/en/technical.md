@@ -64,10 +64,9 @@ Values below are local examples or explicitly described behavior, not production
 | Variable or precedence | Example / stated fallback | Purpose |
 | --- | --- | --- |
 | `DASHBOARD_BFF_URL` → `BFF_DASHBOARD_BASE_URL` | http://localhost:4007 | Left-to-right proxy precedence; configure an HTTP(S) URL explicitly. Missing or invalid configuration returns an uncached 503 without contacting an upstream. |
-| `NEXT_PUBLIC_CALENDAR_FRONT_URL` | — | Navigation destination; see the source file that reads it. Variables injected by `next.config.ts` or prefixed `NEXT_PUBLIC_` are public and consumed at build time. |
-| `NEXT_PUBLIC_FILES_FRONT_URL` | — | Navigation destination; see the source file that reads it. Variables injected by `next.config.ts` or prefixed `NEXT_PUBLIC_` are public and consumed at build time. |
-| `NEXT_PUBLIC_MESSAGE_FRONT_URL` | — | Navigation destination; see the source file that reads it. Variables injected by `next.config.ts` or prefixed `NEXT_PUBLIC_` are public and consumed at build time. |
-| `NEXT_PUBLIC_PROJECT_FRONT_URL` | — | Navigation destination; see the source file that reads it. Variables injected by `next.config.ts` or prefixed `NEXT_PUBLIC_` are public and consumed at build time. |
+| `LOGIN_FRONT_URL` | — | Validated runtime destination after a successful logout. |
+| `PROJECT_FRONT_URL`, `CALENDAR_FRONT_URL`, `MESSAGE_FRONT_URL`, `ELEARNING_FRONT_URL`, `SETTINGS_FRONT_URL`, `ADMINISTRATION_FRONT_URL` | — | Active-module destinations read at runtime; invalid URLs are hidden. |
+| `COOKIE_DOMAIN` | — | Shared cookie domain used by Login. Required in deployed production-mode environments for local logout; an absent value returns 503. |
 
 Inside a container, `localhost` refers to that container. Use the BFF service DNS name on the Docker network or a reachable host address. Compose files sometimes include other services and legacy settings; check effective URLs and ports before using them.
 
@@ -89,11 +88,13 @@ These data paths are exposed at the same origin through the proxy; Next.js pages
 | --- | --- |
 | `/` | [src/app/page.tsx](../../src/app/page.tsx) |
 
-The only route handler is the proxy [src/app/[...path]/route.ts](../../src/app/%5B...path%5D/route.ts): all data goes through the operations of `contracts/openapi.json`.
+The only BFF route handler is the proxy [src/app/[...path]/route.ts](../../src/app/%5B...path%5D/route.ts): all business data goes through the operations of `contracts/openapi.json`. The separate frontend-local `POST /api/auth/logout` only expires the session cookie.
 
 ## Session, permissions and errors
 
 This front consumes a single BFF, BFF_Dashboard, and a single OpenAPI contract; it never calls BFF User directly (the displayed first name comes from `/dashboard/bootstrap`). The generic proxy uses an explicit Bearer header or, when absent, the `accessToken` cookie. Business permissions remain those of the BFF and its sources.
+
+The AppShell account menu posts to the same-origin local logout route and, on success, replaces the page with the validated runtime `LOGIN_FRONT_URL`. The route expires `accessToken` on the configured `COOKIE_DOMAIN`; production returns 503 if that setting is absent, so the UI stays in place and reports an error. This only clears the browser cookie: server-side revocation and Keycloak-wide sign-out remain tracked by MAIR-143/MAIR-226. The Dashboard frontend never contacts a second BFF.
 
 The generic proxy returns 400 for an invalid path, 404 for a path outside the contract, 405 for a disallowed method and 502 when the service is unreachable or times out. Upstream responses are preserved, including empty 204/205/304 bodies. On `/dashboard/bootstrap`, BFF_Dashboard returns 401 for a rejected session and 502 when the user context is unavailable (and, from its `mair-121` branch on, 503 when an upstream URL is not configured); the page shows the `error.message` of these responses.
 
@@ -117,7 +118,7 @@ npm run build
 ### Tests against a contract-driven mock server
 
 - `tests/bff.mock-servers.test.cjs` follows each call end to end: same-origin browser `fetch` (`requestBff`) → Next.js route handler → a real local HTTP server simulating BFF_Dashboard, driven by `contracts/openapi.json`, hence by the published contract. The mock rejects paths, methods and query parameters missing from the contract and validates success responses (mocked errors are marked `outOfContract`, since orval does not type them); BFF_Dashboard is the only reachable origin, any other call fails the test. The only deliberate exception is `/openapi.json` / `/swagger.json`, forwarded by the proxy.
-- `tests/network-contract.test.cjs` analyses the sources: every `requestBff` call uses a literal path and method declared in `contracts/openapi.json`, and `fetch` is only called by `src/lib/bff-client.ts` and `src/lib/bff-proxy.ts`. It also checks that `contracts/` holds a single contract, that the catch-all proxy is the only route handler, that it only forwards to the BFF_Dashboard URL that the only installed OpenAPI package is `@mairie360/bff-dashboard-openapi` at an `X.X.X` version, and that `contracts/openapi.json` is exactly its reconstruction. It also loads every `src/**/*.ts` module so coverage counts them.
+- `tests/network-contract.test.cjs` analyses the sources: every `requestBff` call uses a literal path and method declared in `contracts/openapi.json`, and `fetch` is only called by `src/lib/bff-client.ts`, `src/lib/logout.ts` and `src/lib/bff-proxy.ts`. It also checks that `contracts/` holds a single contract, that the catch-all proxy and local logout are the only route handlers, that only the proxy forwards to BFF_Dashboard, and that the published contract package and snapshot match. It also loads every `src/**/*.ts` module so coverage counts them.
 - `tests/dashboard-view.test.cjs` checks the mapping of `/dashboard/bootstrap` onto `DashboardModule` (`src/lib/dashboard-view.ts`) with contract-valid payloads.
 - `tests/support/openapi-contract.ts`, `contract-mock-server.ts` and `orval-contract.ts` are verbatim copies of the BFFs' ones (`BFF_Dashboard`, `BFF_Calendar`); keep them identical.
 
