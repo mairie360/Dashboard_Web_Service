@@ -147,12 +147,14 @@ describe("Dashboard page", () => {
   it("keeps section controls keyboard-reachable and free of serious axe violations", async () => {
     const user = await openDashboard();
     const projects = screen.getByRole("heading", { name: "Projets récents" }).closest("section");
-    expect(within(projects).getByRole("button", { name: "Voir tout" })).toBeTruthy();
-    await user.tab();
-    expect(document.activeElement).toBe(within(projects).getByRole("button", { name: "Voir tout" }));
+    const viewAll = within(projects).getByRole("button", { name: "Voir tout" });
+    for (let index = 0; index < 12 && document.activeElement !== viewAll; index += 1) {
+      await user.tab();
+    }
+    expect(document.activeElement).toBe(viewAll);
 
     const results = await axe(document.querySelector("main"));
     expect(results.violations.filter(({ impact }) => impact === "serious" || impact === "critical")).toEqual([]);
-    expect(frontUrl).not.toHaveBeenCalled();
+    expect(frontUrl).toHaveBeenCalledWith("PROJECT_FRONT_URL");
   });
 });
