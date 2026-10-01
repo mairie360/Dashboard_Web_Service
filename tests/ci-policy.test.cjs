@@ -53,11 +53,11 @@ test('Dashboard pins the published shared UI release in its lockfile', () => {
   const manifest = JSON.parse(read('package.json'));
   const lock = JSON.parse(read('package-lock.json'));
   const dependency = lock.packages['node_modules/@mairie360/lib-components'];
-  assert.equal(manifest.dependencies['@mairie360/lib-components'], '0.6.3');
-  assert.equal(lock.packages[''].dependencies['@mairie360/lib-components'], '0.6.3');
-  assert.equal(dependency.version, '0.6.3');
-  assert.match(dependency.resolved, /^https:\/\/npm\.pkg\.github\.com\/download\/@mairie360\/lib-components\/0\.6\.3\//);
-  assert.equal(dependency.integrity, 'sha512-ETJlz7x84lDz9Pn0I16jUnHsQe+/kJ+T0K1V8TUgo53/ITYvMBrZPNPDyYL8oyjz/G7suLWryqBQt7rhjUayxA==');
+  assert.equal(manifest.dependencies['@mairie360/lib-components'], '0.6.5');
+  assert.equal(lock.packages[''].dependencies['@mairie360/lib-components'], '0.6.5');
+  assert.equal(dependency.version, '0.6.5');
+  assert.match(dependency.resolved, /^https:\/\/npm\.pkg\.github\.com\/download\/@mairie360\/lib-components\/0\.6\.5\//);
+  assert.equal(dependency.integrity, 'sha512-7AFNzGUe2LTl4BYbIET5LTtrUA2JkwtDEmNx6fZDIBIILjbs8pW0PbtbjxpBM3NTNulTy/bC0k8wAfbgjygXcw==');
 });
 
 test('CI and local toolchains support the npm release-age policy', () => {
