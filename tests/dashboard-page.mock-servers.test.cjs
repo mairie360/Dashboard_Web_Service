@@ -78,6 +78,8 @@ test('the first pass renders the loading state, the next one the data of GET /da
   assert.doesNotMatch(html, /role="alert"/);
   assert.match(view.text(), /Bienvenue Alice/);
   assert.equal(view.find('AppShell').length, 1);
+  assert.match(html, /<aside\b[^]*?<footer\b[^]*?<\/footer>[^]*?<\/aside>/);
+  assert.doesNotMatch(html, /<\/main>\s*<footer\b/);
   assert.equal(view.props('AppShell').activeItem, 'dashboard');
   assert.equal(view.props('AppShell').user.first_name, 'Alice');
   assert.equal(view.props('AppShell').hrefs.profile, 'https://settings.test.example/');
