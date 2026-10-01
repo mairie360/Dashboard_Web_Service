@@ -65,10 +65,31 @@ describe("Dashboard page", () => {
     expect(pageSection.classList.contains("space-y-6")).toBe(false);
     const cardGrid = pageSection.querySelector(":scope > .grid");
     expect(cardGrid.classList.contains("gap-6")).toBe(true);
+    expect(cardGrid.classList.contains("grid-cols-1")).toBe(true);
+    expect(cardGrid.classList.contains("dashboard-content-grid")).toBe(true);
     expect(cardGrid.classList.contains("xl:grid-cols-2")).toBe(true);
     expect(within(pageSection).getByRole("heading", { name: "Projets récents" })).toBeTruthy();
     expect(within(pageSection).getByRole("heading", { name: "Tâches en attente" })).toBeTruthy();
     expect(within(pageSection).getByRole("heading", { name: "Événements à venir" })).toBeTruthy();
+  });
+
+  it("keeps long DTO titles in the scoped responsive cards with their controls", async () => {
+    const longTitle = "DashboardTitleWithoutSpaces".repeat(12);
+    const payload = bootstrap();
+    payload.projects[0].title = longTitle;
+    payload.tasks[0].title = longTitle;
+    payload.events[0].title = longTitle;
+    payload.events[0].location = longTitle;
+    vi.mocked(requestBff).mockResolvedValue(payload);
+    await openDashboard();
+
+    const grid = screen.getByRole("heading", { name: "Tableau de Bord" }).closest("section").querySelector(".dashboard-content-grid");
+    expect(grid.querySelector(".dashboard-recent-projects")).toBeTruthy();
+    expect(grid.querySelector(".dashboard-pending-tasks")).toBeTruthy();
+    expect(grid.querySelector(".dashboard-upcoming-events-grid")).toBeTruthy();
+    expect(within(grid).getAllByRole("button", { name: "Voir tout" })).toHaveLength(3);
+    expect(within(grid).getAllByText(longTitle)).toHaveLength(4);
+    expect(requestBff).toHaveBeenCalledTimes(1);
   });
 
   it("uses the same neutral action on all three BFF-backed cards", async () => {

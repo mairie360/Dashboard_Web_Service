@@ -117,6 +117,18 @@ Every response carries `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff
 
 ## Synchronization and verification
 
+### Responsive Dashboard cards (MAIR-371)
+
+The page explicitly uses one `minmax(0, 1fr)` grid track below the existing
+two-column desktop breakpoint. Dashboard-scoped CSS allows cards to shrink,
+wraps long project/task/event labels, keeps heading actions non-shrinking,
+and restores the local reference's project-row boundaries and card shadows.
+It does not hide horizontal overflow or change bootstrap data, navigation,
+AppShell, dependencies or environments. Browser verification must measure the
+scrolling **main** as well as the document at 390×844, 768×1024 and 1280×720;
+component and CSS guards alone cannot prove fit. Event columns retain their
+existing 1/2/3-column breakpoints.
+
 This front's only contract is the published `@mairie360/bff-dashboard-openapi` package, pinned to an exact `X.X.X` version (no range, no `0.0.0-dev`/`staging` prerelease), never the local BFF checkout. To adopt a newly published version:
 
 ```bash

@@ -67,10 +67,10 @@ export default function Home() {
                 : "Voici un aperçu de vos activités"}
             </p>
           </header>
-          <div className="grid gap-6 xl:grid-cols-2">
-            <DashboardRecentProjects projects={view.projects}
+          <div className="dashboard-content-grid grid grid-cols-1 gap-6 xl:grid-cols-2">
+            <DashboardRecentProjects className="dashboard-recent-projects" projects={view.projects}
               onViewAll={() => goTo(urls.project)} onSelect={(project) => goToProject(project.id)} />
-            <DashboardPendingTasks tasks={view.tasks}
+            <DashboardPendingTasks className="dashboard-pending-tasks" tasks={view.tasks}
               onViewAll={() => goTo(urls.project)} onSelect={(selected) => {
                 const task = data.tasks.find((candidate: { projectId: string; id: string }) =>
                   `${candidate.projectId}:${candidate.id}` === selected.id);

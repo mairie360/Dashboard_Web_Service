@@ -118,6 +118,19 @@ Toutes les réponses portent `X-Frame-Options: DENY`, `X-Content-Type-Options: n
 
 ## Synchronisation et vérifications
 
+### Cartes Dashboard adaptatives (MAIR-371)
+
+La page définit explicitement une colonne `minmax(0, 1fr)` sous le seuil
+desktop existant à deux colonnes. Le CSS limité au Dashboard permet aux cartes
+de se réduire, aux titres longs des projets/tâches/événements de revenir à la
+ligne, conserve les actions des en-têtes sans réduction et rétablit les
+bordures des projets et les ombres de la référence locale. Il ne masque pas
+le débordement horizontal et ne change ni le bootstrap, ni la navigation,
+l’AppShell, les dépendances ou les environnements. La vérification navigateur
+doit mesurer le **main** défilant autant que le document à 390×844, 768×1024
+et 1280×720 ; les contrôles de composants et de CSS ne prouvent pas seuls
+l’absence de débordement. Les événements gardent leurs seuils à 1/2/3 colonnes.
+
 Le seul contrat de ce front est le paquet publié `@mairie360/bff-dashboard-openapi`, épinglé sur une version exacte `X.X.X` (ni plage, ni pré-version `0.0.0-dev`/`staging`), jamais le checkout local du BFF. Pour adopter une nouvelle version publiée:
 
 ```bash
