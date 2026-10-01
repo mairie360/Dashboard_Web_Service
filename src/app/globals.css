@@ -27,6 +27,64 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+/* Bound the track, not the overflow: intrinsic card widths must not enlarge main. */
+.dashboard-content-grid > section {
+  min-width: 0;
+  box-shadow: 0 5px 15px rgb(23 32 51 / 14%), 0 1px 3px rgb(23 32 51 / 12%);
+}
+
+.dashboard-content-grid > section > div:first-child > h2 {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.dashboard-content-grid > section > div:first-child > button {
+  flex-shrink: 0;
+}
+
+.dashboard-content-grid > section > div:last-child > button {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.dashboard-content-grid > section > div:last-child > button .truncate {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+}
+
+.dashboard-recent-projects > div:last-child > button {
+  border: 1px solid #d8d2ca;
+  border-radius: 6px;
+  background: #fbfaf9;
+  padding: 12px;
+  transition: background-color 150ms, border-color 150ms;
+}
+
+.dashboard-recent-projects > div:last-child > button:hover {
+  background: #ffffff;
+  border-color: #4b908d;
+}
+
+.dashboard-recent-projects > div:last-child > button > span.flex {
+  flex-wrap: wrap;
+}
+
+.dashboard-recent-projects > div:last-child > button > span.flex > span {
+  min-width: 0;
+}
+
+.dashboard-recent-projects > div:last-child > button > span:first-child > span:last-child,
+.dashboard-pending-tasks > div:last-child > button > span:last-child {
+  flex-shrink: 0;
+}
+
+@media (max-width: 40rem) {
+  .dashboard-recent-projects > div:last-child > button > span.flex {
+    gap: 6px;
+  }
+}
+
 .dashboard-upcoming-events-grid > div:last-child {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
