@@ -13,6 +13,7 @@ Domaine fonctionnel: Tableau de bord.
 ## Fonctions disponibles
 
 - Affichage des données agrégées de `/dashboard/bootstrap`.
+- Reprise de l’échelle racine de 17px et de la police système par défaut de la référence, y compris le header partagé en rem (68px par défaut). Les tailles standard des petits textes restent inchangées ; aucune préférence d’apparence sauvegardée n’est simulée.
 - Signalement des sources temporairement indisponibles.
 - Navigation vers Projets, Calendrier, Messages et Fichiers par URL configurable.
 - Ouverture directe d’un événement du tableau de bord dans Calendrier.
