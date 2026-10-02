@@ -13,6 +13,7 @@ Business domain: Dashboard.
 ## Available capabilities
 
 - Display aggregated `/dashboard/bootstrap` data.
+- Use the reference's default 17px root scale and system font, including the shared rem-based header (68px by default). Standard small-text tokens remain unchanged; this does not simulate saved appearance preferences.
 - Report temporarily unavailable sources.
 - Navigate to Projects, Calendar, Messages and Files through configurable URLs.
 - Open an upcoming event directly in Calendar from its dashboard card.
