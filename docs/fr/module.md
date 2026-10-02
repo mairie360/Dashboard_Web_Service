@@ -13,6 +13,7 @@ Domaine fonctionnel: Tableau de bord.
 ## Fonctions disponibles
 
 - Affichage des données agrégées de `/dashboard/bootstrap`.
+- Échéances projet et tâche en JJ/MM/AAAA avec zéros initiaux, comme la référence locale. Les dates seules gardent leur jour UTC ; les instants ISO gardent le jour Europe/Paris existant, indépendamment du fuseau machine. Les tâches sans échéance et les valeurs non reconnues conservent leurs traitements existants ; le format des événements est inchangé.
 - Reprise de l’échelle racine de 17px et de la police système par défaut de la référence, y compris le header partagé en rem (68px par défaut). Les tailles standard des petits textes restent inchangées ; aucune préférence d’apparence sauvegardée n’est simulée.
 - Signalement des sources temporairement indisponibles.
 - Navigation vers Projets, Calendrier, Messages et Fichiers par URL configurable.

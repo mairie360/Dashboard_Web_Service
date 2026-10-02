@@ -92,7 +92,9 @@ test('the first pass renders the loading state, the next one the data of GET /da
   }
   assert.deepEqual(view.props('DashboardRecentProjects').projects.map((project) => project.status), ['in-progress', 'completed']);
   assert.equal(view.find('DashboardQuickActions').length, 0);
-  assert.match(view.text(), /1 déc\. 2026/);
+  assert.match(view.text(), /01\/12\/2026/);
+  assert.match(view.text(), /30\/06\/2026/);
+  assert.match(view.text(), /01\/11\/2026/);
   assert.match(view.text(), /Sans échéance/);
 });
 
