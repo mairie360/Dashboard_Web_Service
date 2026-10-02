@@ -13,6 +13,7 @@ Business domain: Dashboard.
 ## Available capabilities
 
 - Display aggregated `/dashboard/bootstrap` data.
+- Display project and task deadlines as zero-padded DD/MM/YYYY, matching the local reference. Date-only values retain their UTC day; ISO instants retain the existing Europe/Paris day independently of the host timezone. Missing task deadlines and unrecognized values keep their existing fallbacks; event formatting is unchanged.
 - Use the reference's default 17px root scale and system font, including the shared rem-based header (68px by default). Standard small-text tokens remain unchanged; this does not simulate saved appearance preferences.
 - Report temporarily unavailable sources.
 - Navigate to Projects, Calendar, Messages and Files through configurable URLs.

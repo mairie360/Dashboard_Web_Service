@@ -22,11 +22,11 @@ describe('toDashboardModuleData', () => {
     assert.deepEqual(toDashboardModuleData(valid()), {
       hasUnavailableSource: false,
       projects: [
-        { id: 'project-42', name: 'Budget participatif', progress: 50, status: 'in-progress', dueDate: '1 déc. 2026' },
-        { id: 'project-7', name: 'Rénovation de la médiathèque', progress: 100, status: 'completed', dueDate: '30 juin 2026' },
+        { id: 'project-42', name: 'Budget participatif', progress: 50, status: 'in-progress', dueDate: '01/12/2026' },
+        { id: 'project-7', name: 'Rénovation de la médiathèque', progress: 100, status: 'completed', dueDate: '30/06/2026' },
       ],
       tasks: [
-        { id: 'project-42:task-2', title: 'Validation', dueLabel: '1 nov. 2026', priority: 'high' },
+        { id: 'project-42:task-2', title: 'Validation', dueLabel: '01/11/2026', priority: 'high' },
         { id: 'project-7:task-5', title: 'Relecture', dueLabel: 'Sans échéance', priority: 'low' },
       ],
       events: [
@@ -67,12 +67,33 @@ describe('toDashboardModuleData', () => {
 });
 
 describe('formatDueDate', () => {
-  test('formats contract dates in French', () => {
-    assert.equal(formatDueDate('2026-12-01'), '1 déc. 2026');
-    assert.equal(formatDueDate('05-10-2026'), '5 oct. 2026');
+  test('formats contract dates with the numeric reference labels', () => {
+    assert.equal(formatDueDate('2026-12-01'), '01/12/2026');
+    assert.equal(formatDueDate('05-10-2026'), '05/10/2026');
     // Instant ISO 8601 de BFF Project : jour de l'échéance à Paris.
-    assert.equal(formatDueDate('2026-03-14T10:00:00.000Z'), '14 mars 2026');
-    assert.equal(formatDueDate('2024-12-31T23:59:59Z'), '1 janv. 2025');
+    assert.equal(formatDueDate('2026-03-14T10:00:00.000Z'), '14/03/2026');
+    assert.equal(formatDueDate('2024-12-31T23:59:59Z'), '01/01/2025');
+  });
+
+  test('retains calendar days across host timezones, Paris midnight and DST boundaries', () => {
+    const originalTimezone = process.env.TZ;
+    try {
+      for (const timezone of ['UTC', 'America/Los_Angeles', 'Pacific/Kiritimati']) {
+        process.env.TZ = timezone;
+        for (const [value, expected] of [
+          ['2026-09-09', '09/09/2026'],
+          ['09-09-2026', '09/09/2026'],
+          ['2026-03-28T23:30:00Z', '29/03/2026'],
+          ['2026-03-29T22:30:00Z', '30/03/2026'],
+          ['2026-10-24T22:30:00Z', '25/10/2026'],
+          ['2026-10-25T22:30:00Z', '25/10/2026'],
+          ['2026-10-25T23:30:00Z', '26/10/2026'],
+        ]) assert.equal(formatDueDate(value), expected, `${timezone}: ${value}`);
+      }
+    } finally {
+      if (originalTimezone === undefined) delete process.env.TZ;
+      else process.env.TZ = originalTimezone;
+    }
   });
 
   test('keeps a value that is not a date', () => {

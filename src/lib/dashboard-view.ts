@@ -13,13 +13,13 @@ type ModuleProps = ComponentProps<typeof DashboardModule>;
 const isoDate = (date: string) => date.replace(/^(\d{2})-(\d{2})-(\d{4})$/, '$3-$2-$1');
 
 const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
-const frenchDate = (timeZone: string) => new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short', year: 'numeric', timeZone });
+const frenchDate = (timeZone: string) => new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone });
 // Une date seule est lue en UTC par Date : elle est formatée en UTC pour ne pas changer de jour.
 const dateOnlyFormat = frenchDate('UTC');
 // Les échéances BFF Project sont des instants ISO 8601 (toISOString) : jour affiché à l'heure de Paris.
 const instantFormat = frenchDate('Europe/Paris');
 
-/** Échéance lisible en français (« 1 déc. 2026 ») ; une valeur non reconnue est affichée telle quelle. */
+/** Échéance numérique de la référence (« 01/12/2026 ») ; une valeur non reconnue est affichée telle quelle. */
 export function formatDueDate(value: string): string {
   const normalized = isoDate(value.trim());
   const timestamp = Date.parse(normalized);
