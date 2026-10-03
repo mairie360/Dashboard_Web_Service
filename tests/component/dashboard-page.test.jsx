@@ -1,5 +1,6 @@
-import { act, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { StrictMode } from "react";
 import { axe } from "jest-axe";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import Home from "@/app/page";
@@ -182,6 +183,93 @@ describe("Dashboard page", () => {
     expect((await screen.findByRole("alert")).textContent).toBe("Service indisponible");
     expect(screen.getByRole("status").textContent).toContain("indisponible");
     expect(screen.queryByRole("heading", { name: "Tableau de Bord" })).toBeNull();
+  });
+
+  it("recovers an initial failure through keyboard activation without automatically retrying", async () => {
+    const user = userEvent.setup();
+    vi.mocked(requestBff).mockRejectedValueOnce(new Error("Chargement refusé"));
+    render(<Home />);
+    const retry = await screen.findByRole("button", { name: "Réessayer le chargement" });
+    expect(requestBff).toHaveBeenCalledTimes(1);
+    for (let index = 0; index < 20 && document.activeElement !== retry; index += 1) await user.tab();
+    expect(document.activeElement).toBe(retry);
+    await user.keyboard("{Enter}");
+    await screen.findByRole("heading", { name: "Tableau de Bord" });
+    expect(requestBff).toHaveBeenCalledTimes(2);
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Réessayer le chargement" })).toBeNull();
+  });
+
+  it("locks partial-source recovery until its one read completes and preserves confirmed cards on refusal", async () => {
+    vi.mocked(requestBff).mockResolvedValueOnce(bootstrap({ events: [], sources: { projects: "available", tasks: "available", calendar: "unavailable" } }));
+    const user = await openDashboard();
+    let refuse;
+    vi.mocked(requestBff).mockImplementationOnce(() => new Promise((resolve, reject) => { refuse = reject; }));
+    const retry = screen.getByRole("button", { name: "Actualiser les données indisponibles" });
+    await user.dblClick(retry);
+    expect(requestBff).toHaveBeenCalledTimes(2);
+    expect(retry.disabled).toBe(true);
+    expect(retry.getAttribute("aria-busy")).toBe("true");
+    expect(screen.getByRole("button", { name: /Projet test/ })).toBeTruthy();
+    await act(async () => refuse(new Error("Actualisation refusée")));
+    expect((await screen.findByRole("alert")).textContent).toBe("Actualisation refusée");
+    expect(screen.getByRole("button", { name: /Projet test/ })).toBeTruthy();
+    expect(screen.getByText("Les dernières données reçues restent affichées.")).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "Réessayer le chargement" }));
+    await screen.findByRole("button", { name: /Événement test/ });
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(requestBff).toHaveBeenCalledTimes(3);
+  });
+
+  it("aborts a pending read on unmount without a new request", async () => {
+    let finish;
+    let signal;
+    vi.mocked(requestBff).mockImplementation((path, init) => {
+      signal = init.signal;
+      return new Promise((resolve) => { finish = resolve; });
+    });
+    const mounted = render(<Home />);
+    mounted.unmount();
+    expect(signal.aborted).toBe(true);
+    await act(async () => finish(bootstrap()));
+    expect(requestBff).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole("heading", { name: "Tableau de Bord" })).toBeNull();
+  });
+
+  it("guards consecutive recovery events before the disabled state renders", async () => {
+    vi.mocked(requestBff).mockResolvedValueOnce(bootstrap({ events: [], sources: { projects: "available", tasks: "available", calendar: "unavailable" } }));
+    await openDashboard();
+    let finish;
+    vi.mocked(requestBff).mockImplementationOnce(() => new Promise((resolve) => { finish = resolve; }));
+    const retry = screen.getByRole("button", { name: "Actualiser les données indisponibles" });
+    act(() => { fireEvent.click(retry); fireEvent.click(retry); });
+    expect(requestBff).toHaveBeenCalledTimes(2);
+    expect(retry.disabled).toBe(true);
+    await act(async () => finish(bootstrap()));
+    expect(screen.queryByRole("button", { name: "Actualiser les données indisponibles" })).toBeNull();
+  });
+
+  it("does not turn a logout failure into a bootstrap retry or hide confirmed cards", async () => {
+    const user = await openDashboard();
+    await user.click(screen.getByRole("button", { name: /Test/ }));
+    await user.click(await screen.findByText("Déconnexion", { exact: true }));
+    expect((await screen.findByRole("alert")).textContent).toBe("La déconnexion est temporairement indisponible.");
+    expect(screen.getByRole("button", { name: /Projet test/ })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Réessayer le chargement" })).toBeNull();
+    expect(requestBff).toHaveBeenCalledTimes(1);
+  });
+
+  it("ignores an aborted StrictMode read even when it resolves after the replacement", async () => {
+    const reads = [];
+    vi.mocked(requestBff).mockImplementation((path, init) => new Promise((resolve) => reads.push({ signal: init.signal, resolve })));
+    render(<StrictMode><Home /></StrictMode>);
+    expect(reads).toHaveLength(2);
+    expect(reads[0].signal.aborted).toBe(true);
+    await act(async () => reads[1].resolve(bootstrap({ userFirstName: "Réponse actuelle" })));
+    await screen.findByText("Bienvenue Réponse actuelle, voici un aperçu de vos activités");
+    await act(async () => reads[0].resolve(bootstrap({ userFirstName: "Réponse obsolète" })));
+    expect(screen.getByText("Bienvenue Réponse actuelle, voici un aperçu de vos activités")).toBeTruthy();
+    expect(screen.queryByText(/Réponse obsolète/)).toBeNull();
   });
 
   it("keeps section controls keyboard-reachable and free of serious axe violations", async () => {

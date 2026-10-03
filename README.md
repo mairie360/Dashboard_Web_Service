@@ -19,6 +19,13 @@ real-data rendering, keyboard focus and serious/critical axe findings alone.
 The component fixtures are synthetic and stay in `tests/`; they are never
 rendered in production.
 
+MAIR-455 / [issue #84](https://github.com/mairie360/Dashboard_Web_Service/issues/84):
+failed bootstrap reads and unavailable sources offer explicit keyboard/click
+recovery using the same published GET. One read runs at a time; confirmed cards
+stay visible after a new refusal, and unmounted/aborted responses are ignored.
+There is no automatic retry, invented data, new API/BFF operation or deployment
+approval. Quick actions remain absent as required by MAIR-209.
+
 Les guides décrivent le module implémenté, ses limites actuelles, le démarrage local, les routes, les données, les vérifications et la CI/CD.
 
 ## Contracts and background / Contrats et compléments
