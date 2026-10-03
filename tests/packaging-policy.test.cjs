@@ -132,4 +132,3 @@ test('the existing Dev approval gates main but never prevents PR or branch check
     assert.equal(allows('refs/pull/83/merge', result, true), false);
   }
 });
-
