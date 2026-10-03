@@ -4,7 +4,12 @@ out
 build
 .git
 *.log
-.env
+.env*
+.npmrc.*
+cicd-repo
+tests
+test-results
+playwright-report
 
 # tests isolés (sécurité / performance) : inutiles dans l'image
 coverage

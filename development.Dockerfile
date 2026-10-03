@@ -1,5 +1,6 @@
-ARG NODE_VERSION=23.10.0
-FROM node:${NODE_VERSION}-bookworm-slim AS builder
+# syntax=docker/dockerfile:1
+ARG NODE_VERSION=24.21.0
+FROM node:${NODE_VERSION}-bookworm-slim@sha256:0e0ff40c39bc087845bfb27465a0df4ea419520094bc35842ff83dd8cbe6f9b6 AS builder
 
 # Install dependencies
 RUN apt update && apt install -y --no-install-recommends \
@@ -12,8 +13,10 @@ WORKDIR /usr/src/projects
 # Copy package files separately for better caching
 COPY package.json package-lock.json ./
 
-# Install dependencies
-RUN npm ci
+# Credential and tracked npm policy exist only during the locked install.
+RUN --mount=type=secret,id=node_auth_token,env=NODE_AUTH_TOKEN,required=true \
+    --mount=type=bind,source=.npmrc,target=/usr/src/projects/.npmrc \
+    npm ci
 
 # Copy source code
 COPY . .
@@ -26,7 +29,7 @@ RUN chown -R projects:projects /usr/src/projects
 USER projects
 
 # Set environment variables
-ENV NODE_ENV=production
+ENV NODE_ENV=development
 ENV HOSTNAME="0.0.0.0"
 ENV PORT=3000
 
