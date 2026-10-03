@@ -165,6 +165,35 @@ test('an unreachable proxy target becomes the controlled error of the page', asy
   }
 });
 
+test('an initial refusal offers explicit recovery using only the published bootstrap GET', async () => {
+  dashboardBff.on('get', '/dashboard/bootstrap', { status: 503, body: { error: { message: 'Chargement refusé' } }, outOfContract: true });
+  view = mount(React.createElement(Home));
+  await view.waitFor((html) => html.includes('role="alert"'));
+  assert.equal(view.html.match(/>Réessayer le chargement<\/button>/g)?.length, 1);
+  assert.equal(dashboardBff.requests.length, 1, 'there is no automatic retry');
+  dashboardBff.on('get', '/dashboard/bootstrap', { body: bootstrapResponse() });
+  await view.click((props, text, tag) => tag === 'button' && text === 'Réessayer le chargement');
+  await view.waitFor((html) => html.includes('Budget participatif') && !html.includes('role="alert"'));
+  assert.deepEqual(upstreamCalls(), ['GET /dashboard/bootstrap', 'GET /dashboard/bootstrap']);
+  assert.doesNotMatch(view.html, /Réessayer le chargement|Actualiser les données indisponibles|Actions rapides/);
+});
+
+test('partial data stays visible through a refused recovery and a later complete response replaces it', async () => {
+  await renderLoadedPage(bootstrapResponse({ events: [], sources: { projects: 'available', tasks: 'available', calendar: 'unavailable' } }));
+  dashboardBff.on('get', '/dashboard/bootstrap', { status: 503, body: { error: { message: 'Actualisation refusée' } }, outOfContract: true });
+  await view.click((props, text, tag) => tag === 'button' && text === 'Actualiser les données indisponibles');
+  await view.waitFor((html) => html.includes('Actualisation refusée'));
+  assert.match(view.text(), /Budget participatif/);
+  assert.match(view.text(), /Les dernières données reçues restent affichées/);
+  assert.match(view.text(), /Certaines données sont temporairement indisponibles/);
+  dashboardBff.on('get', '/dashboard/bootstrap', { body: bootstrapResponse({ projects: [] }) });
+  await view.click((props, text, tag) => tag === 'button' && text === 'Réessayer le chargement');
+  await view.waitFor((html) => html.includes('Conseil municipal') && !html.includes('role="alert"'));
+  assert.match(view.text(), /Aucun projet récent/);
+  assert.doesNotMatch(view.text(), /Budget participatif|indisponibles|Actualisation refusée/);
+  assert.deepEqual(upstreamCalls(), ['GET /dashboard/bootstrap', 'GET /dashboard/bootstrap', 'GET /dashboard/bootstrap']);
+});
+
 test('real sections navigate to the configured project and calendar fronts', async () => {
   await renderLoadedPage();
   assert.doesNotMatch(view.html, /Actions rapides|Voir les rapports|Projets accessibles/);
