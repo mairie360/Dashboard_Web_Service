@@ -35,6 +35,8 @@ body {
 /* Keep the reference's py-6 on desktop too; do not alter other shell consumers. */
 .dashboard-app-shell main {
   padding-block: 1.5rem;
+  /* Match the opaque reference content, including its header-shadow painting. */
+  background-color: #f5f3f0;
 }
 
 /* Restore reference presentation without copying the published navigation. */

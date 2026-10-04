@@ -58,6 +58,16 @@ la sidebar reste sous le bouton Fermer publié. Aucun rôle, identité, notifica
 ou numéro de version fictif n'est recopié ; la parité visuelle globale et les
 autorisations déployées ne sont pas certifiées par cette seule correction.
 
+The Dashboard content also retains the reference's opaque `#f5f3f0` background.
+A transparent shared-shell main otherwise reveals a header shadow hidden by
+the old content paint. This consumer-only rule does not change the shared
+header's shadow token, position, stacking, menus or the mobile navigation.
+
+Le contenu Dashboard conserve aussi le fond opaque `#f5f3f0` de la référence.
+Un main transparent laissait voir une ombre du header recouverte par l'ancien
+contenu. Cette règle propre au consommateur ne change ni l'ombre partagée,
+ni la position ou l'empilement du header, ses menus ou la navigation mobile.
+
 Les guides décrivent le module implémenté, ses limites actuelles, le démarrage local, les routes, les données, les vérifications et la CI/CD.
 
 ## Contracts and background / Contrats et compléments

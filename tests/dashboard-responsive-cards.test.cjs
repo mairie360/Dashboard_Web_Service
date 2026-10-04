@@ -26,6 +26,14 @@ test('Dashboard retains the reference vertical inset at every shell breakpoint',
   assert.doesNotMatch(rule('.dashboard-app-shell main'), /margin|transform|overflow|height/);
 });
 
+test('Dashboard restores the opaque reference content without changing shared header stacking', () => {
+  const main = rule('.dashboard-app-shell main');
+  assert.match(main, /background-color:\s*#f5f3f0/);
+  assert.doesNotMatch(main, /position:|z-index:|box-shadow:/);
+  // The reference main paints over the header shadow; do not remove that shared token.
+  assert.doesNotMatch(css, /\.dashboard-app-shell[^{}]*\bheader\s*\{/);
+});
+
 test('Dashboard keeps the reference sidebar rhythm and shadow without covering mobile Close', () => {
   const sidebar = rule('.dashboard-app-shell [aria-label="Navigation principale"]');
   assert.match(sidebar, /position:\s*relative/);

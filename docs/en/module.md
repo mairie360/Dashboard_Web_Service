@@ -17,6 +17,7 @@ Business domain: Dashboard.
 - Use the reference's default 17px root scale and system font, including the shared rem-based header (68px by default). Standard small-text tokens remain unchanged; this does not simulate saved appearance preferences.
 - Keep the reference's 1.5rem vertical content inset at desktop and mobile widths. This Dashboard-only shell class does not change shared library defaults or other frontends.
 - Retain the reference sidebar's 44px minimum navigation rows and lateral shadow through Dashboard-only CSS. The mobile sidebar remains below the published Close button; this does not copy prototype navigation or invent roles, notifications or version data (MAIR-182 / issue #32).
+- Keep the reference's opaque `#f5f3f0` content background so the header boundary paints consistently. Do not alter the shared header's shadow token or stacking to compensate for transparent content (MAIR-182 / issue #32).
 - Report temporarily unavailable sources.
 - Recover a refused bootstrap explicitly without replacing confirmed cards by invented empty data. A confirmed empty response replaces the old cards; read recovery does not dismiss an independent logout error or call a mutation.
 - Navigate to Projects, Calendar, Messages and Files through configurable URLs.

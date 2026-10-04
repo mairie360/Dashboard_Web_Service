@@ -18,6 +18,7 @@ Domaine fonctionnel: Tableau de bord.
 - Reprise de l’échelle racine de 17px et de la police système par défaut de la référence, y compris le header partagé en rem (68px par défaut). Les tailles standard des petits textes restent inchangées ; aucune préférence d’apparence sauvegardée n’est simulée.
 - Marge intérieure verticale de 1,5rem conservée sur desktop et mobile, comme la référence. La classe de shell propre à Dashboard ne change ni les valeurs par défaut de la bibliothèque ni les autres fronts.
 - Lignes de navigation de 44px minimum et ombre latérale de la sidebar de référence, avec du CSS propre à Dashboard. La sidebar mobile reste sous le bouton Fermer publié ; aucune navigation du prototype, rôle, notification ou donnée de version fictive n'est recopié (MAIR-182 / issue #32).
+- Fond opaque du contenu `#f5f3f0` conservé pour retrouver la peinture de la frontière du header de référence. Ni l'ombre partagée du header ni son empilement ne sont modifiés pour compenser un contenu transparent (MAIR-182 / issue #32).
 - Signalement des sources temporairement indisponibles.
 - Navigation vers Projets, Calendrier, Messages et Fichiers par URL configurable.
 - Ouverture directe d’un événement du tableau de bord dans Calendrier.
