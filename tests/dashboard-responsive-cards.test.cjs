@@ -26,6 +26,18 @@ test('Dashboard retains the reference vertical inset at every shell breakpoint',
   assert.doesNotMatch(rule('.dashboard-app-shell main'), /margin|transform|overflow|height/);
 });
 
+test('Dashboard keeps the reference sidebar rhythm and shadow without covering mobile Close', () => {
+  const sidebar = rule('.dashboard-app-shell [aria-label="Navigation principale"]');
+  assert.match(sidebar, /position:\s*relative/);
+  assert.match(sidebar, /z-index:\s*20/);
+  assert.match(sidebar, /box-shadow:\s*8px 0 24px rgb\(12 28 48 \/ 28%\)/);
+  const buttons = rule('.dashboard-app-shell [aria-label="Navigation principale"] nav button');
+  assert.match(buttons, /flex-shrink:\s*0/);
+  assert.match(buttons, /min-height:\s*44px/);
+  // Published drawer Close is z-10; the reference desktop z-20 must not cover it.
+  assert.match(rule('.dashboard-app-shell [aria-label="Navigation mobile"] [aria-label="Navigation principale"]'), /z-index:\s*0/);
+});
+
 test('reference project boundaries, shadows and row wrapping are scoped to Dashboard', () => {
   assert.match(rule('.dashboard-content-grid > section'), /box-shadow:\s*0 5px 15px/);
   const project = rule('.dashboard-recent-projects > div:last-child > button');

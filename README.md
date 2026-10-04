@@ -44,6 +44,20 @@ La recette appariée (MAIR-180) conserve aussi la marge intérieure verticale de
 de référence de 17px. Classe racine et CSS propres à Dashboard rétablissent cette
 marge, sans changer le mobile, les requêtes, la bibliothèque ou les autres fronts.
 
+Sidebar presentation follows [MAIR-182](https://mairie-360.atlassian.net/browse/MAIR-182)
+and [issue #32](https://github.com/mairie360/Dashboard_Web_Service/issues/32):
+the published navigation retains 44px minimum rows and the reference's lateral
+shadow. The rules are scoped to Dashboard; the mobile sidebar stays below its
+published Close button. No navigation implementation, role, identity, notification
+or fictional version is copied from the prototype. Matching sidebar geometry
+does not certify every header paint detail or deployed authorization.
+
+La présentation de la sidebar suit MAIR-182 / issue #32 : lignes de 44px minimum
+et ombre latérale de la référence, limitées à Dashboard. Dans le tiroir mobile,
+la sidebar reste sous le bouton Fermer publié. Aucun rôle, identité, notification
+ou numéro de version fictif n'est recopié ; la parité visuelle globale et les
+autorisations déployées ne sont pas certifiées par cette seule correction.
+
 Les guides décrivent le module implémenté, ses limites actuelles, le démarrage local, les routes, les données, les vérifications et la CI/CD.
 
 ## Contracts and background / Contrats et compléments
