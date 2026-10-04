@@ -33,6 +33,17 @@ card navigation and logout errors remain independent of read recovery. Existing
 security audits and the Dev approval stay blocking. Isolated checks do not imply
 green remote CI, integration, image/deployment validation or refreshed local-current.
 
+Paired reference QA (MAIR-180) also retains the 1.5rem vertical content inset on
+desktop. The shared shell's desktop padding otherwise moves Dashboard's title
+and cards down by 8.5px at the reference 17px scale. A Dashboard-only root class
+and scoped CSS restore the original inset; mobile padding, requests, shared
+library defaults and other consumers are unchanged.
+
+La recette appariée (MAIR-180) conserve aussi la marge intérieure verticale de
+1,5rem sur desktop : le shell partagé décalait titre et cartes de 8,5px à l’échelle
+de référence de 17px. Classe racine et CSS propres à Dashboard rétablissent cette
+marge, sans changer le mobile, les requêtes, la bibliothèque ou les autres fronts.
+
 Les guides décrivent le module implémenté, ses limites actuelles, le démarrage local, les routes, les données, les vérifications et la CI/CD.
 
 ## Contracts and background / Contrats et compléments

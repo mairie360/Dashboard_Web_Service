@@ -4,6 +4,7 @@ const path = require('node:path');
 const { test } = require('node:test');
 
 const css = readFileSync(path.join(__dirname, '../src/app/globals.css'), 'utf8');
+const page = readFileSync(path.join(__dirname, '../src/app/page.tsx'), 'utf8');
 const rule = (selector) => {
   const start = css.indexOf(`${selector} {`);
   assert.notEqual(start, -1, `missing scoped rule: ${selector}`);
@@ -17,6 +18,12 @@ test('Dashboard cards shrink, wrap long content and retain usable heading action
   assert.match(rule('.dashboard-content-grid > section > div:last-child > button'), /overflow-wrap:\s*anywhere/);
   assert.match(rule('.dashboard-content-grid > section > div:last-child > button .truncate'), /white-space:\s*normal/);
   assert.doesNotMatch(css, /overflow-x:\s*(hidden|clip)/);
+});
+
+test('Dashboard retains the reference vertical inset at every shell breakpoint', () => {
+  assert.match(page, /<AppShell\s+className="dashboard-app-shell"/);
+  assert.match(rule('.dashboard-app-shell main'), /padding-block:\s*1\.5rem/);
+  assert.doesNotMatch(rule('.dashboard-app-shell main'), /margin|transform|overflow|height/);
 });
 
 test('reference project boundaries, shadows and row wrapping are scoped to Dashboard', () => {

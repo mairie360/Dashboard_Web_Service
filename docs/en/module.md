@@ -15,6 +15,7 @@ Business domain: Dashboard.
 - Display aggregated `/dashboard/bootstrap` data.
 - Display project and task deadlines as zero-padded DD/MM/YYYY, matching the local reference. Date-only values retain their UTC day; ISO instants retain the existing Europe/Paris day independently of the host timezone. Missing task deadlines and unrecognized values keep their existing fallbacks; event formatting is unchanged.
 - Use the reference's default 17px root scale and system font, including the shared rem-based header (68px by default). Standard small-text tokens remain unchanged; this does not simulate saved appearance preferences.
+- Keep the reference's 1.5rem vertical content inset at desktop and mobile widths. This Dashboard-only shell class does not change shared library defaults or other frontends.
 - Report temporarily unavailable sources.
 - Recover a refused bootstrap explicitly without replacing confirmed cards by invented empty data. A confirmed empty response replaces the old cards; read recovery does not dismiss an independent logout error or call a mutation.
 - Navigate to Projects, Calendar, Messages and Files through configurable URLs.

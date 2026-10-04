@@ -76,6 +76,7 @@ export default function Home() {
   const userFirstName = data?.userFirstName.trim() ?? "";
   return (
     <AppShell
+      className="dashboard-app-shell"
       activeItem="dashboard"
       hrefs={getActiveFrontHrefs()}
       user={userFirstName ? { first_name: userFirstName } : undefined}

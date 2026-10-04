@@ -32,6 +32,11 @@ body {
   font-family: system-ui, sans-serif;
 }
 
+/* Keep the reference's py-6 on desktop too; do not alter other shell consumers. */
+.dashboard-app-shell main {
+  padding-block: 1.5rem;
+}
+
 /* Bound the track, not the overflow: intrinsic card widths must not enlarge main. */
 .dashboard-content-grid > section {
   min-width: 0;
