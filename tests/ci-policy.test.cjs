@@ -11,10 +11,8 @@ test('Dashboard calls the shared frontend workflow version with Semgrep', () => 
   const workflow = read('.github/workflows/cicd.yml');
   const reusableWorkflows = [...workflow.matchAll(/^\s+uses:\s+mairie360\/CICD\/\.github\/workflows\/frontend-cicd\.yml@(v(\d+)\.(\d+)\.(\d+))\s*$/gm)];
   assert.equal(reusableWorkflows.length, 1, 'Dashboard must call the shared frontend workflow once');
-  const [, version, major, minor, patch] = reusableWorkflows[0];
-  assert.equal(Number(major), 3, 'a new major workflow version requires review');
-  assert.ok(Number(minor) > 1 || (Number(minor) === 1 && Number(patch) >= 1),
-    'the shared workflow must include the Semgrep security audit');
+  const [, version] = reusableWorkflows[0];
+  assert.equal(version, 'v4.0.2', 'only the reviewed workflow version is accepted; another upgrade requires review');
   assert.equal(workflow.match(/cicd_version:\s*"([^"]+)"/)?.[1], version,
     'the reusable workflow ref and input must use the same version');
   assert.doesNotMatch(workflow, /semgrep_fail_on_findings:\s*false|semgrep_config:|continue-on-error:/);
@@ -61,8 +59,8 @@ test('Dashboard pins the published shared UI release in its lockfile', () => {
 });
 
 test('CI and local toolchains support the npm release-age policy', () => {
-  assert.match(read('.github/workflows/cicd.yml'), /node_version:\s*"24"/);
-  assert.match(read('.github/workflows/contracts.yml'), /node-version:\s*'24'/);
+  assert.match(read('.github/workflows/cicd.yml'), /node_version:\s*"24\.21\.0"/);
+  assert.match(read('.github/workflows/contracts.yml'), /node-version:\s*'24\.21\.0'/);
   const version = execFileSync('npm', ['--version'], { cwd: root, encoding: 'utf8' }).trim();
   const match = /^(\d+)\.(\d+)\.(\d+)$/.exec(version);
   assert.ok(match, 'npm must report a stable version');

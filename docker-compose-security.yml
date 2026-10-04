@@ -14,6 +14,10 @@
 # Le front ne parle qu'à BFF Dashboard, qui agrège trois BFFs : la stack monte toute
 # la chaîne amont réelle (BFF User / Project / Calendar + leurs APIs) + base partagée + redis.
 
+secrets:
+  node_auth_token:
+    environment: NODE_AUTH_TOKEN
+
 volumes:
   postgres-data:
   redis-data:
@@ -352,8 +356,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      args:
-        NODE_AUTH_TOKEN: ${NODE_AUTH_TOKEN:-}
+      secrets:
+        - node_auth_token
     depends_on:
       bff-dashboard-ready:
         condition: service_completed_successfully
