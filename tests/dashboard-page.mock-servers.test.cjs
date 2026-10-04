@@ -194,6 +194,29 @@ test('partial data stays visible through a refused recovery and a later complete
   assert.deepEqual(upstreamCalls(), ['GET /dashboard/bootstrap', 'GET /dashboard/bootstrap', 'GET /dashboard/bootstrap']);
 });
 
+test('composed read recovery replaces retained cards only after confirmed empty bootstrap', async () => {
+  dashboardBff.on('get', '/dashboard/bootstrap', { status: 503, body: { error: { message: 'Lecture initiale refusée' } }, outOfContract: true });
+  view = mount(React.createElement(Home));
+  await view.waitFor((html) => html.includes('Lecture initiale refusée'));
+  assert.equal(upstreamCalls().length, 1);
+  dashboardBff.on('get', '/dashboard/bootstrap', { body: bootstrapResponse({ events: [], sources: { projects: 'available', tasks: 'available', calendar: 'unavailable' } }) });
+  await view.click((props, text, tag) => tag === 'button' && text === 'Réessayer le chargement');
+  await view.waitFor((html) => html.includes('Budget participatif'));
+  dashboardBff.on('get', '/dashboard/bootstrap', { status: 503, body: { error: { message: 'Nouvelle lecture refusée' } }, outOfContract: true });
+  await view.click((props, text, tag) => tag === 'button' && text === 'Actualiser les données indisponibles');
+  await view.waitFor((html) => html.includes('Nouvelle lecture refusée'));
+  assert.match(view.text(), /Budget participatif|Les dernières données reçues restent affichées/);
+  await view.act(() => view.props('DashboardPendingTasks').onSelect(view.props('DashboardPendingTasks').tasks[0]));
+  assert.equal(window.location.href, 'https://project.test.example/?project=project-42&task=task-2');
+  assert.equal(upstreamCalls().length, 3, 'retained card navigation is not a retry');
+  dashboardBff.on('get', '/dashboard/bootstrap', { body: bootstrapResponse({ projects: [], tasks: [], events: [], userFirstName: 'Confirmé', metrics: { totalProjects: 0 } }) });
+  await view.click((props, text, tag) => tag === 'button' && text === 'Réessayer le chargement');
+  await view.waitFor((html) => html.includes('Bienvenue Confirmé') && !html.includes('role="alert"'));
+  for (const text of ['Aucun projet récent', 'Aucune tâche en attente', 'Aucun événement à venir']) assert.ok(view.text().includes(text));
+  assert.doesNotMatch(view.html, /Budget participatif|Nouvelle lecture refusée|Actualiser les données indisponibles|Réessayer le chargement/);
+  assert.deepEqual(upstreamCalls(), Array(4).fill('GET /dashboard/bootstrap'));
+});
+
 test('real sections navigate to the configured project and calendar fronts', async () => {
   await renderLoadedPage();
   assert.doesNotMatch(view.html, /Actions rapides|Voir les rapports|Projets accessibles/);

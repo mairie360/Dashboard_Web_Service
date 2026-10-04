@@ -26,6 +26,13 @@ stay visible after a new refusal, and unmounted/aborted responses are ignored.
 There is no automatic retry, invented data, new API/BFF operation or deployment
 approval. Quick actions remain absent as required by MAIR-209.
 
+The composed candidate includes the reviewed packaging (#83) and published UI
+pin (#86) alongside read recovery (#85). Cross-flow regressions cover initial
+refusal, partial-source confirmation, another refusal, and confirmed empty data;
+card navigation and logout errors remain independent of read recovery. Existing
+security audits and the Dev approval stay blocking. Isolated checks do not imply
+green remote CI, integration, image/deployment validation or refreshed local-current.
+
 Les guides décrivent le module implémenté, ses limites actuelles, le démarrage local, les routes, les données, les vérifications et la CI/CD.
 
 ## Contracts and background / Contrats et compléments

@@ -272,6 +272,47 @@ describe("Dashboard page", () => {
     expect(screen.queryByText(/Réponse obsolète/)).toBeNull();
   });
 
+  it("recovers to confirmed empty data without clearing an independent logout refusal", async () => {
+    const user = userEvent.setup();
+    vi.mocked(requestBff).mockRejectedValueOnce(new Error("Lecture initiale refusée"));
+    render(<Home />);
+    await screen.findByText("Lecture initiale refusée");
+    vi.mocked(requestBff).mockResolvedValueOnce(bootstrap({
+      events: [], sources: { projects: "available", tasks: "available", calendar: "unavailable" },
+    }));
+    await user.click(screen.getByRole("button", { name: "Réessayer le chargement" }));
+    await screen.findByRole("button", { name: /Projet test/ });
+
+    let refuse;
+    vi.mocked(requestBff).mockImplementationOnce(() => new Promise((resolve, reject) => { refuse = reject; }));
+    const refresh = screen.getByRole("button", { name: "Actualiser les données indisponibles" });
+    act(() => { fireEvent.click(refresh); fireEvent.click(refresh); });
+    expect(requestBff).toHaveBeenCalledTimes(3);
+    expect(refresh.disabled).toBe(true);
+    await act(async () => refuse(new Error("Nouvelle lecture refusée")));
+    await screen.findByText("Nouvelle lecture refusée");
+    expect(screen.getByRole("button", { name: /Projet test/ })).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: /Test/ }));
+    await user.click(await screen.findByText("Déconnexion", { exact: true }));
+    await screen.findByText("La déconnexion est temporairement indisponible.");
+    expect(requestBff).toHaveBeenCalledTimes(3);
+
+    vi.mocked(requestBff).mockResolvedValueOnce(bootstrap({
+      projects: [], tasks: [], events: [], userFirstName: "Confirmé", metrics: { totalProjects: 0 },
+    }));
+    await user.click(screen.getByRole("button", { name: "Réessayer le chargement" }));
+    await screen.findByText("Bienvenue Confirmé, voici un aperçu de vos activités");
+    expect(screen.getByText("Aucun projet récent.")).toBeTruthy();
+    expect(screen.getByText("Aucune tâche en attente.")).toBeTruthy();
+    expect(screen.getByText("Aucun événement à venir.")).toBeTruthy();
+    expect(screen.queryByText("Nouvelle lecture refusée")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Réessayer le chargement" })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Projet test/ })).toBeNull();
+    expect(screen.getByRole("alert").textContent).toBe("La déconnexion est temporairement indisponible.");
+    expect(requestBff).toHaveBeenCalledTimes(4);
+    expect(vi.mocked(requestBff).mock.calls.every(([path]) => path === "/dashboard/bootstrap")).toBe(true);
+  });
+
   it("keeps section controls keyboard-reachable and free of serious axe violations", async () => {
     const user = await openDashboard();
     const projects = screen.getByRole("heading", { name: "Projets récents" }).closest("section");
