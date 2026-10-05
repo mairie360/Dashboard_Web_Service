@@ -40,6 +40,41 @@ beforeEach(() => {
 });
 
 describe("Dashboard page", () => {
+  it("keeps invalid deadline text and only selectable valid events from a partial bootstrap", async () => {
+    const payload = bootstrap({ events: [
+      { id: "bad", title: "Impossible day", date: "2026-02-31", startTime: "09:00" },
+      { id: "good", title: "Valid leap day", date: "2028-02-29", startTime: "09:00" },
+    ] });
+    payload.projects[0].dueDate = "3";
+    vi.mocked(requestBff).mockResolvedValue(payload);
+    await openDashboard();
+    expect(screen.getByRole("button", { name: /Projet test/ }).textContent).toContain("Échéance: 3");
+    expect(screen.getByRole("button", { name: /Projet test/ }).textContent).not.toContain("2001");
+    expect(screen.queryByRole("button", { name: /Impossible day/ })).toBeNull();
+    expect(screen.getByRole("button", { name: /Valid leap day/ })).toBeTruthy();
+    expect(screen.getByText(/Certains événements reçus ont une date ou une heure illisible/)).toBeTruthy();
+    expect(screen.getAllByRole("button", { name: "Actualiser les dates illisibles" })).toHaveLength(1);
+    expect(requestBff).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not announce an empty calendar for unusable dates and recovers to confirmed empty through explicit GET", async () => {
+    vi.mocked(requestBff).mockResolvedValueOnce(bootstrap({ events: [
+      { id: "bad", title: "Impossible time", date: "2026-10-06", startTime: "24:00" },
+    ] })).mockResolvedValueOnce(bootstrap({ events: [] }));
+    await openDashboard();
+    expect(screen.queryByText("Aucun événement à venir.")).toBeNull();
+    const unavailable = screen.getByRole("region", { name: "Événements à venir" });
+    expect(within(unavailable).getByRole("status").textContent).toContain("Les événements reçus ne peuvent pas être affichés");
+    expect(within(unavailable).getByRole("button", { name: "Voir tout" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /Impossible time/ })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Actualiser les dates illisibles" }));
+    await screen.findByText("Aucun événement à venir.");
+    expect(screen.queryByText(/Certains événements reçus/)).toBeNull();
+    expect(screen.queryByRole("button", { name: "Actualiser les dates illisibles" })).toBeNull();
+    expect(requestBff).toHaveBeenCalledTimes(2);
+    expect(vi.mocked(requestBff).mock.calls.every(([url]) => url === "/dashboard/bootstrap")).toBe(true);
+  });
+
   it("loads only the published bootstrap and renders DTO-backed cards", async () => {
     let resolveBootstrap;
     vi.mocked(requestBff).mockImplementation(() => new Promise((resolve) => {
@@ -55,6 +90,7 @@ describe("Dashboard page", () => {
     expect(screen.getByRole("button", { name: /Projet test/ })).toBeTruthy();
     expect(screen.getByRole("button", { name: /Tâche test/ })).toBeTruthy();
     expect(screen.getByRole("button", { name: /Événement test/ })).toBeTruthy();
+    expect([...screen.getByRole("main").childNodes].some(node => node.nodeType === Node.TEXT_NODE && node.textContent.trim() === "0")).toBe(false);
     expect(screen.queryByRole("heading", { name: "Actions rapides" })).toBeNull();
   });
 

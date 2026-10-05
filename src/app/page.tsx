@@ -19,6 +19,7 @@ const urls = {
   get calendar() { return frontUrl("CALENDAR_FRONT_URL"); },
 };
 const goTo = (href: string | undefined) => { if (href) window.location.href = href; };
+const openCalendar = () => goTo(urls.calendar);
 const goToProject = (projectId: string, taskId?: string) => {
   const projectUrl = urls.project;
   if (!projectUrl || !projectId) return;
@@ -85,12 +86,12 @@ export default function Home() {
     >
       {logoutError && <p role="alert" className="mb-4 rounded bg-white p-4 text-red-700">{logoutError}</p>}
       {error && <p role="alert" className="mb-4 rounded bg-white p-4 text-red-700">{error}</p>}
-      {(error || view?.hasUnavailableSource) && (
+      {(error || view?.hasUnavailableSource || Boolean(view?.unusableEventCount)) && (
         <div className="mb-4 flex flex-wrap items-center gap-3">
           <button type="button" disabled={loading} aria-busy={loading}
             className="rounded-md border border-[#d8d2ca] bg-[#fbfaf9] px-4 py-2 font-semibold text-[#172033] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#155bb5]/30 disabled:cursor-not-allowed disabled:opacity-50"
             onClick={() => { setLoading(true); void loadDashboard(); }}>
-            {error ? "Réessayer le chargement" : "Actualiser les données indisponibles"}
+            {error ? "Réessayer le chargement" : view?.unusableEventCount ? "Actualiser les dates illisibles" : "Actualiser les données indisponibles"}
           </button>
           {loading && <p role="status">Actualisation du tableau de bord…</p>}
           {data && error && <p className="text-sm text-[#687385]">Les dernières données reçues restent affichées.</p>}
@@ -98,6 +99,7 @@ export default function Home() {
       )}
       {!data || !view ? <p role="status">{error && !loading ? "Le tableau de bord est indisponible." : "Chargement du tableau de bord…"}</p> : <>
         {view.hasUnavailableSource && <p role="status" className="mb-4 rounded bg-white p-4">Certaines données sont temporairement indisponibles.</p>}
+        {view.unusableEventCount > 0 && <p role="status" className="mb-4 rounded bg-white p-4">Certains événements reçus ont une date ou une heure illisible et ne sont pas affichés.</p>}
         <section className="mx-auto max-w-[1520px] space-y-4">
           <header>
             <h1 className="text-[28px] font-bold leading-tight">Tableau de Bord</h1>
@@ -116,8 +118,17 @@ export default function Home() {
                   `${candidate.projectId}:${candidate.id}` === selected.id);
                 if (task) goToProject(task.projectId, task.id);
               }} />
-            <DashboardUpcomingEvents className="dashboard-upcoming-events-grid xl:col-span-2" events={view.events}
-              onOpenCalendar={() => goTo(urls.calendar)} onSelect={goToCalendarEvent} />
+            {view.unusableEventCount > 0 && view.events.length === 0 ? (
+              <section className="dashboard-upcoming-events-grid rounded-lg border border-[#dfd9d1] bg-white p-6 xl:col-span-2" aria-labelledby="unusable-events-heading">
+                <div className="flex items-center justify-between gap-4">
+                  <h2 id="unusable-events-heading" className="text-base font-semibold text-[#243041]">Événements à venir</h2>
+                  <button type="button" className="rounded-md border border-[#d8d2ca] bg-[#fbfaf9] px-3 py-2 text-sm font-medium text-[#243041]"
+                    onClick={openCalendar}>Voir tout</button>
+                </div>
+                <p role="status" className="py-8 text-center text-sm text-[#687385]">Les événements reçus ne peuvent pas être affichés : leurs dates ou heures sont illisibles.</p>
+              </section>
+            ) : <DashboardUpcomingEvents className="dashboard-upcoming-events-grid xl:col-span-2" events={view.events}
+              onOpenCalendar={openCalendar} onSelect={goToCalendarEvent} />}
           </div>
         </section>
       </>}

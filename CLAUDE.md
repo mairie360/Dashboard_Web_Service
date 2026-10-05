@@ -54,6 +54,17 @@ The security/performance stacks default `BFF_DASHBOARD_IMAGE` to `ghcr.io/mairie
 - **Early session UX and security headers (MAIR-404)** — `src/middleware.ts` checks cookie presence/known JWT expiry before applying the unchanged nonce CSP. Anonymous pages open validated runtime Login; known expiry opens central `/logout`, without local cookie expiry or another BFF. Missing/unsafe Login returns uncached503. Data and metadata without a usable cookie receive JSON401/no-store, not cross-origin redirects; `/openapi.json` and `/swagger.json` are explicit matcher entries despite their extension. Opaque/present tokens still require BFF authenticity/permission checks. The browser client hands a current401 to existing Login once per Location and ignores aborted reads;403/503/network errors do not log out. No `auth-session.ts` or new route is added. Allowed pages retain dynamic rendering and nonce propagation; external origins still require an explicit CSP change.
 - `next.config.ts` sets `output: 'standalone'` (required by the Dockerfile), `poweredByHeader: false` and static security headers on every route (`tests/security-headers.test.cjs` pins them, and the ZAP baseline fails without them). Active frontend URLs are read from the runtime environment by `src/lib/front-urls.ts` and validated by `src/lib/navigation.ts`; no deployment host is inlined at build time.
 
+### Calendar display (MAIR-386)
+
+The MAIR-386 mapper validates civil dates before Date.parse, so impossible days
+and ambiguous deadline text stay verbatim. Event HH:mm clocks must not roll into
+another day. The local unusableEventCount distinguishes rejected display values
+from confirmed empty collections without changing the returned BFF source status.
+All-unusable events render a labelled unavailable section with the general Calendar
+action; partial results retain valid events. Explicit recovery uses the existing
+guarded GET only. Preserve the established UTC/Paris deadline and local-clock
+policies; this does not implement user timezone preferences or server corrections.
+
 ## CI/CD
 
 - `.github/workflows/cicd.yml` calls `mairie360/CICD/.github/workflows/frontend-cicd.yml@v2.3.1` (`package_name: dashboard-front`, `node_version: "23"`, `cicd_version: v2.3.1`, kept in sync by Renovate, `secrets: inherit`). Up to the dev release it runs: `npm ci` → `npm run lint` + `npm audit --audit-level=high` (high/critical advisories block) → `npm run build` → `npm test --if-present` (uploads `coverage/lcov.info` to Codecov) → on `main`, builds `Dockerfile` with `NODE_AUTH_TOKEN` as build-arg and pushes `ghcr.io/mairie360/dashboard-front:dev-<sha>` / `dev-latest`. Some jobs set up Node without a registry, so the committed `.npmrc` must keep the `@mairie360` registry + `${NODE_AUTH_TOKEN}` lines.

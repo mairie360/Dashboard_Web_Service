@@ -76,6 +76,7 @@ test('the first pass renders the loading state, the next one the data of GET /da
   assert.deepEqual(upstreamCalls(), ['GET /dashboard/bootstrap']);
   assert.equal(dashboardBff.requests[0].headers.authorization, `Bearer ${TOKEN}`);
   assert.doesNotMatch(html, /role="alert"/);
+  assert.doesNotMatch(html, /<main\b[^>]*>0(?:<|$)/, 'The zero unusable-event count is not rendered as text');
   assert.match(view.text(), /Bienvenue Alice/);
   assert.equal(view.find('AppShell').length, 1);
   assert.match(html, /<aside\b[^]*?<footer\b[^]*?<\/footer>[^]*?<\/aside>/);
@@ -110,6 +111,52 @@ test('the account-menu logout hands off to Login without another BFF call', asyn
     'server GET /dashboard/bootstrap',
   ]);
   assert.deepEqual(upstreamCalls(), ['GET /dashboard/bootstrap']);
+});
+
+test('unrecognized project/task deadlines stay verbatim rather than becoming invented calendar days', async () => {
+  const body = bootstrapResponse();
+  body.projects[0].dueDate = '3';
+  body.tasks[0].dueDate = '2026-02-31';
+  await renderLoadedPage(body);
+  assert.equal(view.props('DashboardRecentProjects').projects[0].dueDate, '3');
+  assert.equal(view.props('DashboardPendingTasks').tasks[0].dueLabel, '2026-02-31');
+  assert.doesNotMatch(view.text(), /2001|03\/03\/2026/);
+  assert.deepEqual(upstreamCalls(), ['GET /dashboard/bootstrap']);
+});
+
+test('partially unusable event dates retain only valid returned events and offer read-only recovery', async () => {
+  await renderLoadedPage(bootstrapResponse({ events: [
+    { id: 'bad', title: 'Impossible calendar date', date: '2026-02-31', startTime: '09:00' },
+    { id: 'good', title: 'Returned leap day', date: '2028-02-29', startTime: '09:00' },
+  ] }));
+  assert.deepEqual(view.props('DashboardUpcomingEvents').events.map(event => event.id), ['good']);
+  assert.match(view.text(), /Certains événements reçus ont une date ou une heure illisible/);
+  assert.doesNotMatch(view.text(), /Impossible calendar date/);
+  // The server-view collector can revisit a shared host node; count real rendered controls.
+  assert.equal((view.html.match(/<button\b[^>]*>Actualiser les dates illisibles<\/button>/g) ?? []).length, 1);
+  assert.match(view.text(), /Budget participatif/);
+  assert.deepEqual(upstreamCalls(), ['GET /dashboard/bootstrap']);
+});
+
+test('all unusable event dates are not a confirmed empty result and an explicit GET can recover them', async () => {
+  await renderLoadedPage(bootstrapResponse({ events: [
+    { id: 'bad', title: 'Unusable event date', date: '2026-02-31', startTime: '09:00' },
+  ] }));
+  assert.match(view.text(), /Les événements reçus ne peuvent pas être affichés/);
+  assert.doesNotMatch(view.text(), /Aucun événement à venir|Unusable event date/);
+  assert.equal(view.find('DashboardUpcomingEvents').length, 0);
+  dashboardBff.on('get', '/dashboard/bootstrap', { body: bootstrapResponse() });
+  await view.fire((_props, text, tag) => tag === 'button' && text === 'Actualiser les dates illisibles', 'onClick');
+  await view.waitFor(html => html.includes('Conseil municipal'));
+  assert.doesNotMatch(view.text(), /date ou une heure illisible|Les événements reçus ne peuvent pas être affichés/);
+  assert.deepEqual(upstreamCalls(), ['GET /dashboard/bootstrap', 'GET /dashboard/bootstrap']);
+  assert.equal(view.props('DashboardUpcomingEvents').events.length, 2);
+});
+
+test('confirmed empty event dates keep the existing empty label without a date-recovery warning', async () => {
+  await renderLoadedPage(bootstrapResponse({ events: [] }));
+  assert.match(view.text(), /Aucun événement à venir/);
+  assert.doesNotMatch(view.text(), /date ou une heure illisible|Actualiser les dates illisibles/);
 });
 
 test('an unavailable source is announced above the real sections', async () => {

@@ -47,6 +47,18 @@ anonymous readiness probe accepts307 without following it; no real Login is
 contacted or authenticated by this configuration. Authenticated ZAP/k6 requests,
 all API/BFF services, scanning policies and deployment environments are unchanged.
 
+MAIR-386 also guards invalid calendar display: impossible civil days and ambiguous
+deadline text remain verbatim, never guessed by Date.parse. Unusable event dates
+and HH:mm clocks are distinguished from confirmed empty collections; valid events
+and Calendar navigation remain. Explicit bootstrap GET recovery reuses the existing
+request guard. UTC/Paris deadline rules and the local event-clock representation
+are preserved, not replaced with guessed account preferences or demo records.
+
+MAIR-386 distingue aussi une date civile impossible ou une échéance ambiguë d’un
+jour reconnu : valeur conservée telle quelle, sans jour inventé. Événements illisibles
+signalés sans faux état vide, événements valides/navigation Calendrier conservés,
+reprise explicite par le GET bootstrap existant. Aucun changement API/BFF ou de fuseau.
+
 The composed candidate includes the reviewed packaging (#83) and published UI
 pin (#86) alongside read recovery (#85). Cross-flow regressions cover initial
 refusal, partial-source confirmation, another refusal, and confirmed empty data;
