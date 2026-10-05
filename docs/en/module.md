@@ -25,6 +25,18 @@ Business domain: Dashboard.
 
 ## Typical workflow
 
+### Session recovery — MAIR-404 / issue #87
+
+A page without a session cookie opens the configured Login front before loading
+business data. A known-expired cookie opens its existing Logout flow, which owns
+shared-cookie expiry. Missing/unsafe Login configuration fails with uncached503.
+Data and metadata requests without a usable cookie receive uncached JSON401,
+not a cross-origin HTML redirect. A current401 read delegates once to Login;
+aborted reads cannot navigate, while403/503/network errors remain recoverable.
+This early presence/expiry check is not signature validation or authorization;
+opaque tokens remain the BFF's responsibility. No second BFF, local cookie-domain
+setting, mutation replay or simulated authentication is added.
+
 1. Load `/dashboard/bootstrap` with the session.
 2. Inspect available projects, tasks and events.
 3. Open the relevant business module, or select an event to see it in Calendar.

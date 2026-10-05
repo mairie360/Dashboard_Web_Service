@@ -361,6 +361,9 @@ services:
       HOSTNAME: "0.0.0.0"
       PORT: 5000
       DASHBOARD_BFF_URL: http://bff-dashboard:4007
+      # Reserved test destination: anonymous readiness returns307, without
+      # contacting a real Login. Authenticated k6 requests are unchanged.
+      LOGIN_FRONT_URL: http://login.invalid/
     expose:
       - "5000"
     networks:

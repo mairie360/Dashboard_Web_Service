@@ -6,7 +6,7 @@ const { middleware } = require('../src/middleware.ts');
 const { buildContentSecurityPolicy } = require('../src/lib/content-security-policy.ts');
 const nextConfig = require('../next.config.ts').default;
 
-const pageRequest = () => new NextRequest('http://localhost:5000/');
+const pageRequest = () => new NextRequest('http://localhost:5000/', {headers:{cookie:'accessToken=opaque-contract-session'}});
 
 test('every page gets a per-request nonce CSP forwarded to Next.js', () => {
   const first = middleware(pageRequest());

@@ -26,6 +26,27 @@ stay visible after a new refusal, and unmounted/aborted responses are ignored.
 There is no automatic retry, invented data, new API/BFF operation or deployment
 approval. Quick actions remain absent as required by MAIR-209.
 
+MAIR-404 / [issue #87](https://github.com/mairie360/Dashboard_Web_Service/issues/87):
+anonymous pages open configured Login before business reads; known expiry and a
+current401 delegate to its existing Logout flow once. Aborted reads cannot
+navigate,403/503/network failures stay recoverable. Data/metadata without a
+usable cookie return uncachedJSON401, not a cross-origin redirect. Nonce CSP,
+static headers and the one-BFF boundary remain unchanged. This is presence/expiry
+UX gating, not signature validation, deployed authorization or server revocation.
+No local cookie-domain setting or Dashboard logout endpoint is added.
+
+Pages anonymes versLogin avant lecture métier ; expiration connue/401 courant
+versLogout central une seule fois. Lectures annulées sans navigation,403/503/pannes
+récupérables ; données/metadata sans cookie utilisable en401JSON uncached. Pas
+validation de signature/droits déployés ou révocation serveur, ni deuxièmeBFF,
+COOKIE_DOMAIN local ou replay. API/BFF, contrats et mécanisme Login inchangés.
+
+Only the frontend service in the isolated security/performance Compose files
+sets the existing Login URL to reserved `http://login.invalid/`. The unchanged
+anonymous readiness probe accepts307 without following it; no real Login is
+contacted or authenticated by this configuration. Authenticated ZAP/k6 requests,
+all API/BFF services, scanning policies and deployment environments are unchanged.
+
 The composed candidate includes the reviewed packaging (#83) and published UI
 pin (#86) alongside read recovery (#85). Cross-flow regressions cover initial
 refusal, partial-source confirmation, another refusal, and confirmed empty data;

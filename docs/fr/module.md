@@ -25,6 +25,18 @@ Domaine fonctionnel: Tableau de bord.
 
 ## Parcours type
 
+### Reprise de session — MAIR-404 / issue #87
+
+Une page sans cookie rejoint Login configuré avant de charger les données métier.
+Un cookie dont l'expiration est connue ouvre son flux Logout existant, seul
+responsable de l'expiration du cookie partagé. Configuration Login absente/non
+sûre :503 uncached. Données/metadata sans cookie utilisable :401JSON uncached,
+pas redirection HTML cross-origin. Une lecture401 courante délègue une seule fois
+à Login ; une lecture annulée ne navigue pas,403/503/pannes restent récupérables.
+Ce contrôle de présence/expiration ne valide ni signature ni autorisation ; les
+tokens opaques restent du ressort du BFF. Aucun deuxièmeBFF, COOKIE_DOMAIN local,
+replay de mutation ou authentification simulée ajouté.
+
 1. Charger `/dashboard/bootstrap` avec la session.
 2. Consulter les projets, tâches et événements disponibles.
 3. Ouvrir le module métier concerné ou sélectionner un événement pour le voir dans Calendrier.
