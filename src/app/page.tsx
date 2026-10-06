@@ -9,14 +9,14 @@ import {
 import { useCallback, useEffect, useRef, useState } from "react";
 import { requestBff } from "@/lib/bff-client";
 import { frontUrl } from "@/lib/front-urls";
-import { getActiveFrontHrefs } from "@/lib/navigation";
+import { getActiveFrontHrefs, validatedFrontHref } from "@/lib/navigation";
 import { logoutAndRedirect } from "@/lib/logout";
 import { type DashboardBootstrap, toDashboardModuleData } from "@/lib/dashboard-view";
 
 // Resolved on use from the runtime environment (src/lib/front-urls.ts), never inlined at build time.
 const urls = {
-  get project() { return frontUrl("PROJECT_FRONT_URL"); },
-  get calendar() { return frontUrl("CALENDAR_FRONT_URL"); },
+  get project() { return validatedFrontHref(frontUrl("PROJECT_FRONT_URL")); },
+  get calendar() { return validatedFrontHref(frontUrl("CALENDAR_FRONT_URL")); },
 };
 const goTo = (href: string | undefined) => { if (href) window.location.href = href; };
 const openCalendar = () => goTo(urls.calendar);

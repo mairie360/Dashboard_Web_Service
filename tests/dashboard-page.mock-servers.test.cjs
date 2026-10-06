@@ -404,3 +404,68 @@ test('section actions do not navigate when their front URL is not configured', a
   await view.act(() => view.props('DashboardUpcomingEvents').onSelect(view.props('DashboardUpcomingEvents').events[0]));
   assert.equal(window.location.href, '');
 });
+
+// Configuration faults only: valid, schema-checked card data and the real proxy are unchanged.
+const cardNavigationActions = [
+  ['projects view all', () => view.props('DashboardRecentProjects').onViewAll()],
+  ['tasks view all', () => view.props('DashboardPendingTasks').onViewAll()],
+  ['calendar view all', () => view.props('DashboardUpcomingEvents').onOpenCalendar()],
+  ['project selection', () => {
+    const section = view.props('DashboardRecentProjects');
+    section.onSelect(section.projects[0]);
+  }],
+  ['task selection', () => {
+    const section = view.props('DashboardPendingTasks');
+    section.onSelect(section.tasks[0]);
+  }],
+  ['event selection', () => {
+    const section = view.props('DashboardUpcomingEvents');
+    section.onSelect(section.events[0]);
+  }],
+];
+
+for (const [fault, destination] of [
+  ['blank', '   '], ['malformed', 'not-an-absolute-url'], ['unsupported protocol', 'ftp://front.example.test/'],
+]) {
+  for (const [actionName, action] of cardNavigationActions) {
+    test(`card destination validation refuses ${fault} configuration for ${actionName}`, async () => {
+      setBrowserFrontUrls({ PROJECT_FRONT_URL: destination, CALENDAR_FRONT_URL: destination });
+      await renderLoadedPage();
+
+      await view.act(action);
+
+      assert.equal(window.location.href, '', 'an invalid destination behaves like missing configuration');
+      assert.match(view.text(), /Budget participatif/);
+      assert.deepEqual(upstreamCalls(), ['GET /dashboard/bootstrap'], 'invalid navigation does not replay a read or mutation');
+    });
+  }
+}
+
+test('card destination validation uses the latest normalized runtime URL without changing query values or identifiers', async () => {
+  await renderLoadedPage();
+  setBrowserFrontUrls({
+    PROJECT_FRONT_URL: '  https://project.test.example/?source=dashboard  ',
+    CALENDAR_FRONT_URL: '  https://calendar.test.example/?source=dashboard  ',
+  });
+  await view.act(() => view.props('DashboardRecentProjects').onViewAll());
+  assert.equal(window.location.href, 'https://project.test.example/?source=dashboard');
+  await view.act(() => {
+    const section = view.props('DashboardPendingTasks');
+    section.onSelect(section.tasks[0]);
+  });
+  let destination = new URL(window.location.href);
+  assert.equal(destination.searchParams.get('source'), 'dashboard');
+  assert.equal(destination.searchParams.get('project'), 'project-42');
+  assert.equal(destination.searchParams.get('task'), 'task-2');
+  await view.act(() => view.props('DashboardUpcomingEvents').onOpenCalendar());
+  assert.equal(window.location.href, 'https://calendar.test.example/?source=dashboard');
+  await view.act(() => {
+    const section = view.props('DashboardUpcomingEvents');
+    section.onSelect(section.events[0]);
+  });
+  destination = new URL(window.location.href);
+  assert.equal(destination.searchParams.get('source'), 'dashboard');
+  assert.equal(destination.searchParams.get('date'), '2026-09-18');
+  assert.equal(destination.searchParams.get('event'), '9');
+  assert.deepEqual(upstreamCalls(), ['GET /dashboard/bootstrap']);
+});

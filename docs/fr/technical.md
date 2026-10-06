@@ -33,6 +33,14 @@ La page charge une seule réponse bootstrap, mappe ses données vers `DashboardM
 
 La sélection d’un événement à venir utilise `CALENDAR_FRONT_URL` fourni à l’exécution et ajoute les paramètres `date` (`YYYY-MM-DD`) et `event` (identifiant). Les paramètres existants sont conservés; l’action générale Calendrier ouvre toujours son URL de base. La page ne contient ni événement de démonstration ni hôte de déploiement en dur.
 
+Les six commandes des cartes résolvent leur destination Projets/Calendrier avec
+le helper `validatedFrontHref` existant, comme AppShell : seules les URLs absolues
+HTTP(S) sans identifiants incorporés sont acceptées. La normalisation se fait à
+l'utilisation, sans cache dans l'état React ni valeur figée au build. Une
+configuration invalide/absente conserve le comportement sans navigation existant
+et ne construit plus une URL pouvant lever une exception. Aucun changement de
+variable d'environnement, route serveur, proxy ou contrat.
+
 Le proxy générique lit le contrat OpenAPI versionné pour autoriser chemins et méthodes. Il conserve paramètres de requête, corps binaire, statuts et en-têtes utiles, filtre les en-têtes de transport, désactive le cache et n’effectue pas de suivi automatique des redirections. Son délai est de 15 secondes.
 
 ## Données et persistance

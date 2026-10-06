@@ -32,6 +32,13 @@ The page loads one bootstrap response, maps it to `DashboardModule` and displays
 
 An upcoming-event selection uses the runtime `CALENDAR_FRONT_URL` and appends the mapped event's `date` (`YYYY-MM-DD`) and `event` (ID) query parameters. Existing query parameters are preserved; the general Calendar action still opens its configured base URL. No event fixture or deployment host is embedded in the page.
 
+All six card commands resolve their current Project/Calendar destination through
+the existing `validatedFrontHref` helper, just like AppShell. Only absolute
+HTTP(S) URLs without embedded credentials are accepted; normalization is performed
+on use, not cached in React state or at build time. Invalid/missing configuration
+retains the existing no-navigation behavior without constructing a URL that can
+throw. This changes no environment variable, server route, proxy or contract.
+
 The generic proxy reads the versioned OpenAPI contract to allow paths and methods. It preserves query parameters, binary bodies, statuses and useful headers, filters transport headers, disables caching and does not automatically follow redirects. Its timeout is 15 seconds.
 
 ## Data and persistence

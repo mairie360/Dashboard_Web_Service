@@ -23,7 +23,8 @@ Domaine fonctionnel: Tableau de bord.
 - Lignes de navigation de 44px minimum et ombre latérale de la sidebar de référence, avec du CSS propre à Dashboard. La sidebar mobile reste sous le bouton Fermer publié ; aucune navigation du prototype, rôle, notification ou donnée de version fictive n'est recopié (MAIR-182 / issue #32).
 - Fond opaque du contenu `#f5f3f0` conservé pour retrouver la peinture de la frontière du header de référence. Ni l'ombre partagée du header ni son empilement ne sont modifiés pour compenser un contenu transparent (MAIR-182 / issue #32).
 - Signalement des sources temporairement indisponibles.
-- Navigation vers Projets, Calendrier, Messages et Fichiers par URL configurable.
+- Ouvrir Projets et Calendrier depuis les cartes avec la même validation des URLs runtime que la navigation commune. Une destination blanche, malformée ou non prise en charge est traitée comme une configuration absente : l'action reste sur Dashboard sans exception, relecture ou fallback inventé. Les destinations valides conservent paramètres existants et identifiants reçus.
+- Rejoindre les autres modules actifs configurés via AppShell ; les dépôts archivés Fichiers/Emails ne sont pas réintroduits dans la navigation.
 - Ouverture directe d’un événement du tableau de bord dans Calendrier.
 
 ## Parcours type

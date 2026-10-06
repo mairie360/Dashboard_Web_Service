@@ -105,6 +105,22 @@ Les guides décrivent le module implémenté, ses limites actuelles, le démarra
 
 ## Contracts and background / Contrats et compléments
 
+### Consistent card destinations (MAIR-182 / issue #32)
+
+Project/Calendar card commands reuse the common navigation's existing runtime
+URL validator. Invalid destinations behave like absent configuration without
+throwing or navigating; valid HTTP(S) destinations retain query parameters and
+received project/task/event IDs. There is no new React state/effect, request,
+route, fallback, published contract, environment variable or API/BFF change.
+The real-page HTTP tests cover all six commands with valid contract-backed
+cards and configuration faults; no demonstration data is shipped.
+
+Les cartes Projets/Calendrier utilisent le même validateur que la navigation
+commune. Une destination invalide reste indisponible sans exception ni replay ;
+les paramètres/identifiants des liens valides sont conservés. Les autres critères
+MAIR-182 (rôle publié, vraie session Dev et intégration) restent distincts : ce
+correctif ne suffit pas à clôturer le ticket ni à certifier les modules cibles.
+
 - [BFF.md](BFF.md)
 - [BACKEND.md](BACKEND.md)
 - [contracts/openapi.json](contracts/openapi.json)
