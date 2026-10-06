@@ -1,20 +1,19 @@
+# syntax=docker/dockerfile:1
 # --- Stage 1: Build ---
 ARG NODE_VERSION=23.1.0
 FROM node:${NODE_VERSION}-bookworm-slim AS builder
 WORKDIR /app
 
-# On déclare l'argument pour le token (passé via --build-arg dans ta CI)
-ARG NODE_AUTH_TOKEN
-
-# Optimisation du cache pour les dépendances
+# Dependency cache layer.
 COPY package.json package-lock.json ./
 
-# Configuration temporaire de npm pour le registre GitHub
-# On crée un .npmrc à la volée, on installe, puis on le supprimera
-RUN echo "@mairie360:registry=https://npm.pkg.github.com" > .npmrc && \
-    echo "//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}" >> .npmrc && \
-    npm ci && \
-    rm .npmrc
+# The GitHub Packages token is a BuildKit secret (frontend-cicd.yml >= MAIR-416 passes it as
+# `node_auth_token`, the test scripts with --secret id=node_auth_token,env=NODE_AUTH_TOKEN), never a
+# build arg: it stays out of the layers and the provenance. The tracked .npmrc (registry + token
+# placeholder) is bind-mounted read-only; a missing secret fails the build.
+RUN --mount=type=secret,id=node_auth_token,env=NODE_AUTH_TOKEN,required=true \
+    --mount=type=bind,source=.npmrc,target=/app/.npmrc \
+    npm ci
 
 # Copie du code source et build
 COPY . .

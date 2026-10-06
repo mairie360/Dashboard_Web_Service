@@ -1,18 +1,15 @@
-# Stack de test de sécurité dynamique (DAST) ISOLÉE pour le front Dashboard (Dashboard_Web_Service).
+# Accessibility (RGAA) test stack of the dashboard front (MAIR-316 / MAIR-317).
 #
-#   ./security_test.sh (local: builds the front when IMAGE_REF is empty,
-#                       NODE_AUTH_TOKEN exported for the build)
-#   IMAGE_REF=<image>:dev-<sha> ./security_test.sh   (CI, MAIR-317: the published image)
+#   ./accessibility_test.sh        (local: builds the front when IMAGE_REF is empty)
 #
-# security-scan (OWASP ZAP baseline) explore l'application Next.js servie par
-# l'image de production (Dockerfile, sortie standalone) avec un cookie de session
-# accessToken valide (replacer), comme un navigateur authentifié : pages, assets,
-# en-têtes HTTP et routes relayées vers BFF Dashboard. Sort en échec sur toute alerte
-# WARN/FAIL non neutralisée dans .zap/rules.tsv (les alertes informatives y sont
-# passées à IGNORE).
-#
-# Le front ne parle qu'à BFF Dashboard, qui agrège trois BFFs : la stack monte toute
-# la chaîne amont réelle (BFF User / Project / Calendar + leurs APIs) + base partagée + redis.
+# Same stack as docker-compose-security.yml (database + seed, core / project / calendar APIs,
+# bff-user / bff-project / bff-calendar, bff-dashboard), with the front on ${IMAGE_REF}
+# (staging-<sha> in the CI, release-prod job) and, instead of ZAP, the runner of the RGAA engine of
+# mairie360/CICD (cicd-repo/tests/a11y), which plays the states of rgaa.yaml and writes
+# rgaa-report/. The states are played as the users of init-test.sql / init-accessibility.sql, with
+# an accessToken the engine signs with the JWT_SECRET below (session / users of rgaa.yaml).
+# Exit codes: 0 ok, 1 state unreachable / undeclared criterion, 2 invalid rgaa.yaml, 3 rate below
+# RGAA_MIN_RATE.
 
 volumes:
   postgres-data:
@@ -41,7 +38,7 @@ x-api-env: &api-env
 services:
   postgres:
     image: ${DB_IMAGE:-ghcr.io/mairie360/database:1.3.0}
-    container_name: dashboard-front-sec-db
+    container_name: dashboard-front-a11y-db
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
@@ -60,7 +57,7 @@ services:
 
   liquibase:
     image: ${LIQUIBASE_IMAGE:-ghcr.io/mairie360/liquibase-migrations:1.3.0}
-    container_name: dashboard-front-sec-liquibase
+    container_name: dashboard-front-a11y-liquibase
     depends_on:
       postgres:
         condition: service_healthy
@@ -77,7 +74,7 @@ services:
 
   seeder:
     image: postgres:18-alpine
-    container_name: dashboard-front-sec-seeder
+    container_name: dashboard-front-a11y-seeder
     depends_on:
       liquibase:
         condition: service_completed_successfully
@@ -90,9 +87,26 @@ services:
     networks:
       - backend
 
+  # Data of the RGAA states (projects, tasks, events), on top of init-test.sql: only this stack
+  # needs it, the ZAP / k6 stacks keep the minimal seed.
+  seeder-a11y:
+    image: postgres:18-alpine
+    container_name: dashboard-front-a11y-seeder-a11y
+    depends_on:
+      seeder:
+        condition: service_completed_successfully
+    volumes:
+      - ./init-accessibility.sql:/init-accessibility.sql:ro
+    environment:
+      PGPASSWORD: password
+    command: >
+      sh -c "psql -v ON_ERROR_STOP=1 -h postgres -U postgres -d mairie_360_database -f /init-accessibility.sql"
+    networks:
+      - backend
+
   redis:
     image: redis:8.4.0-bookworm
-    container_name: dashboard-front-sec-redis
+    container_name: dashboard-front-a11y-redis
     expose:
       - "6379"
     volumes:
@@ -107,7 +121,7 @@ services:
 
   core-api:
     image: ${CORE_API_IMAGE:-ghcr.io/mairie360/core-api:1.2.0}
-    container_name: dashboard-front-sec-core-api
+    container_name: dashboard-front-a11y-core-api
     depends_on:
       liquibase:
         condition: service_completed_successfully
@@ -126,7 +140,7 @@ services:
 
   core-api-ready:
     image: curlimages/curl:latest
-    container_name: dashboard-front-sec-core-api-ready
+    container_name: dashboard-front-a11y-core-api-ready
     depends_on:
       core-api:
         condition: service_started
@@ -138,7 +152,7 @@ services:
 
   project-api:
     image: ${PROJECT_API_IMAGE:-ghcr.io/mairie360/project-api:0.5.1}
-    container_name: dashboard-front-sec-project-api
+    container_name: dashboard-front-a11y-project-api
     depends_on:
       liquibase:
         condition: service_completed_successfully
@@ -157,7 +171,7 @@ services:
 
   project-api-ready:
     image: curlimages/curl:latest
-    container_name: dashboard-front-sec-project-api-ready
+    container_name: dashboard-front-a11y-project-api-ready
     depends_on:
       project-api:
         condition: service_started
@@ -169,7 +183,7 @@ services:
 
   calendar-api:
     image: ${CALENDAR_API_IMAGE:-ghcr.io/mairie360/calendar-api:0.6.1}
-    container_name: dashboard-front-sec-calendar-api
+    container_name: dashboard-front-a11y-calendar-api
     depends_on:
       liquibase:
         condition: service_completed_successfully
@@ -188,7 +202,7 @@ services:
 
   calendar-api-ready:
     image: curlimages/curl:latest
-    container_name: dashboard-front-sec-calendar-api-ready
+    container_name: dashboard-front-a11y-calendar-api-ready
     depends_on:
       calendar-api:
         condition: service_started
@@ -200,9 +214,9 @@ services:
 
   bff-user:
     image: ${BFF_USER_IMAGE:-ghcr.io/mairie360/bff-user:0.5.0}
-    container_name: dashboard-front-sec-bff-user
+    container_name: dashboard-front-a11y-bff-user
     depends_on:
-      seeder:
+      seeder-a11y:
         condition: service_completed_successfully
       core-api-ready:
         condition: service_completed_successfully
@@ -220,7 +234,7 @@ services:
 
   bff-user-ready:
     image: curlimages/curl:latest
-    container_name: dashboard-front-sec-bff-user-ready
+    container_name: dashboard-front-a11y-bff-user-ready
     depends_on:
       bff-user:
         condition: service_started
@@ -232,9 +246,9 @@ services:
 
   bff-project:
     image: ${BFF_PROJECT_IMAGE:-ghcr.io/mairie360/bff-project:0.4.0}
-    container_name: dashboard-front-sec-bff-project
+    container_name: dashboard-front-a11y-bff-project
     depends_on:
-      seeder:
+      seeder-a11y:
         condition: service_completed_successfully
       core-api-ready:
         condition: service_completed_successfully
@@ -260,7 +274,7 @@ services:
 
   bff-project-ready:
     image: curlimages/curl:latest
-    container_name: dashboard-front-sec-bff-project-ready
+    container_name: dashboard-front-a11y-bff-project-ready
     depends_on:
       bff-project:
         condition: service_started
@@ -272,9 +286,9 @@ services:
 
   bff-calendar:
     image: ${BFF_CALENDAR_IMAGE:-ghcr.io/mairie360/bff-calendar:0.4.0}
-    container_name: dashboard-front-sec-bff-calendar
+    container_name: dashboard-front-a11y-bff-calendar
     depends_on:
-      seeder:
+      seeder-a11y:
         condition: service_completed_successfully
       core-api-ready:
         condition: service_completed_successfully
@@ -297,7 +311,7 @@ services:
 
   bff-calendar-ready:
     image: curlimages/curl:latest
-    container_name: dashboard-front-sec-bff-calendar-ready
+    container_name: dashboard-front-a11y-bff-calendar-ready
     depends_on:
       bff-calendar:
         condition: service_started
@@ -309,9 +323,9 @@ services:
 
   bff-dashboard:
     image: ${BFF_DASHBOARD_IMAGE:-ghcr.io/mairie360/bff-dashboard:1.1.0}
-    container_name: dashboard-front-sec-bff-dashboard
+    container_name: dashboard-front-a11y-bff-dashboard
     depends_on:
-      seeder:
+      seeder-a11y:
         condition: service_completed_successfully
       core-api-ready:
         condition: service_completed_successfully
@@ -335,7 +349,7 @@ services:
 
   bff-dashboard-ready:
     image: curlimages/curl:latest
-    container_name: dashboard-front-sec-bff-dashboard-ready
+    container_name: dashboard-front-a11y-bff-dashboard-ready
     depends_on:
       bff-dashboard:
         condition: service_started
@@ -346,9 +360,9 @@ services:
       - backend
 
   dashboard-front:
-    # Published image (dev-<sha> in the CI, MAIR-317); the test script builds one locally.
+    # Published image (staging-<sha> in the CI); accessibility_test.sh builds one locally.
     image: ${IMAGE_REF:?IMAGE_REF must name the front image to test}
-    container_name: dashboard-front-sec-front
+    container_name: dashboard-front-a11y-front
     depends_on:
       bff-dashboard-ready:
         condition: service_completed_successfully
@@ -356,6 +370,19 @@ services:
       HOSTNAME: "0.0.0.0"
       PORT: 5000
       DASHBOARD_BFF_URL: http://bff-dashboard:4007
+      # Every front URL of src/lib/front-urls.ts: without them the shell hides its links and the
+      # header menu cannot log out. The other fronts are not in the stack (dummy hosts); the
+      # dashboard points at itself.
+      LOGIN_FRONT_URL: http://login-front.invalid/
+      DASHBOARD_FRONT_URL: http://dashboard-front:5000/
+      PROJECT_FRONT_URL: http://project-front.invalid/
+      CALENDAR_FRONT_URL: http://calendar-front.invalid/
+      MESSAGE_FRONT_URL: http://message-front.invalid/
+      ELEARNING_FRONT_URL: http://elearning-front.invalid/
+      SETTINGS_FRONT_URL: http://settings-front.invalid/
+      ADMINISTRATION_FRONT_URL: http://administration-front.invalid/
+      EMAIL_FRONT_URL: http://email-front.invalid/
+      FILES_FRONT_URL: http://files-front.invalid/
     expose:
       - "5000"
     networks:
@@ -368,30 +395,25 @@ services:
       retries: 10
       start_period: 30s
 
-  security-scan:
-    image: zaproxy/zap-stable
-    container_name: dashboard-front-sec-zap
+  a11y:
+    image: ${A11Y_RUNNER_IMAGE:?A11Y_RUNNER_IMAGE comes from cicd-repo/tests/a11y/runner-image}
+    # Run as the caller (accessibility_test.sh exports them), so that rgaa-report/ and
+    # .rgaa-ai-cache/ are not root-owned in the checkout.
+    user: "${RGAA_UID:-0}:${RGAA_GID:-0}"
+    container_name: dashboard-front-a11y-runner
     depends_on:
       dashboard-front:
         condition: service_healthy
+    command: ["sh", "/engine/run.sh"]
+    environment:
+      RGAA_MIN_RATE: ${RGAA_MIN_RATE:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      ANTHROPIC_WORKSPACE_ID: ${ANTHROPIC_WORKSPACE_ID:-}
+      RGAA_AI_MODEL: ${RGAA_AI_MODEL:-}
     volumes:
-      - ./.zap/rules.tsv:/zap/wrk/rules.tsv:ro
-    # zap-baseline.py : spider + scan passif (adapté à une interface web, là où
-    #   les BFFs rejouent leur OpenAPI avec zap-api-scan.py).
-    # -c rules.tsv : les alertes informatives sont passées à IGNORE, toute autre
-    #   alerte (WARN/FAIL) fait sortir zap-baseline.py en code != 0.
-    # -z ... replacer : injecte le cookie accessToken (JWT HS256 statique sub=2,
-    #   role=user, exp=2100, signé avec JWT_SECRET=b"secret") sur chaque requête,
-    #   le proxy same-origin le convertit en Authorization: Bearer vers le BFF.
-    command:
-      - zap-baseline.py
-      - -t
-      - http://dashboard-front:5000/
-      - -m
-      - "3"
-      - -c
-      - rules.tsv
-      - -z
-      - "-config replacer.full_list(0).description=auth -config replacer.full_list(0).enabled=true -config replacer.full_list(0).matchtype=REQ_HEADER -config replacer.full_list(0).matchstr=Cookie -config replacer.full_list(0).regex=false -config replacer.full_list(0).replacement=accessToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyIiwicm9sZSI6InVzZXIiLCJleHAiOjQxMDI0NDQ4MDB9.qjXr3pV4v8hvkbv_ufmNqaPqhDTbOGfTUeEXxa1z70U"
+      - ./cicd-repo/tests/a11y:/engine:ro
+      - ./rgaa.yaml:/scope/rgaa.yaml:ro
+      - ./rgaa-report:/report
+      - ./.rgaa-ai-cache:/ai-cache
     networks:
       - backend

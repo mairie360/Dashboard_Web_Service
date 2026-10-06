@@ -41,7 +41,7 @@ npm run contracts:sync      # rebuild contracts/openapi.json from the installed 
 npm run contracts:check     # fail if the pin is not X.X.X, the install differs or the JSON drifted
 ```
 
-The security/performance stacks default `BFF_DASHBOARD_IMAGE` to `ghcr.io/mairie360/bff-dashboard:<same X.X.X>` (a test enforces it), so bump both together. Orval only types success responses, so the rebuilt contract declares `2XX` only: BFF error statuses are undocumented, and mocked errors in tests need `outOfContract: true`. The commands only need the package installed (`NODE_AUTH_TOKEN`). `BFF_CONTRACT_DIR` no longer exists; this differs from the other fronts' `scripts/contracts.mjs` and from `Fronts/CLAUDE.md`.
+The security/performance/accessibility stacks default `BFF_DASHBOARD_IMAGE` to `ghcr.io/mairie360/bff-dashboard:<same X.X.X>` (a test enforces it), so bump both together. Orval only types success responses, so the rebuilt contract declares `2XX` only: BFF error statuses are undocumented, and mocked errors in tests need `outOfContract: true`. The commands only need the package installed (`NODE_AUTH_TOKEN`). `BFF_CONTRACT_DIR` no longer exists; this differs from the other fronts' `scripts/contracts.mjs` and from `Fronts/CLAUDE.md`.
 
 ## Architecture
 
@@ -58,7 +58,7 @@ The security/performance stacks default `BFF_DASHBOARD_IMAGE` to `ghcr.io/mairie
 
 - `.github/workflows/cicd.yml` calls `mairie360/CICD/.github/workflows/frontend-cicd.yml@v2.3.1` (`package_name: dashboard-front`, `node_version: "23"`, `cicd_version: v2.3.1`, kept in sync by Renovate, `secrets: inherit`). Up to the dev release it runs: `npm ci` → `npm run lint` + `npm audit --audit-level=high` (high/critical advisories block) → `npm run build` → `npm test --if-present` (uploads `coverage/lcov.info` to Codecov) → on `main`, builds `Dockerfile` with `NODE_AUTH_TOKEN` as build-arg and pushes `ghcr.io/mairie360/dashboard-front:dev-<sha>` / `dev-latest`. Some jobs set up Node without a registry, so the committed `.npmrc` must keep the `@mairie360` registry + `${NODE_AUTH_TOKEN}` lines.
 - `.github/workflows/contracts.yml` (Node 22) runs `contracts:check` and `test:contracts` on every push/PR.
-- `Dockerfile`: two-stage `node:<ver>-bookworm-slim` build, standalone output, non-root `nextjs` user, `PORT=5000`, `CMD node server.js`.
+- `Dockerfile`: two-stage `node:<ver>-bookworm-slim` build, standalone output, non-root `nextjs` user, `PORT=5000`, `CMD node server.js`. `npm ci` reads the GitHub Packages token from the `node_auth_token` BuildKit secret (MAIR-416 shape of `frontend-cicd.yml`) with the tracked `.npmrc` bind-mounted, never from a build arg: `docker build --secret id=node_auth_token,env=NODE_AUTH_TOKEN .`
 
 ## Isolated security & performance tests
 
@@ -66,7 +66,8 @@ Same pattern as the APIs/BFFs, adapted to a web front. Not part of `npm test`; t
 
 - `./security_test.sh` → `docker-compose-security.yml`: full isolated upstream stack (Postgres + Liquibase + `init-test.sql` seed, Redis, Core API, and BFF_Dashboard with the BFFs it aggregates — BFF User/Project/Calendar are there for BFF_Dashboard, the front service only gets `DASHBOARD_BFF_URL`; published GHCR images, versions overridable via `*_IMAGE` env vars) + this front, then `zap-baseline.py` (spider + passive scan) authenticated with a static `accessToken` cookie. Any WARN/FAIL alert not set to IGNORE in `.zap/rules.tsv` fails the run.
 - `./performance_test.sh` → `docker-compose-performance.yml`: same stack + k6 running `load-test.js` (pages, `/health`, `/dashboard/bootstrap` through the proxy) with a JWT minted from `JWT_SECRET`; thresholds fail the run.
-- Test user is id 2 (seeded in `init-test.sql`); every service shares `JWT_SECRET=b"secret"`. `TARGET_IMAGE` lets the stacks reuse a pre-built front image. These files are excluded from the image by `.dockerignore`.
+- `./accessibility_test.sh` → `docker-compose-accessibility.yml`: same stack + `init-accessibility.sql` (projects, tasks and events of user 2, empty user 3; events relative to the day of the run since BFF_Dashboard only shows the next 30 days) + the RGAA runner of `mairie360/CICD` (`cicd-repo/tests/a11y`, cloned at the pinned `cicd_version`), which plays the states of `rgaa.yaml` with a JWT signed by the engine and writes `rgaa-report/`. The CI runs it in `release-prod` on `staging-<sha>`.
+- Test user is id 2 (seeded in `init-test.sql`); every service shares `JWT_SECRET=b"secret"`. The front runs on `${IMAGE_REF}` (the CI passes `<image>:dev-<sha>`); the scripts build `dashboard-front:local` with the `node_auth_token` BuildKit secret when it is empty. These files are excluded from the image by `.dockerignore`.
 
 ## Gotchas
 
