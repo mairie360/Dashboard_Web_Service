@@ -50,3 +50,7 @@ VALUES
   (9303, 'Cérémonie des vœux', 'Vœux du maire aux habitants.',
    (CURRENT_DATE + 20) + TIME '11:00', (CURRENT_DATE + 20) + TIME '12:30', 2, 2, 'public', 'ceremony', 'Salle des fêtes')
 ON CONFLICT (id) DO NOTHING;
+-- BFF Calendar only keeps the events the caller is a member of (is_member of Calendar API).
+INSERT INTO event_members (event_id, user_id, validation_status)
+VALUES (9301, 2, 'validated'), (9302, 2, 'validated'), (9303, 2, 'validated')
+ON CONFLICT DO NOTHING;
