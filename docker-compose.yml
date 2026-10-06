@@ -161,7 +161,7 @@ services:
       - backend
 
   calendar-api:
-    image: ${CALENDAR_API_IMAGE:-ghcr.io/mairie360/calendar-api:0.6.1}
+    image: ${CALENDAR_API_IMAGE:-ghcr.io/mairie360/calendar-api:1.0.0}
     container_name: dashboard-front-dev-calendar-api
     depends_on:
       liquibase:
