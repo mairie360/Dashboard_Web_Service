@@ -21,6 +21,8 @@ Business domain: Dashboard.
 - Keep the reference's opaque `#f5f3f0` content background so the header boundary paints consistently. Do not alter the shared header's shadow token or stacking to compensate for transparent content (MAIR-182 / issue #32).
 - Report temporarily unavailable sources.
 - Recover a refused bootstrap explicitly without replacing confirmed cards by invented empty data. A confirmed empty response replaces the old cards; read recovery does not dismiss an independent logout error or call a mutation.
+- Refuse an unusable successful bootstrap before replacing confirmed cards or identity. The page checks the consumed name, collections, card fields and source states; invalid shapes show a controlled French read error with deliberate GET-only recovery (MAIR-455 / issue #84). Pending, abort and stale-read guards remain unchanged.
+- Keep optional event time/location and valid string/number event identifiers. Unrecognized textual dates still use the established display fallback rather than invalidating the entire read. Summary metrics and unused fields are not reinterpreted; no identifier uniqueness, date permission or user role is invented.
 - Navigate to Projects, Calendar, Messages and Files through configurable URLs.
 - Open an upcoming event directly in Calendar from its dashboard card.
 

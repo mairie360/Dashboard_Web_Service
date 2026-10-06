@@ -38,6 +38,32 @@ const goToCalendarEvent = (event: { id: string; startsAt: string }) => {
   destination.searchParams.set("event", event.id);
   goTo(destination.toString());
 };
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  value !== null && typeof value === "object" && !Array.isArray(value);
+
+// Check the fields consumed by the cards before replacing a confirmed read.
+// Display-date validation and optional summary metrics keep their existing policy.
+function isUsableBootstrap(value: unknown): boolean {
+  if (!isRecord(value) || typeof value.userFirstName !== "string" ||
+      !Array.isArray(value.projects) || !Array.isArray(value.tasks) ||
+      !Array.isArray(value.events) || !isRecord(value.sources)) return false;
+  if (![value.sources.projects, value.sources.tasks, value.sources.calendar]
+    .every(source => source === "available" || source === "unavailable")) return false;
+  return value.projects.every(project => isRecord(project) &&
+    ["id", "title", "dueDate"].every(key => typeof project[key] === "string") &&
+    typeof project.progress === "number" && Number.isFinite(project.progress) &&
+    ["todo", "in-progress", "review", "done"].some(status => project.status === status)) &&
+    value.tasks.every(task => isRecord(task) &&
+      ["id", "projectId", "title", "dueDate"].every(key => typeof task[key] === "string") &&
+      ["low", "medium", "high"].some(priority => task.priority === priority)) &&
+    value.events.every(event => isRecord(event) &&
+      (typeof event.id === "string" || (typeof event.id === "number" && Number.isFinite(event.id))) &&
+      typeof event.title === "string" && typeof event.date === "string" &&
+      (event.startTime === undefined || typeof event.startTime === "string") &&
+      (event.location === undefined || typeof event.location === "string"));
+}
+
 export default function Home() {
   const [data, setData] = useState<DashboardBootstrap | null>(null);
   const [error, setError] = useState("");
@@ -52,6 +78,9 @@ export default function Home() {
     try {
       const response = await requestBff<DashboardBootstrap>("/dashboard/bootstrap", { signal: controller.signal });
       if (controller.signal.aborted || readController.current !== controller) return;
+      if (!isUsableBootstrap(response)) {
+        throw new Error("Les données reçues du tableau de bord sont incohérentes. Réessayez.");
+      }
       setData(response);
       setError("");
     } catch (reason) {

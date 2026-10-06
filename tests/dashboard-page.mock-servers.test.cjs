@@ -63,6 +63,91 @@ async function renderLoadedPage(body = bootstrapResponse()) {
   return view.waitFor((html) => !html.includes('Chargement du tableau de bord'));
 }
 
+// Deliberately malformed successful replies, not published-contract conformance claims.
+const unusableBootstraps = [
+  ['null', () => null], ['array', () => []], ['missing collections', () => ({ userFirstName: 'Unverified' })],
+  ['invalid first name', () => bootstrapResponse({ userFirstName: null })],
+  ['projects object', () => bootstrapResponse({ projects: {} })],
+  ['tasks object', () => bootstrapResponse({ tasks: {} })],
+  ['events object', () => bootstrapResponse({ events: {} })],
+  ['sources null', () => bootstrapResponse({ sources: null })],
+  ['sources array', () => bootstrapResponse({ sources: [] })],
+  ...['projects', 'tasks', 'calendar'].flatMap(source => [
+    [`missing ${source} source`, () => { const body = bootstrapResponse(); delete body.sources[source]; return body; }],
+    [`invalid ${source} source`, () => { const body = bootstrapResponse(); body.sources[source] = 'unknown'; return body; }],
+  ]),
+  ...['projects', 'tasks', 'events'].map(collection => [
+    `null ${collection} entry`, () => bootstrapResponse({ [collection]: [null] }),
+  ]),
+  ...[
+    ['projects', 'id', 9], ['projects', 'title', {}], ['projects', 'progress', '50'],
+    ['projects', 'status', 'unknown'], ['projects', 'dueDate', null],
+    ['tasks', 'id', 9], ['tasks', 'projectId', null], ['tasks', 'title', false],
+    ['tasks', 'dueDate', {}], ['tasks', 'priority', 'unknown'],
+    ['events', 'id', false], ['events', 'title', {}], ['events', 'date', 9],
+    ['events', 'startTime', 9], ['events', 'location', {}],
+  ].map(([collection, key, value]) => [
+    `${collection}.${key}`, () => { const body = bootstrapResponse(); body[collection][0][key] = value; return body; },
+  ]),
+];
+for (const [label, body] of unusableBootstraps) {
+  test(`unusable initial bootstrap (${label}) exposes controlled GET-only recovery`, async () => {
+    dashboardBff.on('get', '/dashboard/bootstrap', { body: body(), outOfContract: true });
+    view = mount(React.createElement(Home));
+    await view.waitFor(html => html.includes('role="alert"'));
+    assert.match(view.text(), /Les données reçues du tableau de bord sont incohérentes/);
+    assert.match(view.text(), /Le tableau de bord est indisponible/);
+    assert.match(view.text(), /Réessayer le chargement/);
+    assert.equal(view.find('DashboardRecentProjects').length, 0);
+    assert.deepEqual(upstreamCalls(), ['GET /dashboard/bootstrap']);
+    dashboardBff.on('get', '/dashboard/bootstrap', { body: bootstrapResponse() });
+    await view.click((_props, text, tag) => tag === 'button' && text === 'Réessayer le chargement');
+    await view.waitFor(html => html.includes('Budget participatif'));
+    assert.doesNotMatch(view.html, /role="alert"|incohérentes/);
+    assert.deepEqual(upstreamCalls(), Array(2).fill('GET /dashboard/bootstrap'));
+  });
+  test(`unusable refreshed bootstrap (${label}) keeps confirmed cards and identity`, async () => {
+    await renderLoadedPage(bootstrapResponse({ sources: { projects: 'available', tasks: 'available', calendar: 'unavailable' } }));
+    // Isolate the existing logout-error path without a valid Login destination.
+    setBrowserFrontUrls({ PROJECT_FRONT_URL: 'https://project.test.example/' });
+    await view.act(() => view.props('AppShell').onLogout());
+    dashboardBff.on('get', '/dashboard/bootstrap', { body: body(), outOfContract: true });
+    await view.click((_props, text, tag) => tag === 'button' && text === 'Actualiser les données indisponibles');
+    await view.waitFor(html => html.includes('incohérentes'));
+    assert.equal(view.props('AppShell').user.first_name, 'Alice');
+    assert.match(view.text(), /Budget participatif/);
+    assert.match(view.text(), /Les dernières données reçues restent affichées/);
+    assert.match(view.text(), /La déconnexion est temporairement indisponible/);
+    await view.act(() => view.props('DashboardPendingTasks').onSelect(view.props('DashboardPendingTasks').tasks[0]));
+    assert.equal(window.location.href, 'https://project.test.example/?project=project-42&task=task-2');
+    assert.equal(upstreamCalls().length, 2, 'no automatic retry or mutation from retained cards');
+    dashboardBff.on('get', '/dashboard/bootstrap', { body: bootstrapResponse({ userFirstName: 'Nouveau confirmé', projects: [], tasks: [], events: [] }) });
+    await view.click((_props, text, tag) => tag === 'button' && text === 'Réessayer le chargement');
+    await view.waitFor(html => html.includes('Bienvenue Nouveau confirmé'));
+    assert.doesNotMatch(view.html, /incohérentes|Budget participatif/);
+    assert.match(view.text(), /Aucun projet récent|Aucune tâche en attente|Aucun événement à venir/);
+    assert.match(view.text(), /La déconnexion est temporairement indisponible/);
+    assert.deepEqual(upstreamCalls(), Array(3).fill('GET /dashboard/bootstrap'));
+  });
+}
+
+test('optional event fields and unrecognized display text remain usable bootstrap data', async () => {
+  const body = bootstrapResponse({ events: [{ id: 0, title: '', date: '2028-02-29' },
+    { id: 'unusable-date', title: 'Unusable date value', date: '2026-02-31' }] });
+  body.projects[0].dueDate = '3';
+  body.tasks[0].dueDate = '';
+  body.userFirstName = '';
+  body.metrics.totalProjects = null;
+  await renderLoadedPage(body);
+  assert.doesNotMatch(view.html, /role="alert"/);
+  assert.match(view.text(), /Voici un aperçu de vos activités/);
+  assert.equal(view.props('DashboardRecentProjects').projects[0].dueDate, '3');
+  assert.equal(view.props('DashboardPendingTasks').tasks[0].dueLabel, 'Sans échéance');
+  assert.deepEqual(view.props('DashboardUpcomingEvents').events.map(event => event.id), ['0']);
+  assert.match(view.text(), /Certains événements reçus/);
+  assert.deepEqual(upstreamCalls(), ['GET /dashboard/bootstrap']);
+});
+
 test('the first pass renders the loading state, the next one the data of GET /dashboard/bootstrap', async () => {
   dashboardBff.on('get', '/dashboard/bootstrap', { body: bootstrapResponse() });
   view = mount(React.createElement(Home));
