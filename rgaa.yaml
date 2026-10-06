@@ -1,0 +1,104 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/mairie360/CICD/main/tests/a11y/rgaa.schema.json
+# RGAA 4.1.2 scope of the dashboard front (MAIR-316), checked by the RGAA job of mairie360/CICD
+# frontend-cicd.yml in release-prod, on the staging-<sha> image (format: CICD README, "RGAA scope").
+version: 1
+target: http://dashboard-front:5000
+
+# Same JWT_SECRET as the services of docker-compose-accessibility.yml: the engine signs an
+# accessToken for the user of the state (as:), the front relays it to bff-dashboard, which calls
+# bff-user, bff-project and bff-calendar with it.
+session:
+  jwt_secret: b"secret"
+
+# The dashboard only reads data (no state writes anything) and the role does not change the page.
+users:
+  # init-test.sql + init-accessibility.sql: projects, open tasks and upcoming events.
+  agent:
+    id: 2
+    role: user
+  # init-accessibility.sql: same role, no project, task or event.
+  empty:
+    id: 3
+    role: user
+
+criteria:
+  # Images: the logo, the avatar and the icons of the shell.
+  - "1.1"
+  - "1.2"
+  - "1.3"
+  # 1.4-1.9: no CAPTCHA, chart, image of text or figure caption.
+  # 2.x: no frame. 4.x: no media. 5.x: no data table.
+  - "3.1"
+  - "3.2"
+  - "3.3"
+  # Links: the navigation of the shell (lib-components AppShell) and the profile link of the menu.
+  - "6.1"
+  - "6.2"
+  # Scripts: the header menu, the card buttons, the status messages (loading, unavailable data).
+  - "7.1"
+  - "7.3"
+  - "7.5"
+  - "8.1"
+  - "8.2"
+  - "8.3"
+  - "8.4"
+  - "8.5"
+  - "8.6"
+  - "8.9"
+  # 8.7, 8.8: no text in another language; 8.10: no right-to-left text.
+  - "9.1"
+  - "9.2"
+  - "9.3"
+  # 9.4: no quotation.
+  - "10.1"
+  - "10.2"
+  - "10.3"
+  - "10.4"
+  - "10.5"
+  - "10.6"
+  - "10.7"
+  - "10.8"
+  - "10.9"
+  - "10.10"
+  - "10.11"
+  - "10.12"
+  # 11.1-11.8, 11.10-11.13: no form field (the page only has buttons).
+  - "11.9"
+  # Navigation of the shell, landmarks, skip link, focus order.
+  - "12.6"
+  - "12.7"
+  - "12.8"
+  - "12.9"
+  # 13.3: no downloadable file.
+  - "13.9"
+  - "13.11"
+
+states:
+  - id: dashboard
+    description: Cards filled with the projects, open tasks and upcoming events of the user
+    as: agent
+    route: /
+    steps:
+      - wait_for: { role: heading, name: Tableau de Bord }
+      - wait_for: { text: Rénovation de la salle des fêtes }
+      - wait_for: { text: Conseil municipal }
+  - id: dashboard-empty
+    description: Empty cards (user without project, task or event)
+    as: empty
+    route: /
+    steps:
+      - wait_for: { role: heading, name: Tableau de Bord }
+      - wait_for: { text: Aucun événement à venir. }
+  - id: user-menu
+    description: Header menu of the user opened (profile, logout)
+    as: agent
+    route: /
+    steps:
+      - wait_for: { role: heading, name: Tableau de Bord }
+      - click: { role: button, name: Perf }
+      - wait_for: { text: Déconnexion }
+  - id: no-session
+    description: Page opened without a session (no middleware redirect, the bootstrap is refused)
+    route: /
+    steps:
+      - wait_for: { text: Le tableau de bord est indisponible. }

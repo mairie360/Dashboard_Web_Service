@@ -160,9 +160,9 @@ describe('one front, one BFF, one OpenAPI contract', () => {
     assert.equal(resolveOrvalPackage(CONTRACT_PACKAGE).version, all[CONTRACT_PACKAGE]);
   });
 
-  test('the security and performance stacks run the BFF_Dashboard image of the contract version', () => {
+  test('the security, performance and accessibility stacks run the BFF_Dashboard image of the contract version', () => {
     const { version } = resolveOrvalPackage(CONTRACT_PACKAGE);
-    for (const stack of ['docker-compose-security.yml', 'docker-compose-performance.yml']) {
+    for (const stack of ['docker-compose-security.yml', 'docker-compose-performance.yml', 'docker-compose-accessibility.yml']) {
       const images = [...fs.readFileSync(path.join(ROOT, stack), 'utf8').matchAll(/ghcr\.io\/mairie360\/bff-dashboard:([^\s}]+)/g)].map(([, tag]) => tag);
       assert.deepEqual(images, [version], stack);
     }

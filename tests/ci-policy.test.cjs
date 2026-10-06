@@ -38,7 +38,44 @@ test('the reusable workflow receives only its declared named secrets', () => {
   assert.deepEqual(mappings.map(([, name, source]) => [name, source]), [
     ['CODECOV_TOKEN', 'CODECOV_TOKEN'],
     ['N8N_WEBHOOK_SECRET', 'N8N_WEBHOOK_SECRET'],
+    // AI pre-audit of the RGAA check (release-prod), MAIR-320.
+    ['ANTHROPIC_API_KEY', 'ANTHROPIC_API_KEY'],
   ]);
+});
+
+test('isolated test stacks run the published image, the scripts build it with a secret only', () => {
+  const stacks = {
+    'docker-compose-security.yml': 'security_test.sh',
+    'docker-compose-performance.yml': 'performance_test.sh',
+    'docker-compose-accessibility.yml': 'accessibility_test.sh',
+  };
+  for (const [file, script] of Object.entries(stacks)) {
+    const compose = read(file);
+    const frontend = compose.split('  dashboard-front:\n')[1]?.split('\n  security-scan:')[0]?.split('\n  k6-perf-test:')[0]?.split('\n  a11y:')[0];
+    assert.ok(frontend, `${file} must keep the isolated frontend service`);
+    // The CI exports IMAGE_REF (dev-<sha> for ZAP / k6, staging-<sha> for RGAA): never rebuilt.
+    assert.match(frontend, /image: \$\{IMAGE_REF:\?/);
+    assert.doesNotMatch(frontend, /build:|args:|NODE_AUTH_TOKEN|\/run\/secrets/);
+    const code = compose.split('\n').filter((line) => !line.trimStart().startsWith('#')).join('\n');
+    assert.doesNotMatch(code, /NODE_AUTH_TOKEN|\bbuild-arg\b/);
+    const shell = read(script);
+    assert.match(shell, /docker build -t dashboard-front:local --secret id=node_auth_token,env=NODE_AUTH_TOKEN \./);
+    assert.doesNotMatch(shell, /--build-arg|up -d --build/);
+  }
+});
+
+test('the Dockerfile reads the npm token from a BuildKit secret, never from a build arg', () => {
+  const dockerfile = read('Dockerfile');
+  assert.match(dockerfile, /--mount=type=secret,id=node_auth_token,env=NODE_AUTH_TOKEN,required=true/);
+  assert.doesNotMatch(dockerfile, /^\s*ARG NODE_AUTH_TOKEN/m);
+  assert.doesNotMatch(dockerfile, /_authToken=\$\{NODE_AUTH_TOKEN\}/);
+});
+
+test('Docker excludes the local RGAA files', () => {
+  const ignored = read('.dockerignore').split(/\r?\n/).map((line) => line.trim());
+  for (const pattern of ['cicd-repo', 'rgaa-report', '.rgaa-ai-cache', 'rgaa.yaml', 'accessibility_test.sh', 'init-accessibility.sql']) {
+    assert.ok(ignored.includes(pattern), `${pattern} must be excluded from the build context`);
+  }
 });
 
 test('npm release-age exception applies only to the internal shared component package', () => {
