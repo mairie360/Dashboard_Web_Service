@@ -12,7 +12,7 @@ test('Dashboard calls the shared frontend workflow version with Semgrep', () => 
   const reusableWorkflows = [...workflow.matchAll(/^\s+uses:\s+mairie360\/CICD\/\.github\/workflows\/frontend-cicd\.yml@(v(\d+)\.(\d+)\.(\d+))\s*$/gm)];
   assert.equal(reusableWorkflows.length, 1, 'Dashboard must call the shared frontend workflow once');
   const [, version] = reusableWorkflows[0];
-  assert.equal(version, 'v4.0.2', 'only the reviewed workflow version is accepted; another upgrade requires review');
+  assert.equal(version, 'v4.2.0', 'only the reviewed workflow version is accepted; another upgrade requires review');
   assert.equal(workflow.match(/cicd_version:\s*"([^"]+)"/)?.[1], version,
     'the reusable workflow ref and input must use the same version');
   assert.doesNotMatch(workflow, /semgrep_fail_on_findings:\s*false|semgrep_config:|continue-on-error:/);
