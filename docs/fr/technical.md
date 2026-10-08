@@ -1,5 +1,22 @@
 # Dashboard_Web_Service — Documentation technique
 
+## Maintenance des dépendances d’exécution — MAIR-436
+
+Next et sa configuration lint correspondante passent à la maintenance `16.3.8`,
+avec leurs paquets de plateforme associés, après le délai de sept jours.
+La correction compatible du moteur d’image reste limitée à sharp consommé par
+Next (`^0.35.5`, verrou `0.35.5`, librsvg précompilé `2.63.2`). Le verrou
+transitif source-map-js passe à `1.2.2` dans les plages parentes existantes,
+après son délai de publication de sept jours. L’override global PostCSS
+`8.5.28` est conservé ; aucun paquet sans rapport, contrat, route, source UI ou
+contrôle de sécurité ne change. Les tests `dependency-runtime.test.cjs`
+vérifient les versions installées face au verrou et exercent uniquement un
+SVG ordinaire et une source map bornée, pas une reproduction de faille.
+Quatre assertions de versions échouent avant correction, tandis que les deux
+opérations ordinaires fonctionnent déjà. Les six passent après correction.
+Les alertes d’audit braces ne sont pas contournées : fusion et acceptance
+globale MAIR-436 restent ouvertes, indépendamment des tests/build locaux.
+
 ## Pied de page partagé — MAIR-180
 
 L’audit CI inchangé a détecté la dépendance d’outillage transitive

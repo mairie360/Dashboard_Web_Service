@@ -175,3 +175,15 @@ Le pin exact et l'intégrité du package publié sont alignés sur Elearning san
 le rétrograder. Les tests de release vérifient le manifeste, le lockfile et le
 vrai package installé. Une validation isolée ne remplace pas la CI verte,
 l'intégration des sept consommateurs et la recette de la copie locale livrée.
+## Dependency runtime maintenance — MAIR-436
+
+Next and its matching lint config update to the patched maintenance release
+`16.3.8`. The Next-scoped sharp override resolves `0.35.5` (librsvg `2.63.2`),
+and the compatible transitive source-map-js lock resolves `1.2.2`. Only these
+packages and their Next/sharp platform packages change; the global PostCSS
+`8.5.28` override, published Dashboard contract and shared UI pins stay unchanged.
+Six bounded runtime tests check installed/locked versions, ordinary SVG
+rendering and ordinary source-map mapping. No exploit fixture is included.
+The public seven-day release delay and all audit/RGAA/main protections remain
+unchanged. Remaining braces findings still block the audit and integration;
+this partial maintenance does not complete MAIR-436 or certify a release.

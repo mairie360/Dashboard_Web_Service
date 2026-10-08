@@ -1,5 +1,21 @@
 # Dashboard_Web_Service — Technical documentation
 
+## Dependency runtime maintenance — MAIR-436
+
+Next and its matching lint config update to maintenance release `16.3.8`,
+including their associated platform packages, after the seven-day delay.
+The compatible image-runtime correction is scoped to Next's sharp dependency
+(`^0.35.5`, locked `0.35.5`, prebuilt librsvg `2.63.2`). The transitive
+source-map-js lock updates to `1.2.2` within existing parent ranges, after its
+seven-day publication delay. Preserve the global PostCSS `8.5.28` override;
+no unrelated package, contract, route, UI source or security policy changes.
+`tests/dependency-runtime.test.cjs` checks installed versions against the lock
+and exercises only a bounded ordinary SVG and source map, not an exploit.
+The baseline fails four version assertions while both ordinary operations
+already succeed. All six pass on the corrected dependency tree. Remaining
+braces audit findings are not waived; merge and global MAIR-436 acceptance
+remain pending independently of functional/unit/build checks.
+
 ## Shared footer — MAIR-180
 
 The unchanged CI audit exposed the transitive tooling dependency
