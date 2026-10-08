@@ -32,6 +32,30 @@ body {
   font-family: system-ui, sans-serif;
 }
 
+/* Keep the reference's py-6 on desktop too; do not alter other shell consumers. */
+.dashboard-app-shell main {
+  padding-block: 1.5rem;
+  /* Match the opaque reference content, including its header-shadow painting. */
+  background-color: #f5f3f0;
+}
+
+/* Restore reference presentation without copying the published navigation. */
+.dashboard-app-shell [aria-label="Navigation principale"] {
+  position: relative;
+  z-index: 20;
+  box-shadow: 8px 0 24px rgb(12 28 48 / 28%);
+}
+
+.dashboard-app-shell [aria-label="Navigation principale"] nav button {
+  flex-shrink: 0;
+  min-height: 44px;
+}
+
+/* The drawer's published Close button is z-10 and must remain clickable. */
+.dashboard-app-shell [aria-label="Navigation mobile"] [aria-label="Navigation principale"] {
+  z-index: 0;
+}
+
 /* Bound the track, not the overflow: intrinsic card widths must not enlarge main. */
 .dashboard-content-grid > section {
   min-width: 0;

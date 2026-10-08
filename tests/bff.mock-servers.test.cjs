@@ -8,6 +8,7 @@ const { ContractMockServer, unreachableUrl } = require('./support/contract-mock-
 const { OpenApiContract } = require('./support/openapi-contract.ts');
 const { requestBff } = require('../src/lib/bff-client.ts');
 const { toDashboardModuleData } = require('../src/lib/dashboard-view.ts');
+const { setBrowserFrontUrls } = require('../src/lib/front-urls.ts');
 
 // Parcours complet d'un appel du front : fetch same-origin du navigateur (src/lib/bff-client.ts) → route
 // handler Next.js → BFF_Dashboard simulé par un vrai serveur HTTP local, piloté par contracts/openapi.json :
@@ -44,6 +45,19 @@ const upstreamCalls = () => mocks.flatMap((mock) => mock.requests.map((call) => 
 const rejection = (promise) => promise.then(() => assert.fail('la requête aurait dû échouer'), (error) => error.message);
 
 describe('page data: /dashboard/bootstrap through the contract-gated proxy', () => {
+  test('a browser401 from the real proxy delegates once to Login without a second BFF', async (t) => {
+    const destinations=[];
+    global.window={location:{replace:href=>destinations.push(href)}};
+    t.after(()=>{delete global.window;});
+    setBrowserFrontUrls({LOGIN_FRONT_URL:'https://login.test.example/'});
+    dashboardBff.on('get','/dashboard/bootstrap',{status:401,body:{error:{message:'Session refusée'}},outOfContract:true});
+    assert.equal(await rejection(requestBff('/dashboard/bootstrap')),'Session refusée');
+    assert.equal(await rejection(requestBff('/dashboard/bootstrap')),'Session refusée');
+    assert.deepEqual(destinations,['https://login.test.example/logout']);
+    assert.deepEqual(upstreamCalls(),['DASHBOARD_BFF GET /dashboard/bootstrap','DASHBOARD_BFF GET /dashboard/bootstrap']);
+    assert.ok(front.calls.every(call=>call.method==='GET'));
+  });
+
   test('returns the BFF payload and only reaches the declared operation with the session token', async () => {
     dashboardBff.on('get', '/dashboard/bootstrap', { body: bootstrapResponse() });
 

@@ -1,5 +1,6 @@
-import { act, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { StrictMode } from "react";
 import { axe } from "jest-axe";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import Home from "@/app/page";
@@ -39,6 +40,41 @@ beforeEach(() => {
 });
 
 describe("Dashboard page", () => {
+  it("keeps invalid deadline text and only selectable valid events from a partial bootstrap", async () => {
+    const payload = bootstrap({ events: [
+      { id: "bad", title: "Impossible day", date: "2026-02-31", startTime: "09:00" },
+      { id: "good", title: "Valid leap day", date: "2028-02-29", startTime: "09:00" },
+    ] });
+    payload.projects[0].dueDate = "3";
+    vi.mocked(requestBff).mockResolvedValue(payload);
+    await openDashboard();
+    expect(screen.getByRole("button", { name: /Projet test/ }).textContent).toContain("Échéance: 3");
+    expect(screen.getByRole("button", { name: /Projet test/ }).textContent).not.toContain("2001");
+    expect(screen.queryByRole("button", { name: /Impossible day/ })).toBeNull();
+    expect(screen.getByRole("button", { name: /Valid leap day/ })).toBeTruthy();
+    expect(screen.getByText(/Certains événements reçus ont une date ou une heure illisible/)).toBeTruthy();
+    expect(screen.getAllByRole("button", { name: "Actualiser les dates illisibles" })).toHaveLength(1);
+    expect(requestBff).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not announce an empty calendar for unusable dates and recovers to confirmed empty through explicit GET", async () => {
+    vi.mocked(requestBff).mockResolvedValueOnce(bootstrap({ events: [
+      { id: "bad", title: "Impossible time", date: "2026-10-06", startTime: "24:00" },
+    ] })).mockResolvedValueOnce(bootstrap({ events: [] }));
+    await openDashboard();
+    expect(screen.queryByText("Aucun événement à venir.")).toBeNull();
+    const unavailable = screen.getByRole("region", { name: "Événements à venir" });
+    expect(within(unavailable).getByRole("status").textContent).toContain("Les événements reçus ne peuvent pas être affichés");
+    expect(within(unavailable).getByRole("button", { name: "Voir tout" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /Impossible time/ })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Actualiser les dates illisibles" }));
+    await screen.findByText("Aucun événement à venir.");
+    expect(screen.queryByText(/Certains événements reçus/)).toBeNull();
+    expect(screen.queryByRole("button", { name: "Actualiser les dates illisibles" })).toBeNull();
+    expect(requestBff).toHaveBeenCalledTimes(2);
+    expect(vi.mocked(requestBff).mock.calls.every(([url]) => url === "/dashboard/bootstrap")).toBe(true);
+  });
+
   it("loads only the published bootstrap and renders DTO-backed cards", async () => {
     let resolveBootstrap;
     vi.mocked(requestBff).mockImplementation(() => new Promise((resolve) => {
@@ -54,6 +90,7 @@ describe("Dashboard page", () => {
     expect(screen.getByRole("button", { name: /Projet test/ })).toBeTruthy();
     expect(screen.getByRole("button", { name: /Tâche test/ })).toBeTruthy();
     expect(screen.getByRole("button", { name: /Événement test/ })).toBeTruthy();
+    expect([...screen.getByRole("main").childNodes].some(node => node.nodeType === Node.TEXT_NODE && node.textContent.trim() === "0")).toBe(false);
     expect(screen.queryByRole("heading", { name: "Actions rapides" })).toBeNull();
   });
 
@@ -182,6 +219,134 @@ describe("Dashboard page", () => {
     expect((await screen.findByRole("alert")).textContent).toBe("Service indisponible");
     expect(screen.getByRole("status").textContent).toContain("indisponible");
     expect(screen.queryByRole("heading", { name: "Tableau de Bord" })).toBeNull();
+  });
+
+  it("recovers an initial failure through keyboard activation without automatically retrying", async () => {
+    const user = userEvent.setup();
+    vi.mocked(requestBff).mockRejectedValueOnce(new Error("Chargement refusé"));
+    render(<Home />);
+    const retry = await screen.findByRole("button", { name: "Réessayer le chargement" });
+    expect(requestBff).toHaveBeenCalledTimes(1);
+    for (let index = 0; index < 20 && document.activeElement !== retry; index += 1) await user.tab();
+    expect(document.activeElement).toBe(retry);
+    await user.keyboard("{Enter}");
+    await screen.findByRole("heading", { name: "Tableau de Bord" });
+    expect(requestBff).toHaveBeenCalledTimes(2);
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Réessayer le chargement" })).toBeNull();
+  });
+
+  it("locks partial-source recovery until its one read completes and preserves confirmed cards on refusal", async () => {
+    vi.mocked(requestBff).mockResolvedValueOnce(bootstrap({ events: [], sources: { projects: "available", tasks: "available", calendar: "unavailable" } }));
+    const user = await openDashboard();
+    let refuse;
+    vi.mocked(requestBff).mockImplementationOnce(() => new Promise((resolve, reject) => { refuse = reject; }));
+    const retry = screen.getByRole("button", { name: "Actualiser les données indisponibles" });
+    await user.dblClick(retry);
+    expect(requestBff).toHaveBeenCalledTimes(2);
+    expect(retry.disabled).toBe(true);
+    expect(retry.getAttribute("aria-busy")).toBe("true");
+    expect(screen.getByRole("button", { name: /Projet test/ })).toBeTruthy();
+    await act(async () => refuse(new Error("Actualisation refusée")));
+    expect((await screen.findByRole("alert")).textContent).toBe("Actualisation refusée");
+    expect(screen.getByRole("button", { name: /Projet test/ })).toBeTruthy();
+    expect(screen.getByText("Les dernières données reçues restent affichées.")).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "Réessayer le chargement" }));
+    await screen.findByRole("button", { name: /Événement test/ });
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(requestBff).toHaveBeenCalledTimes(3);
+  });
+
+  it("aborts a pending read on unmount without a new request", async () => {
+    let finish;
+    let signal;
+    vi.mocked(requestBff).mockImplementation((path, init) => {
+      signal = init.signal;
+      return new Promise((resolve) => { finish = resolve; });
+    });
+    const mounted = render(<Home />);
+    mounted.unmount();
+    expect(signal.aborted).toBe(true);
+    await act(async () => finish(bootstrap()));
+    expect(requestBff).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole("heading", { name: "Tableau de Bord" })).toBeNull();
+  });
+
+  it("guards consecutive recovery events before the disabled state renders", async () => {
+    vi.mocked(requestBff).mockResolvedValueOnce(bootstrap({ events: [], sources: { projects: "available", tasks: "available", calendar: "unavailable" } }));
+    await openDashboard();
+    let finish;
+    vi.mocked(requestBff).mockImplementationOnce(() => new Promise((resolve) => { finish = resolve; }));
+    const retry = screen.getByRole("button", { name: "Actualiser les données indisponibles" });
+    act(() => { fireEvent.click(retry); fireEvent.click(retry); });
+    expect(requestBff).toHaveBeenCalledTimes(2);
+    expect(retry.disabled).toBe(true);
+    await act(async () => finish(bootstrap()));
+    expect(screen.queryByRole("button", { name: "Actualiser les données indisponibles" })).toBeNull();
+  });
+
+  it("does not turn a logout failure into a bootstrap retry or hide confirmed cards", async () => {
+    const user = await openDashboard();
+    await user.click(screen.getByRole("button", { name: /Test/ }));
+    await user.click(await screen.findByText("Déconnexion", { exact: true }));
+    expect((await screen.findByRole("alert")).textContent).toBe("La déconnexion est temporairement indisponible.");
+    expect(screen.getByRole("button", { name: /Projet test/ })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Réessayer le chargement" })).toBeNull();
+    expect(requestBff).toHaveBeenCalledTimes(1);
+  });
+
+  it("ignores an aborted StrictMode read even when it resolves after the replacement", async () => {
+    const reads = [];
+    vi.mocked(requestBff).mockImplementation((path, init) => new Promise((resolve) => reads.push({ signal: init.signal, resolve })));
+    render(<StrictMode><Home /></StrictMode>);
+    expect(reads).toHaveLength(2);
+    expect(reads[0].signal.aborted).toBe(true);
+    await act(async () => reads[1].resolve(bootstrap({ userFirstName: "Réponse actuelle" })));
+    await screen.findByText("Bienvenue Réponse actuelle, voici un aperçu de vos activités");
+    await act(async () => reads[0].resolve(bootstrap({ userFirstName: "Réponse obsolète" })));
+    expect(screen.getByText("Bienvenue Réponse actuelle, voici un aperçu de vos activités")).toBeTruthy();
+    expect(screen.queryByText(/Réponse obsolète/)).toBeNull();
+  });
+
+  it("recovers to confirmed empty data without clearing an independent logout refusal", async () => {
+    const user = userEvent.setup();
+    vi.mocked(requestBff).mockRejectedValueOnce(new Error("Lecture initiale refusée"));
+    render(<Home />);
+    await screen.findByText("Lecture initiale refusée");
+    vi.mocked(requestBff).mockResolvedValueOnce(bootstrap({
+      events: [], sources: { projects: "available", tasks: "available", calendar: "unavailable" },
+    }));
+    await user.click(screen.getByRole("button", { name: "Réessayer le chargement" }));
+    await screen.findByRole("button", { name: /Projet test/ });
+
+    let refuse;
+    vi.mocked(requestBff).mockImplementationOnce(() => new Promise((resolve, reject) => { refuse = reject; }));
+    const refresh = screen.getByRole("button", { name: "Actualiser les données indisponibles" });
+    act(() => { fireEvent.click(refresh); fireEvent.click(refresh); });
+    expect(requestBff).toHaveBeenCalledTimes(3);
+    expect(refresh.disabled).toBe(true);
+    await act(async () => refuse(new Error("Nouvelle lecture refusée")));
+    await screen.findByText("Nouvelle lecture refusée");
+    expect(screen.getByRole("button", { name: /Projet test/ })).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: /Test/ }));
+    await user.click(await screen.findByText("Déconnexion", { exact: true }));
+    await screen.findByText("La déconnexion est temporairement indisponible.");
+    expect(requestBff).toHaveBeenCalledTimes(3);
+
+    vi.mocked(requestBff).mockResolvedValueOnce(bootstrap({
+      projects: [], tasks: [], events: [], userFirstName: "Confirmé", metrics: { totalProjects: 0 },
+    }));
+    await user.click(screen.getByRole("button", { name: "Réessayer le chargement" }));
+    await screen.findByText("Bienvenue Confirmé, voici un aperçu de vos activités");
+    expect(screen.getByText("Aucun projet récent.")).toBeTruthy();
+    expect(screen.getByText("Aucune tâche en attente.")).toBeTruthy();
+    expect(screen.getByText("Aucun événement à venir.")).toBeTruthy();
+    expect(screen.queryByText("Nouvelle lecture refusée")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Réessayer le chargement" })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Projet test/ })).toBeNull();
+    expect(screen.getByRole("alert").textContent).toBe("La déconnexion est temporairement indisponible.");
+    expect(requestBff).toHaveBeenCalledTimes(4);
+    expect(vi.mocked(requestBff).mock.calls.every(([path]) => path === "/dashboard/bootstrap")).toBe(true);
   });
 
   it("keeps section controls keyboard-reachable and free of serious axe violations", async () => {

@@ -4,6 +4,7 @@ const path = require('node:path');
 const { test } = require('node:test');
 
 const css = readFileSync(path.join(__dirname, '../src/app/globals.css'), 'utf8');
+const page = readFileSync(path.join(__dirname, '../src/app/page.tsx'), 'utf8');
 const rule = (selector) => {
   const start = css.indexOf(`${selector} {`);
   assert.notEqual(start, -1, `missing scoped rule: ${selector}`);
@@ -17,6 +18,32 @@ test('Dashboard cards shrink, wrap long content and retain usable heading action
   assert.match(rule('.dashboard-content-grid > section > div:last-child > button'), /overflow-wrap:\s*anywhere/);
   assert.match(rule('.dashboard-content-grid > section > div:last-child > button .truncate'), /white-space:\s*normal/);
   assert.doesNotMatch(css, /overflow-x:\s*(hidden|clip)/);
+});
+
+test('Dashboard retains the reference vertical inset at every shell breakpoint', () => {
+  assert.match(page, /<AppShell\s+className="dashboard-app-shell"/);
+  assert.match(rule('.dashboard-app-shell main'), /padding-block:\s*1\.5rem/);
+  assert.doesNotMatch(rule('.dashboard-app-shell main'), /margin|transform|overflow|height/);
+});
+
+test('Dashboard restores the opaque reference content without changing shared header stacking', () => {
+  const main = rule('.dashboard-app-shell main');
+  assert.match(main, /background-color:\s*#f5f3f0/);
+  assert.doesNotMatch(main, /position:|z-index:|box-shadow:/);
+  // The reference main paints over the header shadow; do not remove that shared token.
+  assert.doesNotMatch(css, /\.dashboard-app-shell[^{}]*\bheader\s*\{/);
+});
+
+test('Dashboard keeps the reference sidebar rhythm and shadow without covering mobile Close', () => {
+  const sidebar = rule('.dashboard-app-shell [aria-label="Navigation principale"]');
+  assert.match(sidebar, /position:\s*relative/);
+  assert.match(sidebar, /z-index:\s*20/);
+  assert.match(sidebar, /box-shadow:\s*8px 0 24px rgb\(12 28 48 \/ 28%\)/);
+  const buttons = rule('.dashboard-app-shell [aria-label="Navigation principale"] nav button');
+  assert.match(buttons, /flex-shrink:\s*0/);
+  assert.match(buttons, /min-height:\s*44px/);
+  // Published drawer Close is z-10; the reference desktop z-20 must not cover it.
+  assert.match(rule('.dashboard-app-shell [aria-label="Navigation mobile"] [aria-label="Navigation principale"]'), /z-index:\s*0/);
 });
 
 test('reference project boundaries, shadows and row wrapping are scoped to Dashboard', () => {

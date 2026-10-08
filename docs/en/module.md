@@ -14,12 +14,32 @@ Business domain: Dashboard.
 
 - Display aggregated `/dashboard/bootstrap` data.
 - Display project and task deadlines as zero-padded DD/MM/YYYY, matching the local reference. Date-only values retain their UTC day; ISO instants retain the existing Europe/Paris day independently of the host timezone. Missing task deadlines and unrecognized values keep their existing fallbacks; event formatting is unchanged.
+- Impossible civil dates and ambiguous free-text deadlines remain verbatim rather than being guessed or rolled into another day. Event dates and HH:mm clocks are validated before display; valid returned events remain selectable. Unusable events are announced separately from confirmed empty collections, with an explicit bootstrap GET recovery. The existing UTC/Paris deadline and local event-clock policies are unchanged.
 - Use the reference's default 17px root scale and system font, including the shared rem-based header (68px by default). Standard small-text tokens remain unchanged; this does not simulate saved appearance preferences.
+- Keep the reference's 1.5rem vertical content inset at desktop and mobile widths. This Dashboard-only shell class does not change shared library defaults or other frontends.
+- Retain the reference sidebar's 44px minimum navigation rows and lateral shadow through Dashboard-only CSS. The mobile sidebar remains below the published Close button; this does not copy prototype navigation or invent roles, notifications or version data (MAIR-182 / issue #32).
+- Keep the reference's opaque `#f5f3f0` content background so the header boundary paints consistently. Do not alter the shared header's shadow token or stacking to compensate for transparent content (MAIR-182 / issue #32).
 - Report temporarily unavailable sources.
-- Navigate to Projects, Calendar, Messages and Files through configurable URLs.
+- Recover a refused bootstrap explicitly without replacing confirmed cards by invented empty data. A confirmed empty response replaces the old cards; read recovery does not dismiss an independent logout error or call a mutation.
+- Refuse an unusable successful bootstrap before replacing confirmed cards or identity. The page checks the consumed name, collections, card fields and source states; invalid shapes show a controlled French read error with deliberate GET-only recovery (MAIR-455 / issue #84). Pending, abort and stale-read guards remain unchanged.
+- Keep optional event time/location and valid string/number event identifiers. Unrecognized textual dates still use the established display fallback rather than invalidating the entire read. Summary metrics and unused fields are not reinterpreted; no identifier uniqueness, date permission or user role is invented.
+- Open Projects and Calendar from the cards using the same validated runtime URL policy as the common navigation. Blank, malformed or unsupported destinations behave like missing configuration: card actions stay on Dashboard without throwing, reloading data or inventing a fallback. Valid destinations preserve existing query values and received record identifiers.
+- Reach the other configured active modules through AppShell; archived Files/Emails are not added back to navigation.
 - Open an upcoming event directly in Calendar from its dashboard card.
 
 ## Typical workflow
+
+### Session recovery — MAIR-404 / issue #87
+
+A page without a session cookie opens the configured Login front before loading
+business data. A known-expired cookie opens its existing Logout flow, which owns
+shared-cookie expiry. Missing/unsafe Login configuration fails with uncached503.
+Data and metadata requests without a usable cookie receive uncached JSON401,
+not a cross-origin HTML redirect. A current401 read delegates once to Login;
+aborted reads cannot navigate, while403/503/network errors remain recoverable.
+This early presence/expiry check is not signature validation or authorization;
+opaque tokens remain the BFF's responsibility. No second BFF, local cookie-domain
+setting, mutation replay or simulated authentication is added.
 
 1. Load `/dashboard/bootstrap` with the session.
 2. Inspect available projects, tasks and events.

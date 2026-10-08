@@ -13,13 +13,33 @@ Domaine fonctionnel: Tableau de bord.
 ## Fonctions disponibles
 
 - Affichage des données agrégées de `/dashboard/bootstrap`.
+- Reprise explicite d'une lecture refusée sans remplacer les cartes confirmées par un vide inventé. Seule une réponse vide confirmée remplace les cartes ; la reprise ne masque pas une erreur de déconnexion indépendante et ne déclenche aucune mutation.
+- Refus d'un bootstrap réussi mais inexploitable avant remplacement des cartes ou de l'identité confirmées. La page vérifie le prénom, les collections, les champs affichés et les sources ; forme invalide : erreur française contrôlée et reprise GET volontaire (MAIR-455 / issue #84). Gardes d'attente, d'annulation et de réponse obsolète inchangées.
+- Heure/lieu facultatifs et identifiants d'événement string/number conservés. Les dates textuelles non reconnues gardent leur traitement d'affichage distinct ; statistiques et champs non consommés ne sont pas réinterprétés. Aucune unicité d'identifiant, permission de date ou rôle utilisateur inventé.
 - Échéances projet et tâche en JJ/MM/AAAA avec zéros initiaux, comme la référence locale. Les dates seules gardent leur jour UTC ; les instants ISO gardent le jour Europe/Paris existant, indépendamment du fuseau machine. Les tâches sans échéance et les valeurs non reconnues conservent leurs traitements existants ; le format des événements est inchangé.
+- Les dates civiles impossibles et les échéances ambiguës restent telles que reçues, sans jour deviné ni report automatique. Dates d’événement et heures HH:mm sont validées avant affichage ; les événements valides restent sélectionnables. Les événements illisibles sont signalés distinctement des collections vides confirmées, avec reprise explicite par GET bootstrap. Règles UTC/Paris des échéances et heure locale des événements inchangées.
 - Reprise de l’échelle racine de 17px et de la police système par défaut de la référence, y compris le header partagé en rem (68px par défaut). Les tailles standard des petits textes restent inchangées ; aucune préférence d’apparence sauvegardée n’est simulée.
+- Marge intérieure verticale de 1,5rem conservée sur desktop et mobile, comme la référence. La classe de shell propre à Dashboard ne change ni les valeurs par défaut de la bibliothèque ni les autres fronts.
+- Lignes de navigation de 44px minimum et ombre latérale de la sidebar de référence, avec du CSS propre à Dashboard. La sidebar mobile reste sous le bouton Fermer publié ; aucune navigation du prototype, rôle, notification ou donnée de version fictive n'est recopié (MAIR-182 / issue #32).
+- Fond opaque du contenu `#f5f3f0` conservé pour retrouver la peinture de la frontière du header de référence. Ni l'ombre partagée du header ni son empilement ne sont modifiés pour compenser un contenu transparent (MAIR-182 / issue #32).
 - Signalement des sources temporairement indisponibles.
-- Navigation vers Projets, Calendrier, Messages et Fichiers par URL configurable.
+- Ouvrir Projets et Calendrier depuis les cartes avec la même validation des URLs runtime que la navigation commune. Une destination blanche, malformée ou non prise en charge est traitée comme une configuration absente : l'action reste sur Dashboard sans exception, relecture ou fallback inventé. Les destinations valides conservent paramètres existants et identifiants reçus.
+- Rejoindre les autres modules actifs configurés via AppShell ; les dépôts archivés Fichiers/Emails ne sont pas réintroduits dans la navigation.
 - Ouverture directe d’un événement du tableau de bord dans Calendrier.
 
 ## Parcours type
+
+### Reprise de session — MAIR-404 / issue #87
+
+Une page sans cookie rejoint Login configuré avant de charger les données métier.
+Un cookie dont l'expiration est connue ouvre son flux Logout existant, seul
+responsable de l'expiration du cookie partagé. Configuration Login absente/non
+sûre :503 uncached. Données/metadata sans cookie utilisable :401JSON uncached,
+pas redirection HTML cross-origin. Une lecture401 courante délègue une seule fois
+à Login ; une lecture annulée ne navigue pas,403/503/pannes restent récupérables.
+Ce contrôle de présence/expiration ne valide ni signature ni autorisation ; les
+tokens opaques restent du ressort du BFF. Aucun deuxièmeBFF, COOKIE_DOMAIN local,
+replay de mutation ou authentification simulée ajouté.
 
 1. Charger `/dashboard/bootstrap` avec la session.
 2. Consulter les projets, tâches et événements disponibles.

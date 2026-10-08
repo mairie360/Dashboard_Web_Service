@@ -1,5 +1,22 @@
 # Dashboard_Web_Service — Documentation technique
 
+## Maintenance des dépendances d’exécution — MAIR-436
+
+Next et sa configuration lint correspondante passent à la maintenance `16.3.8`,
+avec leurs paquets de plateforme associés, après le délai de sept jours.
+La correction compatible du moteur d’image reste limitée à sharp consommé par
+Next (`^0.35.5`, verrou `0.35.5`, librsvg précompilé `2.63.2`). Le verrou
+transitif source-map-js passe à `1.2.2` dans les plages parentes existantes,
+après son délai de publication de sept jours. L’override global PostCSS
+`8.5.28` est conservé ; aucun paquet sans rapport, contrat, route, source UI ou
+contrôle de sécurité ne change. Les tests `dependency-runtime.test.cjs`
+vérifient les versions installées face au verrou et exercent uniquement un
+SVG ordinaire et une source map bornée, pas une reproduction de faille.
+Quatre assertions de versions échouent avant correction, tandis que les deux
+opérations ordinaires fonctionnent déjà. Les six passent après correction.
+Les alertes d’audit braces ne sont pas contournées : fusion et acceptance
+globale MAIR-436 restent ouvertes, indépendamment des tests/build locaux.
+
 ## Pied de page partagé — MAIR-180
 
 L’audit CI inchangé a détecté la dépendance d’outillage transitive
@@ -33,6 +50,14 @@ La page charge une seule réponse bootstrap, mappe ses données vers `DashboardM
 
 La sélection d’un événement à venir utilise `CALENDAR_FRONT_URL` fourni à l’exécution et ajoute les paramètres `date` (`YYYY-MM-DD`) et `event` (identifiant). Les paramètres existants sont conservés; l’action générale Calendrier ouvre toujours son URL de base. La page ne contient ni événement de démonstration ni hôte de déploiement en dur.
 
+Les six commandes des cartes résolvent leur destination Projets/Calendrier avec
+le helper `validatedFrontHref` existant, comme AppShell : seules les URLs absolues
+HTTP(S) sans identifiants incorporés sont acceptées. La normalisation se fait à
+l'utilisation, sans cache dans l'état React ni valeur figée au build. Une
+configuration invalide/absente conserve le comportement sans navigation existant
+et ne construit plus une URL pouvant lever une exception. Aucun changement de
+variable d'environnement, route serveur, proxy ou contrat.
+
 Le proxy générique lit le contrat OpenAPI versionné pour autoriser chemins et méthodes. Il conserve paramètres de requête, corps binaire, statuts et en-têtes utiles, filtre les en-têtes de transport, désactive le cache et n’effectue pas de suivi automatique des redirections. Son délai est de 15 secondes.
 
 ## Données et persistance
@@ -40,6 +65,8 @@ Le proxy générique lit le contrat OpenAPI versionné pour autoriser chemins et
 Les sources et limites suivantes concernent le BFF associé, dont dépend la sauvegarde des données affichées.
 
 BFF User `/me` fournit l’identité. BFF Project fournit `/projects-page?page=1&limit=6` puis les détails de chaque projet pour les tâches. BFF Calendar fournit le bootstrap de la période; ses dates d’événements peuvent être au format `YYYY-MM-DD` ou `DD-MM-YYYY` et sont relayées telles quelles, donc `src/lib/dashboard-view.ts` les normalise et ignore un événement dont la date n’est pas affichable. Les échéances des projets et des tâches reprennent le format numérique local (`01/12/2026`) : les instants ISO 8601 de BFF Project gardent le jour Europe/Paris, les dates seules gardent leur jour UTC et une valeur non reconnue est affichée telle quelle. Les formateurs à fuseaux explicites ne dépendent pas du fuseau machine ; le format des événements est inchangé. Le BFF ne dispose pas de base propre ni de mutations métier.
+
+Avant parsing, le mapper valide les jours civils grégoriens, y compris les années bissextiles, et accepte les échéances uniquement dans les formats de dates seuls existants ou en chaîne date-heure ISO. Dates impossibles et textes ambigus restent tels quels ; Date.parse ne doit pas inventer un jour. Une heure d’événement doit être HH:mm,00:00–23:59 (absence conservant00:00). `unusableEventCount` est calculé côté affichage, sans ajout au DTO BFF ni modification du statut de sa source. Les réponses partielles gardent les événements valides et signalent ceux écartés. Si tous les événements reçus sont illisibles, une section d’indisponibilité nommée remplace le faux message vide et conserve l’action Calendrier générale. Le GET bootstrap existant et protégé permet une reprise explicite ; une liste vide confirmée ensuite restitue l’état vide publié. Échéances UTC/Paris et représentation locale des heures d’événement inchangées ; cette validation n’implémente ni préférences de fuseau ni nouvelle interprétation des transitions d’heure.
 
 L’aperçu est limité et ne remplace pas les listes complètes des modules. Une source indisponible est signalée et les statistiques absentes restent nulles ou non affichées. Les rapports et mesures de population ou de performance ne sont pas fournis par ce contrat.
 
@@ -110,11 +137,11 @@ Le seul route handler est le proxy BFF [src/app/[...path]/route.ts](../../src/ap
 
 Ce front ne consomme qu’un BFF, BFF_Dashboard, et qu’un contrat OpenAPI; il n’appelle pas BFF User directement (le prénom affiché vient de `/dashboard/bootstrap`). Le proxy générique utilise le Bearer explicite ou, en son absence, le cookie `accessToken`. Les permissions métier restent celles du BFF et de ses sources.
 
-Le menu de compte de l’AppShell valide `LOGIN_FRONT_URL` à l’exécution puis ouvre sa page `/logout`. Si cette URL manque ou est invalide, Dashboard reste en place et signale l’erreur. Login gère l’expiration du cookie partagé et son appel à BFF User ; Dashboard n’envoie aucune requête de déconnexion et ne contacte jamais un deuxième BFF. La déconnexion authentifiée de bout en bout et la révocation Keycloak restent à vérifier dans MAIR-143/MAIR-226.
+Le menu de compte de l’AppShell valide `LOGIN_FRONT_URL` à l’exécution puis ouvre sa page `/logout`. Le client navigateur utilise ce même handoff une seule fois sur401 courant ; les réponses annulées ne naviguent pas,403/503/pannes ne déconnectent pas. Si cette URL manque ou est invalide, Dashboard reste en place et signale l’erreur ; une configuration corrigée permet un réessai explicite. Login gère l’expiration du cookie partagé et son appel à BFF User ; Dashboard n’envoie aucune requête de déconnexion et ne contacte jamais un deuxième BFF. La déconnexion authentifiée de bout en bout et la révocation Keycloak restent à vérifier dans MAIR-143/MAIR-226.
 
 Le proxy générique répond 400 pour un chemin invalide, 404 pour un chemin hors contrat, 405 pour une méthode interdite et 502 si le service est injoignable ou dépasse le délai. Les réponses amont sont conservées, y compris les corps vides 204/205/304. Sur `/dashboard/bootstrap`, BFF_Dashboard répond 401 pour une session refusée et 502 si le contexte utilisateur est indisponible (et, à partir de sa branche `mair-121`, 503 si une URL amont n’est pas configurée); la page affiche le `error.message` de ces réponses.
 
-Toutes les réponses portent `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy`, `Permissions-Policy` et `Cross-Origin-Resource-Policy`, `Cross-Origin-Embedder-Policy` et `Cross-Origin-Opener-Policy` (`next.config.ts`), et `X-Powered-By` est désactivé. [src/middleware.ts](../../src/middleware.ts) ajoute sur chaque page une `Content-Security-Policy` avec un nonce propre à chaque requête (il ne redirige pas les utilisateurs non authentifiés), que Next.js applique à ses scripts. Les pages sont donc rendues à la demande (`dynamic = "force-dynamic"` dans le layout). Les feuilles de style sont limitées à l'origine et au nonce ; seuls les attributs `style` rendus par les composants partagés passent par `style-src-attr 'unsafe-inline'`, et `next dev` autorise aussi `'unsafe-eval'`. Toute nouvelle ressource externe (image, police, API appelée depuis le navigateur) doit être ajoutée à la politique dans `src/lib/content-security-policy.ts`.
+Avant rendu, [src/middleware.ts](../../src/middleware.ts) contrôle présence/expiration JWT connue du cookie. Page anonyme→Login validé ; cookie expiré→`/logout` central, sans expiration locale ou nouveau COOKIE_DOMAIN. Login absent/non sûr→503uncached. Données/metadata sans cookie utilisable→401JSON/no-store, jamais redirection cross-origin ; chemins metadataJSON explicitement couverts. Ce contrôle ne valide ni signature ni permissions : un token opaque présent reste à autoriser par le BFF. Les pages autorisées conservent la CSP nonce par requête transmise à Next.js, les en-têtes statiques et X-Powered-By désactivé. Rendu dynamique et règles styles/attributs/eval de développement inchangés ; toute nouvelle ressource externe reste soumise à un changement explicite de CSP.
 
 ## Synchronisation et vérifications
 
