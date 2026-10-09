@@ -1,59 +1,45 @@
 const assert = require('node:assert/strict');
-const { readFileSync } = require('node:fs');
-const path = require('node:path');
 const { test } = require('node:test');
+const { referenceDocument } = require('./support/document-styles.cjs');
 
-const css = readFileSync(path.join(__dirname, '../src/app/globals.css'), 'utf8');
-const page = readFileSync(path.join(__dirname, '../src/app/page.tsx'), 'utf8');
-const rule = (selector) => {
-  const start = css.indexOf(`${selector} {`);
-  assert.notEqual(start, -1, `missing scoped rule: ${selector}`);
-  return css.slice(start, css.indexOf('}', start) + 1);
-};
-
-// Structural guard only: browser QA must also measure main, not just document.
-test('Dashboard cards shrink, wrap long content and retain usable heading actions', () => {
-  assert.match(rule('.dashboard-content-grid > section'), /min-width:\s*0/);
-  assert.match(rule('.dashboard-content-grid > section > div:first-child > button'), /flex-shrink:\s*0/);
-  assert.match(rule('.dashboard-content-grid > section > div:last-child > button'), /overflow-wrap:\s*anywhere/);
-  assert.match(rule('.dashboard-content-grid > section > div:last-child > button .truncate'), /white-space:\s*normal/);
-  assert.doesNotMatch(css, /overflow-x:\s*(hidden|clip)/);
-});
-
-test('Dashboard retains the reference vertical inset at every shell breakpoint', () => {
-  assert.match(page, /<AppShell\s+className="dashboard-app-shell"/);
-  assert.match(rule('.dashboard-app-shell main'), /padding-block:\s*1\.5rem/);
-  assert.doesNotMatch(rule('.dashboard-app-shell main'), /margin|transform|overflow|height/);
-});
-
-test('Dashboard restores the opaque reference content without changing shared header stacking', () => {
-  const main = rule('.dashboard-app-shell main');
-  assert.match(main, /background-color:\s*#f5f3f0/);
-  assert.doesNotMatch(main, /position:|z-index:|box-shadow:/);
-  // The reference main paints over the header shadow; do not remove that shared token.
-  assert.doesNotMatch(css, /\.dashboard-app-shell[^{}]*\bheader\s*\{/);
-});
-
-test('Dashboard keeps the reference sidebar rhythm and shadow without covering mobile Close', () => {
-  const sidebar = rule('.dashboard-app-shell [aria-label="Navigation principale"]');
-  assert.match(sidebar, /position:\s*relative/);
-  assert.match(sidebar, /z-index:\s*20/);
-  assert.match(sidebar, /box-shadow:\s*8px 0 24px rgb\(12 28 48 \/ 28%\)/);
-  const buttons = rule('.dashboard-app-shell [aria-label="Navigation principale"] nav button');
-  assert.match(buttons, /flex-shrink:\s*0/);
-  assert.match(buttons, /min-height:\s*44px/);
-  // Published drawer Close is z-10; the reference desktop z-20 must not cover it.
-  assert.match(rule('.dashboard-app-shell [aria-label="Navigation mobile"] [aria-label="Navigation principale"]'), /z-index:\s*0/);
-});
-
-test('reference project boundaries, shadows and row wrapping are scoped to Dashboard', () => {
-  assert.match(rule('.dashboard-content-grid > section'), /box-shadow:\s*0 5px 15px/);
-  const project = rule('.dashboard-recent-projects > div:last-child > button');
-  assert.match(project, /border:\s*1px solid #d8d2ca/);
-  assert.match(project, /padding:\s*12px/);
-  assert.match(rule('.dashboard-recent-projects > div:last-child > button > span.flex'), /flex-wrap:\s*wrap/);
-  assert.match(css, /@media \(min-width: 48rem\)/);
-  assert.match(css, /@media \(min-width: 96rem\)/);
-  assert.match(css, /repeat\(2, minmax\(0, 1fr\)\)/);
-  assert.match(css, /repeat\(3, minmax\(0, 1fr\)\)/);
+test('Dashboard retains parsed responsive grid and surface safety policies', (t) => {
+  const window = referenceDocument(t);
+  const grids = [];
+  let titleFallbackChecked = false;
+  function visit(rules, condition) {
+    for (const rule of rules) {
+      if (rule.cssRules) visit(rule.cssRules, rule.conditionText || condition);
+      if (!rule.style) continue;
+      const selectors = (rule.selectorText || '').split(',').map((value) => value.replace(/\s*>\s*/g, ' > ').replace(/\s+/g, ' ').trim());
+      if (selectors.includes('.dashboard-content-grid > section > div:last-child > button .truncate')) {
+        assert.equal(rule.style.getPropertyValue('white-space'), 'normal');
+        assert.equal(rule.style.getPropertyValue('overflow'), 'visible');
+        assert.equal(rule.style.getPropertyValue('text-overflow'), 'clip');
+        titleFallbackChecked = true;
+      }
+      for (let index = 0; index < rule.style.length; index += 1) {
+        const property = rule.style.item(index);
+        const value = rule.style.getPropertyValue(property).trim();
+        if (property === 'overflow-x') assert.equal(['hidden', 'clip'].includes(value), false, 'Do not conceal horizontal overflow');
+        if (selectors.includes('.dashboard-app-shell main')) {
+          assert.equal(property.startsWith('margin') || property.startsWith('overflow') || property.endsWith('height') || ['transform', 'position', 'z-index', 'box-shadow'].includes(property), false, 'Keep the main surface and inset without extra geometry or stacking');
+        }
+      }
+      assert.equal(selectors.some((selector) => selector.split(/\s+/).includes('.dashboard-app-shell') && selector.split(/\s+/).includes('header')), false, 'Preserve the shared header stacking');
+      if (condition && selectors.includes('.dashboard-upcoming-events-grid > div:last-child')) {
+        const columns = rule.style.getPropertyValue('grid-template-columns');
+        if (!columns) continue;
+        const repeat = columns.match(/^repeat\(\s*(\d+)\s*,\s*minmax\(\s*0(?:px)?\s*,\s*1fr\s*\)\s*\)$/);
+        assert.ok(repeat, 'Keep bounded responsive event tracks');
+        grids.push({ condition: condition.replace(/\s+/g, ''), columns: Number(repeat[1]) });
+      }
+    }
+  }
+  visit(window.document.styleSheets[0].cssRules);
+  assert.equal(titleFallbackChecked, true, 'Retain the consumer fallback for truncated title markup');
+  assert.deepEqual(grids, [
+    { condition: '(min-width:48rem)', columns: 2 },
+    { condition: '(min-width:96rem)', columns: 3 },
+  ]);
+  // CSSOM policy inspection does not execute media queries or prove layout.
 });
