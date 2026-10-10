@@ -20,7 +20,7 @@ function isExpiredJwt(token: string) {
   }
 }
 
-function refuseSession(request: NextRequest, expired: boolean) {
+function refuseSession(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   if (pathname === "/dashboard" || pathname.startsWith("/dashboard/") ||
       ["/health", "/check_apis", "/openapi.json", "/swagger.json"].includes(pathname)) {
@@ -29,9 +29,14 @@ function refuseSession(request: NextRequest, expired: boolean) {
     });
   }
   const loginHref = validatedFrontHref(readFrontUrlsFromEnv().LOGIN_FRONT_URL);
-  // A rejected existing cookie must be expired by central Login before signing
-  // in again, not locally by a second cookie-domain configuration.
-  const destination = loginHref && (expired ? new URL("/logout", loginHref).href : loginHref);
+  const destination = loginHref ? new URL(loginHref) : undefined;
+  const front = validatedFrontHref(readFrontUrlsFromEnv().DASHBOARD_FRONT_URL);
+  if (destination && front) {
+    const current = new URL(front);
+    current.pathname = request.nextUrl.pathname;
+    current.search = request.nextUrl.search;
+    destination.searchParams.set('redirect', current.href);
+  }
   const response = destination ? NextResponse.redirect(destination,
     ["GET", "HEAD"].includes(request.method) ? 307 : 303) : new NextResponse(
     "Connexion temporairement indisponible. Veuillez contacter votre administrateur.",
@@ -46,7 +51,7 @@ function refuseSession(request: NextRequest, expired: boolean) {
 // scripts : les pages doivent donc être rendues à la demande (voir src/app/layout.tsx).
 export function middleware(request: NextRequest) {
   const accessToken = request.cookies.get("accessToken")?.value;
-  if (!accessToken || isExpiredJwt(accessToken)) return refuseSession(request, Boolean(accessToken));
+  if (!accessToken || isExpiredJwt(accessToken)) return refuseSession(request);
   const nonce = createNonce();
   const contentSecurityPolicy = buildContentSecurityPolicy(
     nonce,

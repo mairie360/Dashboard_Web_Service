@@ -1,4 +1,4 @@
-import { logoutAndRedirect } from './logout';
+import { getLoginFrontHref } from './navigation';
 
 const navigatingLocations = new WeakSet<Location>();
 
@@ -17,16 +17,19 @@ export async function requestBff<T>(path: string, init: RequestInit = {}): Promi
   const headers = new Headers(init.headers);
   headers.set('Accept', 'application/json');
   if (init.body && !(init.body instanceof FormData) && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
-  const response = await fetch(path, { ...init, headers, credentials: 'same-origin', cache: 'no-store' });
+  const response = await fetch('/api/bff' + path, { ...init, headers, credentials: 'same-origin', cache: 'no-store' });
   init.signal?.throwIfAborted();
   if (!response.ok) {
     if (response.status === 401 && typeof window !== 'undefined' && !navigatingLocations.has(window.location)) {
       const location = window.location;
       navigatingLocations.add(location);
       try {
-        // Login owns shared-cookie expiry. Do not replay the failed read or
-        // add a Dashboard logout endpoint/second BFF client.
-        await logoutAndRedirect();
+        const loginHref = getLoginFrontHref();
+        if (!loginHref) throw new Error('Login frontend URL is unavailable');
+        const destination = new URL(loginHref);
+        const current = new URL(location.href || '');
+        destination.searchParams.set('redirect', current.href);
+        location.replace(destination.href);
       } catch {
         navigatingLocations.delete(location);
         throw new Error('Connexion temporairement indisponible. Veuillez contacter votre administrateur.');

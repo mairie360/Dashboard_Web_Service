@@ -192,7 +192,7 @@ test('the account-menu logout hands off to Login without another BFF call', asyn
 
   assert.deepEqual(destinations, ['https://login.test.example/logout']);
   assert.deepEqual(front.calls.map(({ side, method, url }) => `${side} ${method} ${url.pathname}`), [
-    'browser GET /dashboard/bootstrap',
+    'browser GET /api/bff/dashboard/bootstrap',
     'server GET /dashboard/bootstrap',
   ]);
   assert.deepEqual(upstreamCalls(), ['GET /dashboard/bootstrap']);
