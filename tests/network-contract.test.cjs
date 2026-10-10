@@ -1,8 +1,10 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+const composePolicy = require('./support/compose-policy.cjs');
 const { test, describe } = require('node:test');
 const ts = require('typescript');
+const policy = require('./support/source-policy.cjs');
 const { ROOT, SRC } = require('./support/load-ts.cjs');
 const { ROUTES } = require('./support/front-app.cjs');
 const { OpenApiContract } = require('./support/openapi-contract.ts');
@@ -18,7 +20,6 @@ const { loadOrvalContract, resolveOrvalPackage } = require('./support/orval-cont
 const dashboardContract = OpenApiContract.load(path.join(ROOT, 'contracts', 'openapi.json'));
 const CONTRACT_PACKAGE = '@mairie360/bff-dashboard-openapi';
 const FETCH_OWNERS = ['lib/bff-client.ts', 'lib/bff-proxy.ts'];
-const FORBIDDEN_NETWORK_APIS = ['XMLHttpRequest', 'WebSocket', 'EventSource', 'sendBeacon', 'axios'];
 
 function sourceFiles(dir = SRC) {
   return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
@@ -60,7 +61,7 @@ function where(ast, node) {
 function requestMethod(init) {
   if (!init) return 'GET';
   if (!ts.isObjectLiteralExpression(init)) return undefined;
-  const property = init.properties.find((candidate) => ts.isPropertyAssignment(candidate) && candidate.name.getText() === 'method');
+  const property = init.properties.find((candidate) => ts.isPropertyAssignment(candidate) && policy.propertyName(candidate.name) === 'method');
   if (!property) return init.properties.some(ts.isSpreadAssignment) ? undefined : 'GET';
   return literal(property.initializer)?.toUpperCase();
 }
@@ -91,15 +92,18 @@ describe('every network call of the front targets an operation of an OpenAPI con
   });
 
   test('no other network API is used', () => {
-    const problems = sources.flatMap(({ file, ast }) => FORBIDDEN_NETWORK_APIS.filter((api) => new RegExp(`\\b${api}\\b`).test(ast.text)).map((api) => `${file} : ${api}`));
+    const problems = sources.flatMap(({ file, ast }) => policy.networkReferences(ast).map(api => `${file} : ${api}`));
     assert.deepEqual(problems, []);
   });
 
   test('the client only builds same-origin requests', () => {
     const client = sources.find(({ file }) => file === 'lib/bff-client.ts');
     const [call] = calls(client.ast, 'fetch');
-    assert.equal(call.arguments[0].getText(), 'path');
-    assert.match(call.arguments[1].getText(), /credentials: 'same-origin'/);
+    assert.ok(policy.parameterReference(call.arguments[0]));
+    assert.ok(ts.isObjectLiteralExpression(call.arguments[1]));
+    const credentials = call.arguments[1].properties.find(node => ts.isPropertyAssignment(node) && policy.propertyName(node.name) === 'credentials');
+    assert.ok(credentials && ts.isStringLiteralLike(credentials.initializer));
+    assert.equal(credentials.initializer.text, 'same-origin');
   });
 });
 
@@ -146,9 +150,10 @@ describe('one front, one BFF, one OpenAPI contract', () => {
   });
 
   test('requests are only forwarded to the BFF_Dashboard URL', () => {
-    const forwards = sources.flatMap(({ file, ast }) => calls(ast, 'forwardToBff').map((node) => `${file} ${node.arguments[1]?.getText()}`));
-    assert.deepEqual(forwards, ['lib/bff-proxy.ts configuredBffUrl()']);
-    const bffVariables = [...new Set(sources.flatMap(({ ast }) => [...ast.text.matchAll(/process\.env\.(\w*BFF\w*)/g)].map(([, name]) => name)))].sort();
+    const forwards = sources.flatMap(({ file, ast }) => calls(ast, 'forwardToBff').map(node => ({ file, baseUrl: node.arguments[1] })));
+    assert.deepEqual(forwards.map(row => row.file), ['lib/bff-proxy.ts']);
+    assert.ok(forwards.every(row => policy.configuredUrl(row.baseUrl)));
+    const bffVariables = [...new Set(sources.flatMap(({ ast }) => policy.envNames(ast).filter(name => name?.includes('BFF'))))].sort();
     assert.deepEqual(bffVariables, ['BFF_DASHBOARD_BASE_URL', 'DASHBOARD_BFF_URL']);
   });
 
@@ -163,7 +168,7 @@ describe('one front, one BFF, one OpenAPI contract', () => {
   test('the security and performance stacks run the BFF_Dashboard image of the contract version', () => {
     const { version } = resolveOrvalPackage(CONTRACT_PACKAGE);
     for (const stack of ['docker-compose-security.yml', 'docker-compose-performance.yml']) {
-      const images = [...fs.readFileSync(path.join(ROOT, stack), 'utf8').matchAll(/ghcr\.io\/mairie360\/bff-dashboard:([^\s}]+)/g)].map(([, tag]) => tag);
+      const images = composePolicy.bffImages(composePolicy.compose(stack)).filter(image => image.startsWith('ghcr.io/mairie360/bff-dashboard:')).map(image => image.slice(image.lastIndexOf(':') + 1));
       assert.deepEqual(images, [version], stack);
     }
   });
