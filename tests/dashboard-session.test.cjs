@@ -19,7 +19,7 @@ beforeEach(()=>{
   destinations.length=0;
   process.env.LOGIN_FRONT_URL='https://login.test.example/';
   setBrowserFrontUrls({LOGIN_FRONT_URL:'https://login.test.example/'});
-  global.window={location:{replace:href=>destinations.push(href)}};
+  global.window={location:{href:'https://dashboard.test.example/?project=retained',replace:href=>destinations.push(href)}};
 });
 afterEach(()=>{
   global.fetch=originalFetch;delete global.window;
@@ -47,10 +47,10 @@ for(const file of ['docker-compose-security.yml','docker-compose-performance.yml
   });
 }
 
-test('a known-expired cookie uses central Logout instead of reopening Dashboard',()=>{
+test('a known-expired cookie goes to Login without automatically revoking the session',()=>{
   const response=middleware(request('/',token(1)));
   assert.equal(response.status,307);
-  assert.equal(response.headers.get('location'),'https://login.test.example/logout');
+  assert.equal(response.headers.get('location'),'https://login.test.example/');
   assert.equal(response.headers.get('cache-control'),'no-store');
   assert.equal(response.headers.get('set-cookie'),null);
 });
@@ -105,8 +105,8 @@ test('current repeated 401 hands off once to existing Login without another requ
   const calls=[];
   global.fetch=async path=>{calls.push(path);return Response.json({error:{message:'Session refusée'}},{status:401});};
   await Promise.all([assert.rejects(requestBff('/dashboard/bootstrap'),/Session refusée/),assert.rejects(requestBff('/dashboard/bootstrap'),/Session refusée/)]);
-  assert.deepEqual(destinations,['https://login.test.example/logout']);
-  assert.deepEqual(calls,['/dashboard/bootstrap','/dashboard/bootstrap']);
+  assert.deepEqual(destinations,['https://login.test.example/?redirect=https%3A%2F%2Fdashboard.test.example%2F%3Fproject%3Dretained']);
+  assert.deepEqual(calls,['/api/bff/dashboard/bootstrap','/api/bff/dashboard/bootstrap']);
 });
 
 for(const status of [403,503]){
@@ -143,5 +143,5 @@ test('a missing Login URL yields an actionable refusal and permits a corrected e
   assert.deepEqual(destinations,[]);
   setBrowserFrontUrls({LOGIN_FRONT_URL:'https://login.test.example/'});
   await assert.rejects(requestBff('/dashboard/bootstrap'),/Session refusée/);
-  assert.deepEqual(destinations,['https://login.test.example/logout']);
+  assert.deepEqual(destinations,['https://login.test.example/?redirect=https%3A%2F%2Fdashboard.test.example%2F%3Fproject%3Dretained']);
 });

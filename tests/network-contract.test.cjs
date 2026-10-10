@@ -19,7 +19,7 @@ const { loadOrvalContract, resolveOrvalPackage } = require('./support/orval-cont
 
 const dashboardContract = OpenApiContract.load(path.join(ROOT, 'contracts', 'openapi.json'));
 const CONTRACT_PACKAGE = '@mairie360/bff-dashboard-openapi';
-const FETCH_OWNERS = ['lib/bff-client.ts', 'lib/bff-proxy.ts'];
+const FETCH_OWNERS = ['lib/bff-client.ts'];
 
 function sourceFiles(dir = SRC) {
   return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
@@ -99,7 +99,9 @@ describe('every network call of the front targets an operation of an OpenAPI con
   test('the client only builds same-origin requests', () => {
     const client = sources.find(({ file }) => file === 'lib/bff-client.ts');
     const [call] = calls(client.ast, 'fetch');
-    assert.ok(policy.parameterReference(call.arguments[0]));
+    assert.ok(ts.isBinaryExpression(call.arguments[0]));
+    assert.equal(literal(call.arguments[0].left), '/api/bff');
+    assert.ok(policy.parameterReference(call.arguments[0].right));
     assert.ok(ts.isObjectLiteralExpression(call.arguments[1]));
     const credentials = call.arguments[1].properties.find(node => ts.isPropertyAssignment(node) && policy.propertyName(node.name) === 'credentials');
     assert.ok(credentials && ts.isStringLiteralLike(credentials.initializer));
@@ -146,7 +148,7 @@ describe('one front, one BFF, one OpenAPI contract', () => {
   });
 
   test('the contract-gated proxy is the only route handler', () => {
-    assert.deepEqual(ROUTES.map(({ segments }) => `/${segments.join('/')}`).sort(), ['/[...path]']);
+    assert.deepEqual(ROUTES.map(({ segments }) => `/${segments.join('/')}`).sort(), ['/[...path]', '/api/bff/[...path]']);
   });
 
   test('requests are only forwarded to the BFF_Dashboard URL', () => {

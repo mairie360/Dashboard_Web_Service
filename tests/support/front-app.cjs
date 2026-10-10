@@ -25,7 +25,7 @@ function matchRoute(pathname) {
   const parts = pathname.split('/').filter(Boolean).map(decodeURIComponent);
   const exact = ROUTES.find(({ segments }) => segments.length === parts.length && segments.every((segment, i) => segment === parts[i]));
   if (exact) return { ...exact, params: {} };
-  const catchAll = ROUTES.find(({ segments }) => {
+  const catchAll = [...ROUTES].sort((a, b) => b.segments.length - a.segments.length).find(({ segments }) => {
     const last = segments.at(-1) ?? '';
     return /^\[\.\.\.\w+\]$/.test(last) && parts.length >= segments.length
       && segments.slice(0, -1).every((segment, i) => segment === parts[i]);
@@ -58,12 +58,26 @@ class FrontApp {
 
   allow(url) { this.allowedOrigins.add(new URL(url).origin); return this; }
 
+  setOwner(userBff) {
+    this.userBff = userBff;
+    this.ownerOrigin = 'https://login.owner.test';
+    const { createSessionRefreshHandler } = require('@mairie360/lib-components/next');
+    this.ownerRefresh = createSessionRefreshHandler({ userBffUrl: () => userBff.url, cookieOptions: () => ({ secure: false }), allowedOrigins: () => [this.origin] });
+    this.allow(userBff.url);
+    return this;
+  }
+
   install() {
     this.realFetch = global.fetch;
     const realFetch = this.realFetch;
     global.fetch = async (input, init = {}) => {
       const url = new URL(input instanceof Request ? input.url : String(input), this.origin);
       const method = (init.method ?? (input instanceof Request ? input.method : 'GET')).toUpperCase();
+      if (url.origin === this.ownerOrigin && this.ownerRefresh) {
+        this.calls.push({ side: 'owner', method, url });
+        if (method !== 'POST' || url.pathname !== '/api/auth/refresh') throw new Error('Undeclared Login owner operation');
+        return this.ownerRefresh(new NextRequest(url, init));
+      }
       if (url.origin === this.origin) {
         this.calls.push({ side: 'browser', method, url });
         const headers = new Headers(init.headers);
@@ -71,7 +85,13 @@ class FrontApp {
         if (cookie && init.credentials !== 'omit') headers.set('cookie', cookie);
         // `credentials` / `cache` n'ont pas de sens côté serveur : le cookie est posé ci-dessus.
         const { credentials: _credentials, cache: _cache, ...rest } = init;
-        return dispatch(new NextRequest(url, { ...rest, method, headers }));
+        const response = await dispatch(new NextRequest(url, { ...rest, method, headers }));
+        for (const cookie of response.headers.getSetCookie()) {
+          const pair = cookie.split(';', 1)[0]; const index = pair.indexOf('=');
+          const name = pair.slice(0, index), value = decodeURIComponent(pair.slice(index + 1));
+          if (/max-age=0/i.test(cookie)) delete this.cookies[name]; else this.cookies[name] = value;
+        }
+        return response;
       }
       this.calls.push({ side: 'server', method, url });
       if (!this.allowedOrigins.has(url.origin)) {
@@ -85,7 +105,7 @@ class FrontApp {
 
   uninstall() { if (this.realFetch) global.fetch = this.realFetch; }
 
-  reset() { this.calls.length = 0; this.violations.length = 0; this.cookies = {}; }
+  reset() { if (this.userBff) require('@mairie360/lib-components/next').forgetUserSession(this.userBff.url, this.cookies.refreshToken); this.calls.length = 0; this.violations.length = 0; this.cookies = {}; }
 
   /** Fetch d'une URL du front, tel qu'émis par le navigateur (cookies de la page inclus). */
   browserFetch(pathname, init) { return global.fetch(pathname, init); }
