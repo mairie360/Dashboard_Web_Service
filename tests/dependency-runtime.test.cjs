@@ -3,6 +3,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const test = require('node:test');
 const sharp = require('sharp');
+const semver = require('next/dist/compiled/semver');
 const { SourceMapGenerator, SourceMapConsumer } = require('source-map-js');
 
 const root = path.join(__dirname, '..');
@@ -14,16 +15,22 @@ test('Next and its matching lint config resolve the patched maintenance release'
   for (const name of ['next', 'eslint-config-next']) {
     // eslint-config-next intentionally does not export its package.json.
     const installed = readJson(`node_modules/${name}/package.json`).version;
-    assert.equal(installed, '16.3.8');
+    assert.equal(semver.valid(installed), installed, 'keep a stable installed release');
+    assert.equal(semver.prerelease(installed), null);
+    assert.ok(semver.gte(installed, '16.3.8'), 'retain the reviewed maintenance floor');
     assert.equal(lock.packages[`node_modules/${name}`].version, installed);
     assert.equal(manifest.dependencies[name] ?? manifest.devDependencies[name], installed);
   }
+  assert.equal(readJson('node_modules/next/package.json').version, readJson('node_modules/eslint-config-next/package.json').version, 'Next and its lint configuration must match');
 });
 
 test('the Next image runtime resolves the patched sharp release from the lock', () => {
   const manifest = readJson('package.json');
   const lock = readJson('package-lock.json');
-  assert.equal(manifest.overrides.next?.sharp, '^0.35.5');
+  const selected = manifest.overrides.next?.sharp;
+  assert.ok(semver.validRange(selected), 'keep a valid Next-scoped sharp selection');
+  assert.ok(semver.gte(semver.minVersion(selected), '0.35.5'), 'the selection must exclude the earlier unpatched image runtime');
+  assert.ok(semver.satisfies(sharp.versions.sharp, selected), 'the installed runtime must satisfy the reviewed selection');
   assert.equal(lock.packages['node_modules/sharp'].version, sharp.versions.sharp);
   const [major, minor, patch] = sharp.versions.sharp.split('.').map(Number);
   assert(major > 0 || minor > 35 || (minor === 35 && patch >= 5));
@@ -48,7 +55,12 @@ test('source-map-js resolves a patched compatible release without weakening Post
   const manifest = readJson('package.json');
   const lock = readJson('package-lock.json');
   const installed = require('source-map-js/package.json').version;
-  assert.equal(manifest.overrides.postcss, '8.5.28');
+  const postcss = readJson('node_modules/postcss/package.json').version;
+  const selected = manifest.overrides.postcss;
+  assert.ok(semver.validRange(selected), 'keep the global PostCSS override');
+  assert.ok(semver.gte(semver.minVersion(selected), '8.5.28'), 'do not lower the reviewed PostCSS floor');
+  assert.ok(semver.satisfies(postcss, selected));
+  assert.equal(lock.packages['node_modules/postcss'].version, postcss);
   assert.equal(lock.packages['node_modules/source-map-js'].version, installed);
   const [major, minor, patch] = installed.split('.').map(Number);
   assert(major > 1 || (major === 1 && (minor > 2 || (minor === 2 && patch >= 2))));
