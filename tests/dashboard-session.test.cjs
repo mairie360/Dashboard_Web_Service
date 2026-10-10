@@ -10,6 +10,7 @@ const path = require('node:path');
 const yaml = require('js-yaml');
 const originalFetch = global.fetch;
 const originalLogin = process.env.LOGIN_FRONT_URL;
+const originalDashboard = process.env.DASHBOARD_FRONT_URL;
 const destinations = [];
 const token = exp => `${Buffer.from('{}').toString('base64url')}.${Buffer.from(JSON.stringify({exp})).toString('base64url')}.test-signature`;
 const request = (pathname='/', cookie, method='GET') => new NextRequest(`https://dashboard.test.example${pathname}`, {
@@ -24,6 +25,7 @@ beforeEach(()=>{
 afterEach(()=>{
   global.fetch=originalFetch;delete global.window;
   if(originalLogin===undefined)delete process.env.LOGIN_FRONT_URL;else process.env.LOGIN_FRONT_URL=originalLogin;
+  if(originalDashboard===undefined)delete process.env.DASHBOARD_FRONT_URL;else process.env.DASHBOARD_FRONT_URL=originalDashboard;
 });
 
 test('an anonymous page is sent to configured Login before a bootstrap read',()=>{
@@ -144,4 +146,28 @@ test('a missing Login URL yields an actionable refusal and permits a corrected e
   setBrowserFrontUrls({LOGIN_FRONT_URL:'https://login.test.example/'});
   await assert.rejects(requestBff('/dashboard/bootstrap'),/Session refusée/);
   assert.deepEqual(destinations,['https://login.test.example/?redirect=https%3A%2F%2Fdashboard.test.example%2F%3Fproject%3Dretained']);
+});
+
+for (const cookie of [undefined, token(1)]) {
+  test(`missing/expired access on a protected document requests owner recovery without exposing its API-scoped refresh`, () => {
+    process.env.DASHBOARD_FRONT_URL = 'https://dashboard.test.example/';
+    const response = middleware(request('/?project=retained&task=42', cookie));
+    assert.equal(response.status, 307);
+    const destination = new URL(response.headers.get('location'));
+    assert.equal(destination.origin, 'https://login.test.example');
+    assert.equal(destination.searchParams.get('resumeSession'), '1');
+    assert.equal(destination.searchParams.get('redirect'), 'https://dashboard.test.example/?project=retained&task=42');
+    assert.equal(response.headers.get('set-cookie'), null);
+    assert.equal(response.headers.get('cache-control'), 'no-store');
+  });
+}
+
+test('page guard preserves refresh credentials for the owner and never tries a GET renewal itself', () => {
+  process.env.DASHBOARD_FRONT_URL = 'https://dashboard.test.example/';
+  global.fetch = () => assert.fail('document guard never performs renewal or revocation');
+  const response = middleware(new NextRequest('https://dashboard.test.example/', { headers: { cookie: 'refreshToken=disposable-cookie-only-on-api' } }));
+  assert.equal(response.status, 307);
+  assert.equal(response.headers.get('set-cookie'), null);
+  assert.equal(new URL(response.headers.get('location')).searchParams.get('resumeSession'), '1');
+  assert.ok(!response.headers.get('location').includes('disposable-cookie'));
 });

@@ -36,6 +36,7 @@ function refuseSession(request: NextRequest) {
     current.pathname = request.nextUrl.pathname;
     current.search = request.nextUrl.search;
     destination.searchParams.set('redirect', current.href);
+    destination.searchParams.set('resumeSession', '1');
   }
   const response = destination ? NextResponse.redirect(destination,
     ["GET", "HEAD"].includes(request.method) ? 307 : 303) : new NextResponse(
