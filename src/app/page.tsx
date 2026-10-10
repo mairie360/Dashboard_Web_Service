@@ -129,7 +129,7 @@ export default function Home() {
       {!data || !view ? <p role="status">{error && !loading ? "Le tableau de bord est indisponible." : "Chargement du tableau de bord…"}</p> : <>
         {view.hasUnavailableSource && <p role="status" className="mb-4 rounded bg-white p-4">Certaines données sont temporairement indisponibles.</p>}
         {view.unusableEventCount > 0 && <p role="status" className="mb-4 rounded bg-white p-4">Certains événements reçus ont une date ou une heure illisible et ne sont pas affichés.</p>}
-        <section className="mx-auto max-w-[1520px] space-y-4">
+        <section className="mx-auto max-w-[1520px] space-y-[16px]">
           <header>
             <h1 className="text-[28px] font-bold leading-tight">Tableau de Bord</h1>
             <p className="mt-1 text-base text-[#687385]">
