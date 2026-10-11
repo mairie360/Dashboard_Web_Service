@@ -171,7 +171,8 @@ test('the first pass renders the loading state, the next one the data of GET /da
   assert.equal(view.props('AppShell').hrefs.profile, 'https://settings.test.example/');
   assert.equal(view.props('AppShell').isAdmin, undefined);
   assert.equal(typeof view.props('AppShell').onLogout, 'function');
-  assert.doesNotMatch(html, /aria-label="Notifications"|>Administration</);
+  assert.doesNotMatch(html, />Administration</);
+  assert.match(html, /aria-label="Notifications"/);
   assert.doesNotMatch(view.text(), /Projets accessibles|Actions rapides|Voir les rapports/);
   for (const expected of ['Budget participatif', 'Rénovation de la médiathèque', 'Validation', 'Relecture', 'Conseil municipal', 'Permanence']) {
     assert.match(view.text(), new RegExp(expected), `${expected} is rendered`);
