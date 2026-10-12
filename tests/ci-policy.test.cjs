@@ -146,8 +146,6 @@ test('the exact required legacy status executes both real blocking scanners with
 
 test('the reusable frontend workflow retains blocking defaults and only declared secrets', () => {
   assert.deepEqual(workflow().jobs.CICD, {
-    needs: 'dev_approval',
-    if: "${{ !cancelled() && (github.ref != 'refs/heads/main' || needs.dev_approval.result == 'success') }}",
     uses: 'mairie360/CICD/.github/workflows/frontend-cicd.yml@16c63d21eedbf6c6e3b58ebc30c61231e49e2536',
     with: { package_name: 'dashboard-front', node_version: '24.21.0', cicd_version: '16c63d21eedbf6c6e3b58ebc30c61231e49e2536' },
     secrets: { CODECOV_TOKEN: '${{ secrets.CODECOV_TOKEN }}', N8N_WEBHOOK_SECRET: '${{ secrets.N8N_WEBHOOK_SECRET }}' },
@@ -159,29 +157,12 @@ test('the required scan runs for every existing event without changing global pe
   const ci = workflow();
   assert.deepEqual(ci.on, { push: null, pull_request: null, workflow_dispatch: null });
   assert.deepEqual(ci.permissions, { contents: 'write', packages: 'write', 'id-token': 'write' });
-  assert.deepEqual(Object.keys(ci.jobs).sort(), ['CICD', 'dev_approval', 'required_security_scan']);
+  assert.deepEqual(Object.keys(ci.jobs).sort(), ['CICD', 'required_security_scan']);
 });
 
-test('the existing Dev approval gates main but never prevents PR or branch checks', () => {
-  assert.deepEqual(workflow().jobs.dev_approval, {
-    name: 'Preserve Dev approval',
-    if: "github.ref == 'refs/heads/main'",
-    'runs-on': 'ubuntu-latest',
-    environment: 'Dev',
-    'timeout-minutes': 5,
-    permissions: {},
-    steps: [{ name: 'Record existing Dev approval', run: 'echo "Existing Dev environment approval granted for this workflow run."' }],
-  });
-  // !cancelled() is an explicit status function: a skipped dependency on PRs
-  // does not get GitHub's implicit success() guard. Main requires real approval.
-  const condition = workflow().jobs.CICD.if;
-  assert.equal(condition, "${{ !cancelled() && (github.ref != 'refs/heads/main' || needs.dev_approval.result == 'success') }}");
-  const allows = (ref, result, cancelled) => !cancelled && (ref !== 'refs/heads/main' || result === 'success');
-  for (const result of ['success', 'failure', 'skipped', 'cancelled']) {
-    assert.equal(allows('refs/heads/main', result, false), result === 'success');
-    assert.equal(allows('refs/pull/83/merge', result, false), true);
-    assert.equal(allows('refs/heads/fix/example', result, false), true);
-    assert.equal(allows('refs/heads/main', result, true), false);
-    assert.equal(allows('refs/pull/83/merge', result, true), false);
-  }
+test('the reusable pipeline runs on main without a manual Dev approval (MAIR-518)', () => {
+  const ci = workflow();
+  assert.ok(!('dev_approval' in ci.jobs), 'the Preserve Dev approval job is gone: dev images are published automatically');
+  assert.ok(!('needs' in ci.jobs.CICD) && !('if' in ci.jobs.CICD), 'CICD is not gated on main');
+  assert.doesNotMatch(read('.github/workflows/cicd.yml'), /environment:\s*Dev/);
 });
