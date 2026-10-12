@@ -4,17 +4,19 @@ import crypto from 'k6/crypto';
 import encoding from 'k6/encoding';
 
 // ---------------------------------------------------------------------------
-// Test de charge k6 pour le front Dashboard (Dashboard_Web_Service).
-// Cible les routes réellement servies par le serveur Next.js : les pages (rendu Next.js),
-// /health, puis l'agrégation /dashboard/bootstrap relayée par le proxy same-origin vers BFF Dashboard (fan-out User / Project / Calendar).
-// L'authentification passe par le cookie accessToken, comme dans le navigateur :
-// le proxy le convertit en Authorization: Bearer vers le BFF.
+// k6 load test of the Dashboard front (Dashboard_Web_Service).
+// Targets the routes the Next.js server really serves: the page (Next.js render), /health, then
+// the /api/bff/dashboard/bootstrap aggregation the page fetches, relayed by the same-origin proxy
+// to BFF Dashboard (fan-out User / Project / Calendar). Authentication goes through the accessToken
+// cookie, like in the browser: the proxy turns it into Authorization: Bearer for the BFF.
+// The pinned BFF Dashboard contract only declares GET operations, so there is no write scenario
+// here (MAIR-516); the other fronts exercise their write routes.
 // ---------------------------------------------------------------------------
 
 const BASE_URL = __ENV.BASE_URL || 'http://localhost:5000';
-// Doit correspondre au JWT_SECRET des services core-api / bff-user / APIs de la stack de test.
+// Must match the JWT_SECRET of the core-api / bff-user / API services of the test stack.
 const JWT_SECRET = __ENV.JWT_SECRET || 'b"secret"';
-// Utilisateur inséré par init-test.sql (sub du token).
+// User inserted by init-test.sql (token `sub`).
 const USER_ID = __ENV.PERF_USER_ID || '2';
 
 export const options = {
@@ -68,8 +70,9 @@ export default function (data) {
   });
 
   group('dashboard reads', () => {
-    const dashboardBootstrap = http.get(`${BASE_URL}/dashboard/bootstrap`, dataParams);
-    check(dashboardBootstrap, { '/dashboard/bootstrap 200': (r) => r.status === 200 });
+    // Browser path of the page (src/lib/bff-client.ts prefixes /api/bff), not the root catch-all.
+    const dashboardBootstrap = http.get(`${BASE_URL}/api/bff/dashboard/bootstrap`, dataParams);
+    check(dashboardBootstrap, { '/api/bff/dashboard/bootstrap 200': (r) => r.status === 200 });
   });
 
   sleep(1);
