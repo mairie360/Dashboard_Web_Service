@@ -3,13 +3,15 @@ import console from 'node:console';
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { resolve } from 'node:path';
+import { isAcceptedContractVersion } from './contract-version.mjs';
 
-// Contrat unique du front : le paquet publié du BFF associé, épinglé en version X.X.X dans package.json.
+// Contrat unique du front : le paquet publié du BFF associé, épinglé en version exacte dans package.json
+// (release X.Y.Z, ou paquet dev 0.0.0-dev.<sha> du main du BFF, voir contract-version.mjs).
 // Le paquet ne contient que la sortie orval (endpoints/*.ts + model/*.ts) : le code importe ses types depuis
 // `@mairie360/bff-dashboard-openapi/model`, et contracts/openapi.json (liste blanche du proxy, mock des tests)
 // en est reconstruit par tests/support/orval-contract.ts, partagé avec les BFFs. Jamais copié d'un checkout.
 //   --sync   (alias --generate) : reconstruit contracts/openapi.json depuis le paquet installé
-//   --check  : échoue si la version n'est pas X.X.X, si le paquet installé diffère de package.json
+//   --check  : échoue si la version n'est pas une version exacte acceptée, si le paquet installé diffère de package.json
 //              ou si contracts/openapi.json n'est plus la reconstruction du paquet
 
 const CONTRACT_PACKAGE = '@mairie360/bff-dashboard-openapi';
@@ -20,8 +22,8 @@ const require = createRequire(import.meta.url);
 function pinnedVersion() {
   const { dependencies = {}, devDependencies = {} } = JSON.parse(readFileSync(resolve('package.json'), 'utf8'));
   const pinned = dependencies[CONTRACT_PACKAGE];
-  if (!/^\d+\.\d+\.\d+$/.test(pinned ?? '')) {
-    throw new Error(`${CONTRACT_PACKAGE} doit être une dépendance épinglée sur une version publiée X.X.X (trouvé : ${pinned ?? 'absent'}).`);
+  if (!isAcceptedContractVersion(pinned)) {
+    throw new Error(`${CONTRACT_PACKAGE} doit être une dépendance épinglée sur une version publiée exacte (X.Y.Z ou 0.0.0-dev.<sha>, trouvé : ${pinned ?? 'absent'}).`);
   }
   const openapiPackages = Object.keys({ ...dependencies, ...devDependencies }).filter((name) => /openapi/i.test(name));
   if (openapiPackages.length !== 1) throw new Error(`Un seul contrat de BFF est autorisé (trouvé : ${openapiPackages.join(', ')}).`);

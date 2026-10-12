@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "bff_dashboard",
-    "version": "1.1.0"
+    "version": "0.0.0-dev.bccf2c39bac5e676c872b2089120d0e3b21ee617"
   },
   "paths": {
     "/health": {
@@ -22,7 +22,14 @@
         "parameters": [],
         "responses": {
           "2XX": {
-            "description": "Succès (seul statut typé par orval)"
+            "description": "Succès (seul statut typé par orval)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckApisResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -48,6 +55,57 @@
   },
   "components": {
     "schemas": {
+      "CheckApisResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/CheckApisResponseStatus"
+          },
+          "user_bff": {
+            "$ref": "#/components/schemas/CheckApisResponseUserBff"
+          },
+          "project_bff": {
+            "$ref": "#/components/schemas/CheckApisResponseProjectBff"
+          },
+          "calendar_bff": {
+            "$ref": "#/components/schemas/CheckApisResponseCalendarBff"
+          }
+        },
+        "required": [
+          "status",
+          "user_bff",
+          "project_bff",
+          "calendar_bff"
+        ]
+      },
+      "CheckApisResponseCalendarBff": {
+        "type": "string",
+        "enum": [
+          "Connected",
+          "Unreachable"
+        ]
+      },
+      "CheckApisResponseProjectBff": {
+        "type": "string",
+        "enum": [
+          "Connected",
+          "Unreachable"
+        ]
+      },
+      "CheckApisResponseStatus": {
+        "type": "string",
+        "enum": [
+          "OK",
+          "Error"
+        ]
+      },
+      "CheckApisResponseUserBff": {
+        "type": "string",
+        "enum": [
+          "Connected",
+          "Unreachable"
+        ]
+      },
       "DashboardBootstrap": {
         "type": "object",
         "properties": {
@@ -243,6 +301,70 @@
           "high",
           "medium",
           "low"
+        ]
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/ErrorResponseError"
+          }
+        },
+        "required": [
+          "error"
+        ]
+      },
+      "ErrorResponseError": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "$ref": "#/components/schemas/ErrorResponseErrorCode"
+          },
+          "message": {
+            "type": "string"
+          },
+          "details": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ErrorResponseErrorDetailsItem"
+            }
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "details"
+        ]
+      },
+      "ErrorResponseErrorCode": {
+        "type": "string",
+        "enum": [
+          "BAD_REQUEST",
+          "UNAUTHORIZED",
+          "FORBIDDEN",
+          "NOT_FOUND",
+          "CONFLICT",
+          "PAYLOAD_TOO_LARGE",
+          "UNPROCESSABLE_ENTITY",
+          "TOO_MANY_REQUESTS",
+          "INTERNAL_ERROR",
+          "BAD_GATEWAY",
+          "SERVICE_UNAVAILABLE",
+          "GATEWAY_TIMEOUT"
+        ]
+      },
+      "ErrorResponseErrorDetailsItem": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "message"
         ]
       }
     }
