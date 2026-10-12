@@ -158,10 +158,10 @@ doit mesurer le **main** défilant autant que le document à 390×844, 768×1024
 et 1280×720 ; les contrôles de composants et de CSS ne prouvent pas seuls
 l’absence de débordement. Les événements gardent leurs seuils à 1/2/3 colonnes.
 
-Le seul contrat de ce front est le paquet publié `@mairie360/bff-dashboard-openapi`, épinglé sur une version exacte `X.X.X` (ni plage, ni pré-version `0.0.0-dev`/`staging`), jamais le checkout local du BFF. Pour adopter une nouvelle version publiée:
+Le seul contrat de ce front est le paquet publié `@mairie360/bff-dashboard-openapi`, épinglé sur une version exacte : une release `X.Y.Z`, ou, tant qu’aucune release n’est coupée, le paquet `0.0.0-dev.<sha>` publié par la CICD pour le commit courant du `main` de BFF_Dashboard (MAIR-509 ; ni plage, ni pré-version `staging` ; `scripts/contract-version.mjs` porte cette règle et associe un paquet dev au tag d’image `dev-<sha7>` des stacks), jamais le checkout local du BFF. Pour adopter une nouvelle version publiée:
 
 ```bash
-npm install --save-exact @mairie360/bff-dashboard-openapi@X.X.X
+npm install --save-exact @mairie360/bff-dashboard-openapi@<version>
 npm run contracts:sync
 npm run contracts:check
 npm run test:contracts

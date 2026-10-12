@@ -13,7 +13,7 @@ test('Dashboard calls the shared frontend workflow version with Semgrep', () => 
   const reusableWorkflows = [...workflow.matchAll(/^\s+uses:\s+mairie360\/CICD\/\.github\/workflows\/frontend-cicd\.yml@([a-f0-9]{40})\s*$/gm)];
   assert.equal(reusableWorkflows.length, 1, 'Dashboard must call the shared frontend workflow once');
   const [, version] = reusableWorkflows[0];
-  assert.equal(version, 'f5ea4257ac51aa2969f9ddb84730fbebce8f42a7', 'only the reviewed workflow version is accepted; another upgrade requires review');
+  assert.equal(version, '16c63d21eedbf6c6e3b58ebc30c61231e49e2536', 'only the reviewed workflow version is accepted; another upgrade requires review');
   assert.equal(workflow.match(/cicd_version:\s*"([^"]+)"/)?.[1], version,
     'the reusable workflow ref and input must use the same version');
   assert.doesNotMatch(workflow, /semgrep_fail_on_findings:\s*false|semgrep_config:|continue-on-error:/);
@@ -134,7 +134,7 @@ test('the exact required legacy status executes both real blocking scanners with
     steps: [
       { name: 'Checkout frontend history', uses: checkout, with: { 'fetch-depth': 0, 'persist-credentials': false } },
       { name: 'Checkout reviewed scanner actions', uses: checkout, with: {
-        repository: 'mairie360/CICD', ref: 'f5ea4257ac51aa2969f9ddb84730fbebce8f42a7', path: 'cicd-repo', 'persist-credentials': false,
+        repository: 'mairie360/CICD', ref: '16c63d21eedbf6c6e3b58ebc30c61231e49e2536', path: 'cicd-repo', 'persist-credentials': false,
       } },
       { name: 'Run blocking Semgrep scan', uses: './cicd-repo/actions/frontend-semgrep-pypi', with: {
         config: 'p/typescript p/react p/owasp-top-ten p/secrets p/dockerfile p/github-actions', fail_on_findings: 'true', artifact_name: 'semgrep-required-check-sarif',
@@ -148,8 +148,8 @@ test('the reusable frontend workflow retains blocking defaults and only declared
   assert.deepEqual(workflow().jobs.CICD, {
     needs: 'dev_approval',
     if: "${{ !cancelled() && (github.ref != 'refs/heads/main' || needs.dev_approval.result == 'success') }}",
-    uses: 'mairie360/CICD/.github/workflows/frontend-cicd.yml@f5ea4257ac51aa2969f9ddb84730fbebce8f42a7',
-    with: { package_name: 'dashboard-front', node_version: '24.21.0', cicd_version: 'f5ea4257ac51aa2969f9ddb84730fbebce8f42a7' },
+    uses: 'mairie360/CICD/.github/workflows/frontend-cicd.yml@16c63d21eedbf6c6e3b58ebc30c61231e49e2536',
+    with: { package_name: 'dashboard-front', node_version: '24.21.0', cicd_version: '16c63d21eedbf6c6e3b58ebc30c61231e49e2536' },
     secrets: { CODECOV_TOKEN: '${{ secrets.CODECOV_TOKEN }}', N8N_WEBHOOK_SECRET: '${{ secrets.N8N_WEBHOOK_SECRET }}' },
   });
   assert.doesNotMatch(read('.github/workflows/cicd.yml'), /secrets:\s*inherit|continue-on-error:|image_scan_fail_on_findings:|semgrep_fail_on_findings:\s*false/);

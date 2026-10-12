@@ -134,9 +134,11 @@ describe('page data: /dashboard/bootstrap through the contract-gated proxy', () 
 });
 
 describe('connectivity operations declared in the contract', () => {
+  // /check_apis is typed since the dev contract (CheckApisResponse: status + one entry per aggregated BFF).
+  const bodies = { '/health': { status: 'ok' }, '/check_apis': { status: 'OK', user_bff: 'Connected', project_bff: 'Connected', calendar_bff: 'Connected' } };
   for (const operation of ['/health', '/check_apis']) {
     test(`GET ${operation} is forwarded`, async () => {
-      dashboardBff.on('get', operation, { status: 200, body: { status: 'ok' } });
+      dashboardBff.on('get', operation, { status: 200, body: bodies[operation] });
       const response = await front.browserFetch(operation);
       assert.equal(response.status, 200);
       assert.equal(response.headers.get('cache-control'), 'no-store');

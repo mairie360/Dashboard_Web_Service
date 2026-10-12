@@ -159,19 +159,31 @@ describe('one front, one BFF, one OpenAPI contract', () => {
     assert.deepEqual(bffVariables, ['BFF_DASHBOARD_BASE_URL', 'DASHBOARD_BFF_URL']);
   });
 
-  test('the only OpenAPI package is the published BFF_Dashboard contract, pinned to X.X.X', () => {
+  test('the only OpenAPI package is the published BFF_Dashboard contract, pinned to an accepted exact version', async () => {
+    const { isAcceptedContractVersion } = await import('../scripts/contract-version.mjs');
     const { dependencies = {}, devDependencies = {} } = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
     const all = { ...dependencies, ...devDependencies };
     assert.deepEqual(Object.keys(all).filter((name) => /openapi/i.test(name)), [CONTRACT_PACKAGE]);
-    assert.match(all[CONTRACT_PACKAGE], /^\d+\.\d+\.\d+$/, 'version publiée exacte attendue, sans plage ni pré-version');
+    // Release X.Y.Z or 0.0.0-dev.<sha40> of BFF_Dashboard main (scripts/contract-version.mjs), never staging.
+    assert.ok(isAcceptedContractVersion(all[CONTRACT_PACKAGE]), 'version publiée exacte attendue (X.Y.Z ou 0.0.0-dev.<sha>), sans plage ni pré-version staging');
     assert.equal(resolveOrvalPackage(CONTRACT_PACKAGE).version, all[CONTRACT_PACKAGE]);
   });
 
-  test('the security and performance stacks run the BFF_Dashboard image of the contract version', () => {
+  test('the security and performance stacks run the BFF_Dashboard image built from the contract package commit', async () => {
+    const { imageTagForContractVersion } = await import('../scripts/contract-version.mjs');
     const { version } = resolveOrvalPackage(CONTRACT_PACKAGE);
     for (const stack of ['docker-compose-security.yml', 'docker-compose-performance.yml']) {
       const images = composePolicy.bffImages(composePolicy.compose(stack)).filter(image => image.startsWith('ghcr.io/mairie360/bff-dashboard:')).map(image => image.slice(image.lastIndexOf(':') + 1));
-      assert.deepEqual(images, [version], stack);
+      assert.deepEqual(images, [imageTagForContractVersion(version)], stack);
+    }
+  });
+
+  test('the contract version policy accepts releases and dev packages and maps them to image tags', async () => {
+    const { isAcceptedContractVersion, imageTagForContractVersion } = await import('../scripts/contract-version.mjs');
+    assert.equal(imageTagForContractVersion('1.1.0'), '1.1.0');
+    assert.equal(imageTagForContractVersion('0.0.0-dev.bccf2c39bac5e676c872b2089120d0e3b21ee617'), 'dev-bccf2c3');
+    for (const rejected of ['^1.1.0', '1.1', '0.0.0-staging.bccf2c39bac5e676c872b2089120d0e3b21ee617', '0.0.0-dev.bccf2c3', 'latest']) {
+      assert.equal(isAcceptedContractVersion(rejected), false, rejected);
     }
   });
 
