@@ -153,6 +153,7 @@ test('the first pass renders the loading state, the next one the data of GET /da
   view = mount(React.createElement(Home));
 
   assert.equal(view.passes, 1);
+  assert.equal((view.html.match(/<h1\b/g) || []).length, 1);
   assert.match(view.html, /<p role="status">Chargement du tableau de bord…<\/p>/);
   assert.equal(view.find('DashboardRecentProjects').length, 0);
 
@@ -164,8 +165,8 @@ test('the first pass renders the loading state, the next one the data of GET /da
   assert.doesNotMatch(html, /<main\b[^>]*>0(?:<|$)/, 'The zero unusable-event count is not rendered as text');
   assert.match(view.text(), /Bienvenue Alice/);
   assert.equal(view.find('AppShell').length, 1);
-  assert.match(html, /<aside\b[^]*?<footer\b[^]*?<\/footer>[^]*?<\/aside>/);
-  assert.doesNotMatch(html, /<\/main>\s*<footer\b/);
+  assert.doesNotMatch(html, /<aside\b[^]*?<footer\b[^]*?<\/footer>[^]*?<\/aside>/);
+  assert.match(html, /<\/main>\s*<footer\b/);
   assert.equal(view.props('AppShell').activeItem, 'dashboard');
   assert.equal(view.props('AppShell').user.first_name, 'Alice');
   assert.equal(view.props('AppShell').hrefs.profile, 'https://settings.test.example/');
@@ -281,6 +282,7 @@ test('a BFF error is rendered as an alert and the dashboard stays unavailable', 
 
   assert.match(html, /<p role="alert"[^>]*>BFF Project injoignable<\/p>/);
   assert.match(html, /<p role="status">Le tableau de bord est indisponible\.<\/p>/);
+  assert.equal((html.match(/<h1\b/g) || []).length, 1);
   assert.equal(view.find('DashboardRecentProjects').length, 0);
 });
 

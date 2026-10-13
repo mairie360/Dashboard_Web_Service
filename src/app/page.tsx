@@ -1,11 +1,13 @@
 "use client";
 
 import {
-  AppShell,
   DashboardPendingTasks,
   DashboardRecentProjects,
   DashboardUpcomingEvents,
 } from "@mairie360/lib-components";
+import DashboardPanel from "@/components/dashboard-panel";
+import CurrentDate from "@/components/current-date";
+import AccessibleShell from "@/components/accessible-shell";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { bffDashboard } from "@/lib/bff-client";
 import { frontUrl } from "@/lib/front-urls";
@@ -105,7 +107,7 @@ export default function Home() {
   const view = data && toDashboardModuleData(data);
   const userFirstName = data?.userFirstName.trim() ?? "";
   return (
-    <AppShell
+    <AccessibleShell
       className="dashboard-app-shell"
       activeItem="dashboard"
       hrefs={getActiveFrontHrefs()}
@@ -123,44 +125,45 @@ export default function Home() {
             {error ? "Réessayer le chargement" : view?.unusableEventCount ? "Actualiser les dates illisibles" : "Actualiser les données indisponibles"}
           </button>
           {loading && <p role="status">Actualisation du tableau de bord…</p>}
-          {data && error && <p className="text-sm text-[#687385]">Les dernières données reçues restent affichées.</p>}
+          {data && error && <p className="text-sm text-[#475569]">Les dernières données reçues restent affichées.</p>}
         </div>
       )}
-      {!data || !view ? <p role="status">{error && !loading ? "Le tableau de bord est indisponible." : "Chargement du tableau de bord…"}</p> : <>
+      {!data || !view ? <>
+        <h1 className="text-[28px] font-bold leading-tight">Tableau de Bord</h1>
+        <p role="status">{error && !loading ? "Le tableau de bord est indisponible." : "Chargement du tableau de bord…"}</p>
+      </> : <>
         {view.hasUnavailableSource && <p role="status" className="mb-4 rounded bg-white p-4">Certaines données sont temporairement indisponibles.</p>}
         {view.unusableEventCount > 0 && <p role="status" className="mb-4 rounded bg-white p-4">Certains événements reçus ont une date ou une heure illisible et ne sont pas affichés.</p>}
         <section className="mx-auto max-w-[1520px] space-y-[16px]">
-          <header>
+          <header className="page-title-row"><div>
             <h1 className="text-[28px] font-bold leading-tight">Tableau de Bord</h1>
-            <p className="mt-1 text-base text-[#687385]">
+            <p className="mt-1 text-base text-[#475569]">
               {userFirstName
                 ? `Bienvenue ${userFirstName}, voici un aperçu de vos activités`
                 : "Voici un aperçu de vos activités"}
-            </p>
+            </p></div><CurrentDate />
           </header>
           <div className="dashboard-content-grid grid grid-cols-1 gap-6 xl:grid-cols-2">
+            <DashboardPanel title="Projets récents" kind="projects" action="Voir les projets" href={urls.project} empty={view.projects.length === 0} unavailable={data.sources.projects === "unavailable"}>
             <DashboardRecentProjects className="dashboard-recent-projects" projects={view.projects}
-              onViewAll={() => goTo(urls.project)} onSelect={(project) => goToProject(project.id)} />
+              onViewAll={() => goTo(urls.project)} onSelect={(project) => goToProject(project.id)} /></DashboardPanel>
+            <DashboardPanel title="Tâches en attente" kind="tasks" action="Voir les tâches" href={urls.project} empty={view.tasks.length === 0} unavailable={data.sources.tasks === "unavailable"}>
             <DashboardPendingTasks className="dashboard-pending-tasks" tasks={view.tasks}
               onViewAll={() => goTo(urls.project)} onSelect={(selected) => {
                 const task = data.tasks.find((candidate: { projectId: string; id: string }) =>
                   `${candidate.projectId}:${candidate.id}` === selected.id);
                 if (task) goToProject(task.projectId, task.id);
-              }} />
+              }} /></DashboardPanel>
+            <DashboardPanel title="Événements à venir" kind="events" action="Ouvrir le calendrier" href={urls.calendar} empty={view.events.length === 0 && view.unusableEventCount === 0} unavailable={data.sources.calendar === "unavailable"} className="dashboard-events-panel xl:col-span-2">
             {view.unusableEventCount > 0 && view.events.length === 0 ? (
-              <section className="dashboard-upcoming-events-grid rounded-lg border border-[#dfd9d1] bg-white p-6 xl:col-span-2" aria-labelledby="unusable-events-heading">
-                <div className="flex items-center justify-between gap-4">
-                  <h2 id="unusable-events-heading" className="text-base font-semibold text-[#243041]">Événements à venir</h2>
-                  <button type="button" className="rounded-md border border-[#d8d2ca] bg-[#fbfaf9] px-3 py-2 text-sm font-medium text-[#243041]"
-                    onClick={openCalendar}>Voir tout</button>
-                </div>
-                <p role="status" className="py-8 text-center text-sm text-[#687385]">Les événements reçus ne peuvent pas être affichés : leurs dates ou heures sont illisibles.</p>
+              <section className="dashboard-upcoming-events-grid">
+                <p role="status" className="py-8 text-center text-sm text-[#475569]">Les événements reçus ne peuvent pas être affichés : leurs dates ou heures sont illisibles.</p>
               </section>
             ) : <DashboardUpcomingEvents className="dashboard-upcoming-events-grid xl:col-span-2" events={view.events}
-              onOpenCalendar={openCalendar} onSelect={goToCalendarEvent} />}
+              onOpenCalendar={openCalendar} onSelect={goToCalendarEvent} />}</DashboardPanel>
           </div>
         </section>
       </>}
-    </AppShell>
+    </AccessibleShell>
   );
 }

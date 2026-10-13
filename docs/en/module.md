@@ -62,3 +62,13 @@ The overview is limited and does not replace complete module listings. Unavailab
 ## Developing or operating this module
 
 The [technical guide](technical.md) covers architecture, configuration, routes, session handling, persistence, tests and CI/CD. It describes sources of truth and contract synchronization with associated repositories.
+
+
+Accessibility (MAIR-485)
+
+Every initial, loaded or unavailable state retains one h1 page heading. Secondary text uses a contrasting foreground on the page background.
+
+
+## Shared visual direction — MAIR-547
+
+Approved light option 1: shared tokens and font, accessible navigation, and preserved business layouts. See the [visual QA](../qa/design-qa.md) for evidence, checks, and RGAA limitations.

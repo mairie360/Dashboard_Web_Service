@@ -31,7 +31,7 @@ function bootstrap(overrides = {}) {
 async function openDashboard() {
   const user = userEvent.setup();
   render(<Home />);
-  await screen.findByRole("heading", { name: "Tableau de Bord" });
+  await screen.findByRole("heading", { name: "Projets récents" });
   return user;
 }
 
@@ -65,7 +65,7 @@ describe("Dashboard page", () => {
     expect(screen.queryByText("Aucun événement à venir.")).toBeNull();
     const unavailable = screen.getByRole("region", { name: "Événements à venir" });
     expect(within(unavailable).getByRole("status").textContent).toContain("Les événements reçus ne peuvent pas être affichés");
-    expect(within(unavailable).getByRole("button", { name: "Voir tout" })).toBeTruthy();
+    expect(within(unavailable).getByRole("button", { name: "Ouvrir le calendrier" }).disabled).toBe(true);
     expect(screen.queryByRole("button", { name: /Impossible time/ })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Actualiser les dates illisibles" }));
     await screen.findByText("Aucun événement à venir.");
@@ -83,7 +83,7 @@ describe("Dashboard page", () => {
     render(<Home />);
     expect(screen.getByRole("status").textContent).toContain("Chargement");
     await act(async () => resolveBootstrap(bootstrap()));
-    await screen.findByRole("heading", { name: "Tableau de Bord" });
+    await screen.findByRole("heading", { name: "Projets récents" });
 
     expect(getDashboardBootstrap).toHaveBeenCalledTimes(1);
     expect(getDashboardBootstrap).toHaveBeenCalledWith(expect.objectContaining({ signal: expect.any(AbortSignal) }));
@@ -105,7 +105,7 @@ describe("Dashboard page", () => {
     const cardGrid = cardHeadings[0].closest("section").parentElement;
     expect(heading.closest("header").nextElementSibling).toBe(cardGrid);
     expect(cardHeadings.every(node => node.closest("section").parentElement === cardGrid)).toBe(true);
-    expect(within(pageSection).getAllByRole("button", { name: "Voir tout", exact: true })).toHaveLength(3);
+    expect(within(pageSection).getAllByRole("button", { name: /Voir les projets|Voir les tâches|Ouvrir le calendrier/ })).toHaveLength(3);
     // JSDOM does not lay out the compiled utility CSS. Pixel gaps and responsive
     // tracks are measured separately in the native browser on the final main.
   });
@@ -124,31 +124,16 @@ describe("Dashboard page", () => {
     expect(grid.querySelector(".dashboard-recent-projects")).toBeTruthy();
     expect(grid.querySelector(".dashboard-pending-tasks")).toBeTruthy();
     expect(grid.querySelector(".dashboard-upcoming-events-grid")).toBeTruthy();
-    expect(within(grid).getAllByRole("button", { name: "Voir tout" })).toHaveLength(3);
+    expect(within(grid).getAllByRole("button", { name: /Voir les projets|Voir les tâches|Ouvrir le calendrier/ })).toHaveLength(3);
     expect(within(grid).getAllByText(longTitle)).toHaveLength(4);
     expect(getDashboardBootstrap).toHaveBeenCalledTimes(1);
   });
 
-  it("uses the same neutral action on all three BFF-backed cards", async () => {
-    const user = await openDashboard();
-    const sections = ["Projets récents", "Tâches en attente", "Événements à venir"]
-      .map((name) => screen.getByRole("heading", { name }).closest("section"));
-    const actions = sections.map((section) => within(section).getByRole("button", { name: "Voir tout" }));
-
-    expect(actions.map((action) => action.className)).toEqual([
-      actions[0].className,
-      actions[0].className,
-      actions[0].className,
-    ]);
-    expect(actions[0].className).toContain("border-[#d8d2ca]");
-    expect(actions[0].className).toContain("bg-[#fbfaf9]");
-
-    vi.mocked(frontUrl).mockClear();
-    for (const action of actions) await user.click(action);
-    expect(frontUrl).toHaveBeenNthCalledWith(1, "PROJECT_FRONT_URL");
-    expect(frontUrl).toHaveBeenNthCalledWith(2, "PROJECT_FRONT_URL");
-    expect(frontUrl).toHaveBeenNthCalledWith(3, "CALENDAR_FRONT_URL");
-    expect(frontUrl).toHaveBeenCalledTimes(3);
+  it("uses contextual destinations and disables actions when configuration is missing", async () => {
+    await openDashboard();
+    for (const label of ["Voir les projets", "Voir les tâches", "Ouvrir le calendrier"]) {
+      expect(screen.getByRole("button", { name: label }).disabled).toBe(true);
+    }
   });
 
   it("shows empty sections instead of invented cards", async () => {
@@ -191,13 +176,13 @@ describe("Dashboard page", () => {
     await openDashboard();
 
     const events = screen.getByRole("heading", { name: "Événements à venir" }).closest("section");
-    expect(events.classList.contains("dashboard-upcoming-events-grid")).toBe(true);
+    expect(events.querySelector(".dashboard-upcoming-events-grid")).toBeTruthy();
     expect(within(events).getAllByRole("button").slice(1).map((button) => button.textContent)).toEqual([
       expect.stringContaining("Premier rendez-vous"),
       expect.stringContaining("Deuxième rendez-vous"),
       expect.stringContaining("Dernier rendez-vous"),
     ]);
-    expect(within(events).getByRole("button", { name: "Voir tout" })).toBeTruthy();
+    expect(within(events).getByRole("button", { name: "Ouvrir le calendrier" })).toBeTruthy();
   });
 
   it("warns when one BFF source is unavailable without inventing its data", async () => {
@@ -208,7 +193,8 @@ describe("Dashboard page", () => {
     await openDashboard();
 
     expect(screen.getByRole("status").textContent).toContain("temporairement indisponibles");
-    expect(screen.getByText("Aucun événement à venir.")).toBeTruthy();
+    expect(screen.getByText("Les événements sont temporairement indisponibles.")).toBeTruthy();
+    expect(screen.queryByText("Aucun événement à venir.")).toBeNull();
     expect(screen.queryByRole("button", { name: /Événement test/ })).toBeNull();
   });
 
@@ -218,7 +204,7 @@ describe("Dashboard page", () => {
 
     expect((await screen.findByRole("alert")).textContent).toBe("Service indisponible");
     expect(screen.getByRole("status").textContent).toContain("indisponible");
-    expect(screen.queryByRole("heading", { name: "Tableau de Bord" })).toBeNull();
+    expect(screen.getAllByRole("heading", { name: "Tableau de Bord", level: 1 })).toHaveLength(1);
   });
 
   it("recovers an initial failure through keyboard activation without automatically retrying", async () => {
@@ -230,7 +216,7 @@ describe("Dashboard page", () => {
     for (let index = 0; index < 20 && document.activeElement !== retry; index += 1) await user.tab();
     expect(document.activeElement).toBe(retry);
     await user.keyboard("{Enter}");
-    await screen.findByRole("heading", { name: "Tableau de Bord" });
+    await screen.findByRole("heading", { name: "Projets récents" });
     expect(getDashboardBootstrap).toHaveBeenCalledTimes(2);
     expect(screen.queryByRole("alert")).toBeNull();
     expect(screen.queryByRole("button", { name: "Réessayer le chargement" })).toBeNull();
@@ -350,10 +336,11 @@ describe("Dashboard page", () => {
   });
 
   it("keeps section controls keyboard-reachable and free of serious axe violations", async () => {
+    vi.mocked(frontUrl).mockImplementation(key => `https://${key.toLowerCase()}.example/`);
     const user = await openDashboard();
     const projects = screen.getByRole("heading", { name: "Projets récents" }).closest("section");
-    const viewAll = within(projects).getByRole("button", { name: "Voir tout" });
-    for (let index = 0; index < 12 && document.activeElement !== viewAll; index += 1) {
+    const viewAll = within(projects).getByRole("link", { name: "Voir les projets" });
+    for (let index = 0; index < 20 && document.activeElement !== viewAll; index += 1) {
       await user.tab();
     }
     expect(document.activeElement).toBe(viewAll);

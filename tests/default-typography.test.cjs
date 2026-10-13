@@ -5,5 +5,5 @@ const { referenceDocument } = require('./support/document-styles.cjs');
 test('Dashboard applies the reference scale and body font while retaining global style policies', (t) => {
   const window = referenceDocument(t);
   assert.equal(window.getComputedStyle(window.document.documentElement).fontSize, '17px');
-  assert.equal(window.getComputedStyle(window.document.body).fontFamily, 'system-ui, sans-serif');
+  assert.equal(window.getComputedStyle(window.document.body).fontFamily, 'var(--font-geist-sans), system-ui, sans-serif');
 });

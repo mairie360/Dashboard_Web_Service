@@ -31,7 +31,7 @@ function referenceDocument(t) {
       assert.equal(selectors.some((selector) => selector === 'header' || selector === '.h-16'), false, 'Do not add global fixed-header dimensions');
     }
   });
-  assert.deepEqual(themeFont, ['system-ui', 'sans-serif'], 'Keep the declared Tailwind system-font token');
+  assert.deepEqual(themeFont, ['var(--font-geist-sans)', 'system-ui', 'sans-serif'], 'Keep the approved Geist font token');
   return dom.window;
 }
 
