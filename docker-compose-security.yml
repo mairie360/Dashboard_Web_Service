@@ -44,7 +44,7 @@ x-api-env: &api-env
 
 services:
   postgres:
-    image: ${DB_IMAGE:-ghcr.io/mairie360/database:dev-99f6127}
+    image: ${DB_IMAGE:-ghcr.io/mairie360/database:dev-90c22bb}
     container_name: dashboard-front-sec-db
     environment:
       POSTGRES_USER: postgres
@@ -63,7 +63,7 @@ services:
       retries: 10
 
   liquibase:
-    image: ${LIQUIBASE_IMAGE:-ghcr.io/mairie360/liquibase-migrations:dev-99f6127}
+    image: ${LIQUIBASE_IMAGE:-ghcr.io/mairie360/liquibase-migrations:dev-90c22bb}
     container_name: dashboard-front-sec-liquibase
     depends_on:
       postgres:
@@ -113,7 +113,7 @@ services:
       retries: 5
 
   core-api:
-    image: ${CORE_API_IMAGE:-ghcr.io/mairie360/core-api:dev-2529974}
+    image: ${CORE_API_IMAGE:-ghcr.io/mairie360/core-api:dev-95531e2}
     container_name: dashboard-front-sec-core-api
     depends_on:
       liquibase:
@@ -124,6 +124,11 @@ services:
       <<: *api-env
       PORT: 3000
       PUBLIC_URL: http://core-api:3000
+      # Core refuses to start without its Resend configuration (MAIR-522). No page of this front sends an
+      # e-mail through these stacks, so the key is fake and the URL never called.
+      RESEND_API_KEY: "re_fake_local"
+      RESEND_BASE_URL: "http://fake-resend.invalid"
+      EMAIL_DOMAIN: "mairie360.local"
       # API >= api_lib 3.0 refuses the weak shared test secret unless this flag is set (MAIR-428),
       # and rate-limits each account (MAIR-425): the scan / load test hammer it as one user.
       JWT_ALLOW_WEAK_SECRET: "true"
@@ -148,7 +153,7 @@ services:
       - backend
 
   project-api:
-    image: ${PROJECT_API_IMAGE:-ghcr.io/mairie360/project-api:dev-f3f0a8a}
+    image: ${PROJECT_API_IMAGE:-ghcr.io/mairie360/project-api:dev-2b0d884}
     container_name: dashboard-front-sec-project-api
     depends_on:
       liquibase:
@@ -183,7 +188,7 @@ services:
       - backend
 
   calendar-api:
-    image: ${CALENDAR_API_IMAGE:-ghcr.io/mairie360/calendar-api:dev-a7252e8}
+    image: ${CALENDAR_API_IMAGE:-ghcr.io/mairie360/calendar-api:dev-7486387}
     container_name: dashboard-front-sec-calendar-api
     depends_on:
       liquibase:
@@ -221,7 +226,7 @@ services:
       - backend
 
   bff-user:
-    image: ${BFF_USER_IMAGE:-ghcr.io/mairie360/bff-user:dev-0d80ef4}
+    image: ${BFF_USER_IMAGE:-ghcr.io/mairie360/bff-user:dev-46a698b}
     container_name: dashboard-front-sec-bff-user
     depends_on:
       seeder:
@@ -256,7 +261,7 @@ services:
       - backend
 
   bff-project:
-    image: ${BFF_PROJECT_IMAGE:-ghcr.io/mairie360/bff-project:dev-68d15b9}
+    image: ${BFF_PROJECT_IMAGE:-ghcr.io/mairie360/bff-project:dev-0b18e81}
     container_name: dashboard-front-sec-bff-project
     depends_on:
       seeder:
@@ -298,7 +303,7 @@ services:
       - backend
 
   bff-calendar:
-    image: ${BFF_CALENDAR_IMAGE:-ghcr.io/mairie360/bff-calendar:dev-44cb9ad}
+    image: ${BFF_CALENDAR_IMAGE:-ghcr.io/mairie360/bff-calendar:dev-fcc4f16}
     container_name: dashboard-front-sec-bff-calendar
     depends_on:
       seeder:
@@ -337,7 +342,7 @@ services:
       - backend
 
   bff-dashboard:
-    image: ${BFF_DASHBOARD_IMAGE:-ghcr.io/mairie360/bff-dashboard:dev-bccf2c3}
+    image: ${BFF_DASHBOARD_IMAGE:-ghcr.io/mairie360/bff-dashboard:dev-c89c35c}
     container_name: dashboard-front-sec-bff-dashboard
     depends_on:
       seeder:
