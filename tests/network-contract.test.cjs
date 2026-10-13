@@ -12,7 +12,7 @@ const { loadOrvalContract, resolveOrvalPackage } = require('./support/orval-cont
 
 // Analyse statique des sources. Un front ne consomme qu'un BFF (BFF_Dashboard) et qu'un contrat : le paquet
 // publié @mairie360/bff-dashboard-openapi en version X.X.X, dont contracts/openapi.json est la reconstruction :
-// - navigateur → front : `requestBff(<chemin littéral>, { method })` doit exister dans le contrat ;
+// - navigateur → front : les fonctions générées du paquet (`bffDashboard.<opération>`) sont les seuls appels, sans chemin écrit à la main ;
 // - serveur → BFF : le seul route handler est le proxy catch-all, qui ne relaie que vers BFF_Dashboard ;
 // - `fetch` n'est appelé que par ces deux points d'entrée, et aucune autre API réseau n'est utilisée.
 // Les tests avec mock serveurs (tests/bff.mock-servers.test.cjs) vérifient le même périmètre à l'exécution.
@@ -66,24 +66,21 @@ function requestMethod(init) {
   return literal(property.initializer)?.toUpperCase();
 }
 
-const browserCalls = sources.flatMap(({ file, ast }) => (file === 'lib/bff-client.ts' ? [] : calls(ast, 'requestBff').map((node) => ({ ast, node }))));
+const GENERATED = fs.readFileSync(path.join(ROOT, 'node_modules', CONTRACT_PACKAGE, 'endpoints', 'bffDashboard.ts'), 'utf8');
+const GENERATED_OPERATIONS = new Set([...GENERATED.matchAll(/^const (\w+) = \(/gm)].map(([, name]) => name));
+const browserCalls = sources.flatMap(({ file, ast }) => (file === 'lib/bff-client.ts' ? [] : policy.nodes(ast, (node) => ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression) && node.expression.expression.getText() === 'bffDashboard').map((node) => ({ file, ast, node }))));
 
 describe('every network call of the front targets an operation of an OpenAPI contract', () => {
-  test('the page actually loads its data through requestBff', () => {
-    assert.ok(browserCalls.length > 0, 'aucun appel requestBff trouvé : le test ne vérifierait rien');
+  test('the page actually loads its data through the generated client', () => {
+    assert.ok(browserCalls.length > 0, 'no bffDashboard call found: the test would verify nothing');
   });
 
-  test('requestBff paths and methods are declared in contracts/openapi.json', () => {
-    const problems = browserCalls.flatMap(({ ast, node }) => {
-      const pathname = literal(node.arguments[0]);
-      const method = requestMethod(node.arguments[1]);
-      if (pathname === undefined || method === undefined) return [`${where(ast, node)} : chemin ou méthode non littéral, impossible à vérifier contre le contrat`];
-      const url = new URL(pathname, 'http://front.test');
-      if (url.search) return [`${where(ast, node)} : ${pathname} ajoute des paramètres de requête`];
-      const { match, errors } = dashboardContract.validateRequest(method, url);
-      return match ? errors.map((error) => `${where(ast, node)} : ${error}`) : [`${where(ast, node)} : ${method} ${pathname} absent de contracts/openapi.json`];
-    });
-    assert.deepEqual(problems, []);
+  test('every called operation exists in the generated client and no path literal is written outside it', () => {
+    assert.deepEqual(browserCalls.filter(({ node }) => !GENERATED_OPERATIONS.has(node.expression.name.text)).map(({ ast, node }) => where(ast, node)), []);
+    const literals = sources.filter(({ file }) => !['lib/bff-client.ts', 'lib/bff-proxy.ts', 'middleware.ts'].includes(file))
+      .flatMap(({ file, ast }) => policy.nodes(ast, (node) => ts.isStringLiteralLike(node) && /^\/(dashboard|me|health|check_apis)/.test(node.text)).map((node) => `${file}: ${node.text}`));
+    assert.deepEqual(literals, []);
+    assert.equal(sources.filter(({ ast }) => calls(ast, 'requestBff').length > 0 && ast.fileName.indexOf('bff-client') < 0).length, 0);
   });
 
   test('fetch is only called by the same-origin client and contract-gated proxy', () => {
@@ -92,16 +89,15 @@ describe('every network call of the front targets an operation of an OpenAPI con
   });
 
   test('no other network API is used', () => {
-    const problems = sources.flatMap(({ file, ast }) => policy.networkReferences(ast).map(api => `${file} : ${api}`));
+    // axios only carries the generated operations through the fetch of the BFF client.
+    const problems = sources.flatMap(({ file, ast }) => policy.networkReferences(ast).filter(api => file !== 'lib/bff-client.ts' || !/axios/.test(api)).map(api => `${file} : ${api}`));
     assert.deepEqual(problems, []);
   });
 
   test('the client only builds same-origin requests', () => {
     const client = sources.find(({ file }) => file === 'lib/bff-client.ts');
     const [call] = calls(client.ast, 'fetch');
-    assert.ok(ts.isBinaryExpression(call.arguments[0]));
-    assert.equal(literal(call.arguments[0].left), '/api/bff');
-    assert.ok(policy.parameterReference(call.arguments[0].right));
+    assert.ok(policy.parameterReference(call.arguments[0]));
     assert.ok(ts.isObjectLiteralExpression(call.arguments[1]));
     const credentials = call.arguments[1].properties.find(node => ts.isPropertyAssignment(node) && policy.propertyName(node.name) === 'credentials');
     assert.ok(credentials && ts.isStringLiteralLike(credentials.initializer));
@@ -148,7 +144,7 @@ describe('one front, one BFF, one OpenAPI contract', () => {
   });
 
   test('the contract-gated proxy is the only route handler', () => {
-    assert.deepEqual(ROUTES.map(({ segments }) => `/${segments.join('/')}`).sort(), ['/[...path]', '/api/bff/[...path]']);
+    assert.deepEqual(ROUTES.map(({ segments }) => `/${segments.join('/')}`).sort(), ['/[...path]']);
   });
 
   test('requests are only forwarded to the BFF_Dashboard URL', () => {
@@ -191,7 +187,7 @@ describe('one front, one BFF, one OpenAPI contract', () => {
     assert.equal(fs.existsSync(path.join(SRC, 'contracts')), false);
     const contractImports = sources.flatMap(({ file, ast }) => ast.statements.filter(ts.isImportDeclaration)
       .map((statement) => statement.moduleSpecifier.text).filter((specifier) => /contract|openapi/i.test(specifier)).map((specifier) => `${file} ${specifier}`));
-    assert.deepEqual(contractImports, [`lib/bff-proxy.ts ../../contracts/openapi.json`, `lib/dashboard-view.ts ${CONTRACT_PACKAGE}/model`]);
+    assert.deepEqual(contractImports, [`lib/bff-client.ts ${CONTRACT_PACKAGE}/endpoints/bffDashboard`, `lib/bff-proxy.ts ../../contracts/openapi.json`, `lib/dashboard-view.ts ${CONTRACT_PACKAGE}/model`]);
   });
 
   test('contracts/openapi.json is the reconstruction of the installed published package', () => {

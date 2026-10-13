@@ -5,9 +5,9 @@ import userEvent from '@testing-library/user-event';
 import { defaultSidebarItems } from '@mairie360/lib-components';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import Home from '@/app/page';
-import { requestBff } from '@/lib/bff-client';
 
-vi.mock('@/lib/bff-client', () => ({ requestBff: vi.fn() }));
+const getDashboardBootstrap = vi.hoisted(() => vi.fn());
+vi.mock('@/lib/bff-client', () => ({ bffDashboard: { getDashboardBootstrap: async (options) => ({ data: await getDashboardBootstrap(options) }) } }));
 vi.mock('@/lib/front-urls', () => ({ frontUrl: vi.fn((key) => `https://${key.toLowerCase()}.example/`) }));
 
 const stylesheet = readFileSync(resolve(process.cwd(), 'src/app/globals.css'), 'utf8');
@@ -18,7 +18,7 @@ beforeEach(() => {
   style = document.createElement('style');
   style.textContent = stylesheet;
   document.head.append(style);
-  vi.mocked(requestBff).mockResolvedValue({
+  vi.mocked(getDashboardBootstrap).mockResolvedValue({
     userFirstName: 'Test',
     projects: [{ id: 'project-1', title: longTitle, progress: 25, status: 'review', dueDate: '2026-09-20' }],
     tasks: [{ id: 'task-1', title: longTitle, dueDate: '2026-09-21', priority: 'high', completed: false, projectId: 'project-1' }],
@@ -89,7 +89,7 @@ describe('Dashboard styles on the actual page and published components', () => {
     expect(computed.borderTopColor).toBe('rgb(216, 210, 202)');
     expect(computed.padding).toBe('12px');
     expect(getComputedStyle(project.querySelector('span.flex')).flexWrap).toBe('wrap');
-    expect(requestBff).toHaveBeenCalledTimes(1);
+    expect(getDashboardBootstrap).toHaveBeenCalledTimes(1);
   });
 
   it('applies the reference inset and opaque main surface to the page actually mounted in the shell', async () => {

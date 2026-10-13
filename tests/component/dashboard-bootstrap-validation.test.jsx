@@ -3,9 +3,9 @@ import userEvent from '@testing-library/user-event';
 import { StrictMode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import Home from '@/app/page';
-import { requestBff } from '@/lib/bff-client';
 
-vi.mock('@/lib/bff-client', () => ({ requestBff: vi.fn() }));
+const getDashboardBootstrap = vi.hoisted(() => vi.fn());
+vi.mock('@/lib/bff-client', () => ({ bffDashboard: { getDashboardBootstrap: async (options) => ({ data: await getDashboardBootstrap(options) }) } }));
 vi.mock('@/lib/front-urls', () => ({ frontUrl: vi.fn(() => undefined) }));
 
 const bootstrap = (overrides = {}) => ({
@@ -19,21 +19,21 @@ const bootstrap = (overrides = {}) => ({
 });
 const readError = 'Les données reçues du tableau de bord sont incohérentes. Réessayez.';
 
-beforeEach(() => { vi.mocked(requestBff).mockReset().mockResolvedValue(bootstrap()); });
+beforeEach(() => { vi.mocked(getDashboardBootstrap).mockReset().mockResolvedValue(bootstrap()); });
 
 describe('Dashboard unusable bootstrap recovery', () => {
   it.each([null, bootstrap({ events: {} })])('refuses an unusable initial success (%j) and deliberately recovers', async (body) => {
     const user = userEvent.setup();
-    vi.mocked(requestBff).mockResolvedValueOnce(body);
+    vi.mocked(getDashboardBootstrap).mockResolvedValueOnce(body);
     render(<Home />);
     expect((await screen.findByRole('alert')).textContent).toBe(readError);
     expect(screen.getByText('Le tableau de bord est indisponible.')).toBeTruthy();
     expect(screen.queryByRole('heading', { name: 'Tableau de Bord' })).toBeNull();
-    expect(requestBff).toHaveBeenCalledTimes(1);
+    expect(getDashboardBootstrap).toHaveBeenCalledTimes(1);
     await user.click(screen.getByRole('button', { name: 'Réessayer le chargement' }));
     await screen.findByRole('button', { name: /Projet confirmé/ });
     expect(screen.queryByRole('alert')).toBeNull();
-    expect(requestBff).toHaveBeenCalledTimes(2);
+    expect(getDashboardBootstrap).toHaveBeenCalledTimes(2);
   });
 
   it('keeps confirmed identity/cards and an independent logout failure through malformed and valid reads', async () => {
@@ -43,13 +43,13 @@ describe('Dashboard unusable bootstrap recovery', () => {
     await user.click(screen.getByRole('button', { name: /Confirmé/ }));
     await user.click(await screen.findByText('Déconnexion', { exact: true }));
     await screen.findByText('La déconnexion est temporairement indisponible.');
-    vi.mocked(requestBff).mockResolvedValueOnce({ userFirstName: 'Non confirmé' });
+    vi.mocked(getDashboardBootstrap).mockResolvedValueOnce({ userFirstName: 'Non confirmé' });
     await user.click(screen.getByRole('button', { name: 'Actualiser les données indisponibles' }));
     await screen.findByText(readError);
     expect(screen.getByText('Bienvenue Confirmé, voici un aperçu de vos activités')).toBeTruthy();
     expect(screen.getByRole('button', { name: /Projet confirmé/ })).toBeTruthy();
     expect(screen.queryByText(/Non confirmé/)).toBeNull();
-    vi.mocked(requestBff).mockResolvedValueOnce(bootstrap({ userFirstName: 'Réponse reçue', projects: [], tasks: [], events: [],
+    vi.mocked(getDashboardBootstrap).mockResolvedValueOnce(bootstrap({ userFirstName: 'Réponse reçue', projects: [], tasks: [], events: [],
       sources: { projects: 'available', tasks: 'available', calendar: 'available' } }));
     await user.click(screen.getByRole('button', { name: 'Réessayer le chargement' }));
     await screen.findByText('Bienvenue Réponse reçue, voici un aperçu de vos activités');
@@ -58,29 +58,29 @@ describe('Dashboard unusable bootstrap recovery', () => {
     expect(screen.getByText('Aucun événement à venir.')).toBeTruthy();
     expect(screen.queryByText(readError)).toBeNull();
     expect(screen.getByRole('alert').textContent).toBe('La déconnexion est temporairement indisponible.');
-    expect(requestBff).toHaveBeenCalledTimes(3);
+    expect(getDashboardBootstrap).toHaveBeenCalledTimes(3);
   });
 
   it('deduplicates a pending read and retains the cards when its eventual result is unusable', async () => {
     render(<Home />);
     await screen.findByRole('button', { name: /Projet confirmé/ });
     let finish;
-    vi.mocked(requestBff).mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+    vi.mocked(getDashboardBootstrap).mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
     const refresh = screen.getByRole('button', { name: 'Actualiser les données indisponibles' });
     act(() => { fireEvent.click(refresh); fireEvent.click(refresh); });
-    expect(requestBff).toHaveBeenCalledTimes(2);
+    expect(getDashboardBootstrap).toHaveBeenCalledTimes(2);
     expect(refresh.disabled).toBe(true);
     expect(refresh.getAttribute('aria-busy')).toBe('true');
     await act(async () => finish(bootstrap({ projects: null })));
     await screen.findByText(readError);
     expect(screen.getByRole('button', { name: /Projet confirmé/ })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Réessayer le chargement' }).disabled).toBe(false);
-    expect(requestBff).toHaveBeenCalledTimes(2);
+    expect(getDashboardBootstrap).toHaveBeenCalledTimes(2);
   });
 
   it('ignores an aborted unusable result instead of replacing a newer confirmed read', async () => {
     const reads = [];
-    vi.mocked(requestBff).mockImplementation((_path, init) => new Promise(resolve => reads.push({ signal: init.signal, resolve })));
+    vi.mocked(getDashboardBootstrap).mockImplementation((init) => new Promise(resolve => reads.push({ signal: init.signal, resolve })));
     render(<StrictMode><Home /></StrictMode>);
     expect(reads).toHaveLength(2);
     expect(reads[0].signal.aborted).toBe(true);
@@ -95,7 +95,7 @@ describe('Dashboard unusable bootstrap recovery', () => {
     const value = bootstrap({ events: [{ id: 9, title: 'Date reçue illisible', date: '2026-02-31' },
       { id: 'valid', title: 'Événement facultatif', date: '2028-02-29' }] });
     value.projects[0].dueDate = '3';
-    vi.mocked(requestBff).mockResolvedValue(value);
+    vi.mocked(getDashboardBootstrap).mockResolvedValue(value);
     render(<Home />);
     await screen.findByRole('button', { name: /Projet confirmé/ });
     expect(screen.queryByRole('alert')).toBeNull();

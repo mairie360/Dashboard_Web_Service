@@ -71,7 +71,7 @@ describe('page data: /dashboard/bootstrap through the contract-gated proxy', () 
     assert.equal(call.headers.accept, 'application/json');
     assert.deepEqual(call.undeclaredQuery, []);
     assert.deepEqual(front.calls.map(({ side, method, url }) => `${side} ${method} ${url.origin === front.origin ? '' : 'bff'}${url.pathname}`), [
-      'browser GET /api/bff/dashboard/bootstrap',
+      'browser GET /dashboard/bootstrap',
       'server GET bff/dashboard/bootstrap',
     ]);
     // La page consomme la réponse contractuelle sans erreur de mapping.

@@ -7,7 +7,7 @@ import {
   DashboardUpcomingEvents,
 } from "@mairie360/lib-components";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { requestBff } from "@/lib/bff-client";
+import { bffDashboard } from "@/lib/bff-client";
 import { frontUrl } from "@/lib/front-urls";
 import { getActiveFrontHrefs, validatedFrontHref } from "@/lib/navigation";
 import { logoutAndRedirect } from "@/lib/logout";
@@ -76,7 +76,7 @@ export default function Home() {
     const controller = new AbortController();
     readController.current = controller;
     try {
-      const response = await requestBff<DashboardBootstrap>("/dashboard/bootstrap", { signal: controller.signal });
+      const { data: response } = await bffDashboard.getDashboardBootstrap({ signal: controller.signal });
       if (controller.signal.aborted || readController.current !== controller) return;
       if (!isUsableBootstrap(response)) {
         throw new Error("Les données reçues du tableau de bord sont incohérentes. Réessayez.");

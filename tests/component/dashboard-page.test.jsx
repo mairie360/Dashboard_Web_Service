@@ -4,10 +4,10 @@ import { StrictMode } from "react";
 import { axe } from "jest-axe";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import Home from "@/app/page";
-import { requestBff } from "@/lib/bff-client";
 import { frontUrl } from "@/lib/front-urls";
 
-vi.mock("@/lib/bff-client", () => ({ requestBff: vi.fn() }));
+const getDashboardBootstrap = vi.hoisted(() => vi.fn());
+vi.mock('@/lib/bff-client', () => ({ bffDashboard: { getDashboardBootstrap: async (options) => ({ data: await getDashboardBootstrap(options) }) } }));
 vi.mock("@/lib/front-urls", () => ({ frontUrl: vi.fn(() => undefined) }));
 
 function bootstrap(overrides = {}) {
@@ -36,7 +36,7 @@ async function openDashboard() {
 }
 
 beforeEach(() => {
-  vi.mocked(requestBff).mockResolvedValue(bootstrap());
+  vi.mocked(getDashboardBootstrap).mockResolvedValue(bootstrap());
 });
 
 describe("Dashboard page", () => {
@@ -46,7 +46,7 @@ describe("Dashboard page", () => {
       { id: "good", title: "Valid leap day", date: "2028-02-29", startTime: "09:00" },
     ] });
     payload.projects[0].dueDate = "3";
-    vi.mocked(requestBff).mockResolvedValue(payload);
+    vi.mocked(getDashboardBootstrap).mockResolvedValue(payload);
     await openDashboard();
     expect(screen.getByRole("button", { name: /Projet test/ }).textContent).toContain("Échéance: 3");
     expect(screen.getByRole("button", { name: /Projet test/ }).textContent).not.toContain("2001");
@@ -54,11 +54,11 @@ describe("Dashboard page", () => {
     expect(screen.getByRole("button", { name: /Valid leap day/ })).toBeTruthy();
     expect(screen.getByText(/Certains événements reçus ont une date ou une heure illisible/)).toBeTruthy();
     expect(screen.getAllByRole("button", { name: "Actualiser les dates illisibles" })).toHaveLength(1);
-    expect(requestBff).toHaveBeenCalledTimes(1);
+    expect(getDashboardBootstrap).toHaveBeenCalledTimes(1);
   });
 
   it("does not announce an empty calendar for unusable dates and recovers to confirmed empty through explicit GET", async () => {
-    vi.mocked(requestBff).mockResolvedValueOnce(bootstrap({ events: [
+    vi.mocked(getDashboardBootstrap).mockResolvedValueOnce(bootstrap({ events: [
       { id: "bad", title: "Impossible time", date: "2026-10-06", startTime: "24:00" },
     ] })).mockResolvedValueOnce(bootstrap({ events: [] }));
     await openDashboard();
@@ -71,13 +71,13 @@ describe("Dashboard page", () => {
     await screen.findByText("Aucun événement à venir.");
     expect(screen.queryByText(/Certains événements reçus/)).toBeNull();
     expect(screen.queryByRole("button", { name: "Actualiser les dates illisibles" })).toBeNull();
-    expect(requestBff).toHaveBeenCalledTimes(2);
-    expect(vi.mocked(requestBff).mock.calls.every(([url]) => url === "/dashboard/bootstrap")).toBe(true);
+    expect(getDashboardBootstrap).toHaveBeenCalledTimes(2);
+    expect(getDashboardBootstrap).toHaveBeenCalledTimes(2);
   });
 
   it("loads only the published bootstrap and renders DTO-backed cards", async () => {
     let resolveBootstrap;
-    vi.mocked(requestBff).mockImplementation(() => new Promise((resolve) => {
+    vi.mocked(getDashboardBootstrap).mockImplementation(() => new Promise((resolve) => {
       resolveBootstrap = resolve;
     }));
     render(<Home />);
@@ -85,8 +85,8 @@ describe("Dashboard page", () => {
     await act(async () => resolveBootstrap(bootstrap()));
     await screen.findByRole("heading", { name: "Tableau de Bord" });
 
-    expect(requestBff).toHaveBeenCalledTimes(1);
-    expect(requestBff).toHaveBeenCalledWith("/dashboard/bootstrap", expect.objectContaining({ signal: expect.any(AbortSignal) }));
+    expect(getDashboardBootstrap).toHaveBeenCalledTimes(1);
+    expect(getDashboardBootstrap).toHaveBeenCalledWith(expect.objectContaining({ signal: expect.any(AbortSignal) }));
     expect(screen.getByRole("button", { name: /Projet test/ })).toBeTruthy();
     expect(screen.getByRole("button", { name: /Tâche test/ })).toBeTruthy();
     expect(screen.getByRole("button", { name: /Événement test/ })).toBeTruthy();
@@ -117,7 +117,7 @@ describe("Dashboard page", () => {
     payload.tasks[0].title = longTitle;
     payload.events[0].title = longTitle;
     payload.events[0].location = longTitle;
-    vi.mocked(requestBff).mockResolvedValue(payload);
+    vi.mocked(getDashboardBootstrap).mockResolvedValue(payload);
     await openDashboard();
 
     const grid = screen.getByRole("heading", { name: "Tableau de Bord" }).closest("section").querySelector(".dashboard-content-grid");
@@ -126,7 +126,7 @@ describe("Dashboard page", () => {
     expect(grid.querySelector(".dashboard-upcoming-events-grid")).toBeTruthy();
     expect(within(grid).getAllByRole("button", { name: "Voir tout" })).toHaveLength(3);
     expect(within(grid).getAllByText(longTitle)).toHaveLength(4);
-    expect(requestBff).toHaveBeenCalledTimes(1);
+    expect(getDashboardBootstrap).toHaveBeenCalledTimes(1);
   });
 
   it("uses the same neutral action on all three BFF-backed cards", async () => {
@@ -152,7 +152,7 @@ describe("Dashboard page", () => {
   });
 
   it("shows empty sections instead of invented cards", async () => {
-    vi.mocked(requestBff).mockResolvedValue(bootstrap({ projects: [], tasks: [], events: [] }));
+    vi.mocked(getDashboardBootstrap).mockResolvedValue(bootstrap({ projects: [], tasks: [], events: [] }));
     await openDashboard();
 
     expect(screen.getByText("Aucun projet récent.")).toBeTruthy();
@@ -162,7 +162,7 @@ describe("Dashboard page", () => {
   });
 
   it.each(["", "   "])("shows a neutral greeting without a first name (%j)", async (userFirstName) => {
-    vi.mocked(requestBff).mockResolvedValue(bootstrap({ userFirstName }));
+    vi.mocked(getDashboardBootstrap).mockResolvedValue(bootstrap({ userFirstName }));
     await openDashboard();
 
     expect(screen.getByText("Voici un aperçu de vos activités")).toBeTruthy();
@@ -172,7 +172,7 @@ describe("Dashboard page", () => {
   });
 
   it("trims a nonblank first name in the greeting and account menu", async () => {
-    vi.mocked(requestBff).mockResolvedValue(bootstrap({ userFirstName: "  Alice  " }));
+    vi.mocked(getDashboardBootstrap).mockResolvedValue(bootstrap({ userFirstName: "  Alice  " }));
     await openDashboard();
 
     expect(screen.getByText("Bienvenue Alice, voici un aperçu de vos activités")).toBeTruthy();
@@ -181,7 +181,7 @@ describe("Dashboard page", () => {
   });
 
   it("keeps upcoming events in a responsive grid without changing their chronological order", async () => {
-    vi.mocked(requestBff).mockResolvedValue(bootstrap({
+    vi.mocked(getDashboardBootstrap).mockResolvedValue(bootstrap({
       events: [
         { id: 3, title: "Dernier rendez-vous", date: "2026-09-24", startTime: "14:00", location: "Salle C" },
         { id: 1, title: "Premier rendez-vous", date: "2026-09-22", startTime: "09:00", location: "Salle A" },
@@ -201,7 +201,7 @@ describe("Dashboard page", () => {
   });
 
   it("warns when one BFF source is unavailable without inventing its data", async () => {
-    vi.mocked(requestBff).mockResolvedValue(bootstrap({
+    vi.mocked(getDashboardBootstrap).mockResolvedValue(bootstrap({
       events: [],
       sources: { projects: "available", tasks: "available", calendar: "unavailable" },
     }));
@@ -213,7 +213,7 @@ describe("Dashboard page", () => {
   });
 
   it("shows a controlled error when bootstrap fails", async () => {
-    vi.mocked(requestBff).mockRejectedValue(new Error("Service indisponible"));
+    vi.mocked(getDashboardBootstrap).mockRejectedValue(new Error("Service indisponible"));
     render(<Home />);
 
     expect((await screen.findByRole("alert")).textContent).toBe("Service indisponible");
@@ -223,27 +223,27 @@ describe("Dashboard page", () => {
 
   it("recovers an initial failure through keyboard activation without automatically retrying", async () => {
     const user = userEvent.setup();
-    vi.mocked(requestBff).mockRejectedValueOnce(new Error("Chargement refusé"));
+    vi.mocked(getDashboardBootstrap).mockRejectedValueOnce(new Error("Chargement refusé"));
     render(<Home />);
     const retry = await screen.findByRole("button", { name: "Réessayer le chargement" });
-    expect(requestBff).toHaveBeenCalledTimes(1);
+    expect(getDashboardBootstrap).toHaveBeenCalledTimes(1);
     for (let index = 0; index < 20 && document.activeElement !== retry; index += 1) await user.tab();
     expect(document.activeElement).toBe(retry);
     await user.keyboard("{Enter}");
     await screen.findByRole("heading", { name: "Tableau de Bord" });
-    expect(requestBff).toHaveBeenCalledTimes(2);
+    expect(getDashboardBootstrap).toHaveBeenCalledTimes(2);
     expect(screen.queryByRole("alert")).toBeNull();
     expect(screen.queryByRole("button", { name: "Réessayer le chargement" })).toBeNull();
   });
 
   it("locks partial-source recovery until its one read completes and preserves confirmed cards on refusal", async () => {
-    vi.mocked(requestBff).mockResolvedValueOnce(bootstrap({ events: [], sources: { projects: "available", tasks: "available", calendar: "unavailable" } }));
+    vi.mocked(getDashboardBootstrap).mockResolvedValueOnce(bootstrap({ events: [], sources: { projects: "available", tasks: "available", calendar: "unavailable" } }));
     const user = await openDashboard();
     let refuse;
-    vi.mocked(requestBff).mockImplementationOnce(() => new Promise((resolve, reject) => { refuse = reject; }));
+    vi.mocked(getDashboardBootstrap).mockImplementationOnce(() => new Promise((resolve, reject) => { refuse = reject; }));
     const retry = screen.getByRole("button", { name: "Actualiser les données indisponibles" });
     await user.dblClick(retry);
-    expect(requestBff).toHaveBeenCalledTimes(2);
+    expect(getDashboardBootstrap).toHaveBeenCalledTimes(2);
     expect(retry.disabled).toBe(true);
     expect(retry.getAttribute("aria-busy")).toBe("true");
     expect(screen.getByRole("button", { name: /Projet test/ })).toBeTruthy();
@@ -254,13 +254,13 @@ describe("Dashboard page", () => {
     await user.click(screen.getByRole("button", { name: "Réessayer le chargement" }));
     await screen.findByRole("button", { name: /Événement test/ });
     expect(screen.queryByRole("alert")).toBeNull();
-    expect(requestBff).toHaveBeenCalledTimes(3);
+    expect(getDashboardBootstrap).toHaveBeenCalledTimes(3);
   });
 
   it("aborts a pending read on unmount without a new request", async () => {
     let finish;
     let signal;
-    vi.mocked(requestBff).mockImplementation((path, init) => {
+    vi.mocked(getDashboardBootstrap).mockImplementation((init) => {
       signal = init.signal;
       return new Promise((resolve) => { finish = resolve; });
     });
@@ -268,18 +268,18 @@ describe("Dashboard page", () => {
     mounted.unmount();
     expect(signal.aborted).toBe(true);
     await act(async () => finish(bootstrap()));
-    expect(requestBff).toHaveBeenCalledTimes(1);
+    expect(getDashboardBootstrap).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole("heading", { name: "Tableau de Bord" })).toBeNull();
   });
 
   it("guards consecutive recovery events before the disabled state renders", async () => {
-    vi.mocked(requestBff).mockResolvedValueOnce(bootstrap({ events: [], sources: { projects: "available", tasks: "available", calendar: "unavailable" } }));
+    vi.mocked(getDashboardBootstrap).mockResolvedValueOnce(bootstrap({ events: [], sources: { projects: "available", tasks: "available", calendar: "unavailable" } }));
     await openDashboard();
     let finish;
-    vi.mocked(requestBff).mockImplementationOnce(() => new Promise((resolve) => { finish = resolve; }));
+    vi.mocked(getDashboardBootstrap).mockImplementationOnce(() => new Promise((resolve) => { finish = resolve; }));
     const retry = screen.getByRole("button", { name: "Actualiser les données indisponibles" });
     act(() => { fireEvent.click(retry); fireEvent.click(retry); });
-    expect(requestBff).toHaveBeenCalledTimes(2);
+    expect(getDashboardBootstrap).toHaveBeenCalledTimes(2);
     expect(retry.disabled).toBe(true);
     await act(async () => finish(bootstrap()));
     expect(screen.queryByRole("button", { name: "Actualiser les données indisponibles" })).toBeNull();
@@ -292,12 +292,12 @@ describe("Dashboard page", () => {
     expect((await screen.findByRole("alert")).textContent).toBe("La déconnexion est temporairement indisponible.");
     expect(screen.getByRole("button", { name: /Projet test/ })).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Réessayer le chargement" })).toBeNull();
-    expect(requestBff).toHaveBeenCalledTimes(1);
+    expect(getDashboardBootstrap).toHaveBeenCalledTimes(1);
   });
 
   it("ignores an aborted StrictMode read even when it resolves after the replacement", async () => {
     const reads = [];
-    vi.mocked(requestBff).mockImplementation((path, init) => new Promise((resolve) => reads.push({ signal: init.signal, resolve })));
+    vi.mocked(getDashboardBootstrap).mockImplementation((init) => new Promise((resolve) => reads.push({ signal: init.signal, resolve })));
     render(<StrictMode><Home /></StrictMode>);
     expect(reads).toHaveLength(2);
     expect(reads[0].signal.aborted).toBe(true);
@@ -310,20 +310,20 @@ describe("Dashboard page", () => {
 
   it("recovers to confirmed empty data without clearing an independent logout refusal", async () => {
     const user = userEvent.setup();
-    vi.mocked(requestBff).mockRejectedValueOnce(new Error("Lecture initiale refusée"));
+    vi.mocked(getDashboardBootstrap).mockRejectedValueOnce(new Error("Lecture initiale refusée"));
     render(<Home />);
     await screen.findByText("Lecture initiale refusée");
-    vi.mocked(requestBff).mockResolvedValueOnce(bootstrap({
+    vi.mocked(getDashboardBootstrap).mockResolvedValueOnce(bootstrap({
       events: [], sources: { projects: "available", tasks: "available", calendar: "unavailable" },
     }));
     await user.click(screen.getByRole("button", { name: "Réessayer le chargement" }));
     await screen.findByRole("button", { name: /Projet test/ });
 
     let refuse;
-    vi.mocked(requestBff).mockImplementationOnce(() => new Promise((resolve, reject) => { refuse = reject; }));
+    vi.mocked(getDashboardBootstrap).mockImplementationOnce(() => new Promise((resolve, reject) => { refuse = reject; }));
     const refresh = screen.getByRole("button", { name: "Actualiser les données indisponibles" });
     act(() => { fireEvent.click(refresh); fireEvent.click(refresh); });
-    expect(requestBff).toHaveBeenCalledTimes(3);
+    expect(getDashboardBootstrap).toHaveBeenCalledTimes(3);
     expect(refresh.disabled).toBe(true);
     await act(async () => refuse(new Error("Nouvelle lecture refusée")));
     await screen.findByText("Nouvelle lecture refusée");
@@ -331,9 +331,9 @@ describe("Dashboard page", () => {
     await user.click(screen.getByRole("button", { name: /Test/ }));
     await user.click(await screen.findByText("Déconnexion", { exact: true }));
     await screen.findByText("La déconnexion est temporairement indisponible.");
-    expect(requestBff).toHaveBeenCalledTimes(3);
+    expect(getDashboardBootstrap).toHaveBeenCalledTimes(3);
 
-    vi.mocked(requestBff).mockResolvedValueOnce(bootstrap({
+    vi.mocked(getDashboardBootstrap).mockResolvedValueOnce(bootstrap({
       projects: [], tasks: [], events: [], userFirstName: "Confirmé", metrics: { totalProjects: 0 },
     }));
     await user.click(screen.getByRole("button", { name: "Réessayer le chargement" }));
@@ -345,8 +345,8 @@ describe("Dashboard page", () => {
     expect(screen.queryByRole("button", { name: "Réessayer le chargement" })).toBeNull();
     expect(screen.queryByRole("button", { name: /Projet test/ })).toBeNull();
     expect(screen.getByRole("alert").textContent).toBe("La déconnexion est temporairement indisponible.");
-    expect(requestBff).toHaveBeenCalledTimes(4);
-    expect(vi.mocked(requestBff).mock.calls.every(([path]) => path === "/dashboard/bootstrap")).toBe(true);
+    expect(getDashboardBootstrap).toHaveBeenCalledTimes(4);
+    expect(getDashboardBootstrap).toHaveBeenCalledTimes(4);
   });
 
   it("keeps section controls keyboard-reachable and free of serious axe violations", async () => {
