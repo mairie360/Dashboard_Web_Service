@@ -1,3 +1,5 @@
+import axios, { type AxiosAdapter } from 'axios';
+import { getBffDashboard } from '@mairie360/bff-dashboard-openapi/endpoints/bffDashboard';
 import { getLoginFrontHref } from './navigation';
 
 const navigatingLocations = new WeakSet<Location>();
@@ -17,7 +19,7 @@ export async function requestBff<T>(path: string, init: RequestInit = {}): Promi
   const headers = new Headers(init.headers);
   headers.set('Accept', 'application/json');
   if (init.body && !(init.body instanceof FormData) && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
-  const response = await fetch('/api/bff' + path, { ...init, headers, credentials: 'same-origin', cache: 'no-store' });
+  const response = await fetch(path, { ...init, headers, credentials: 'same-origin', cache: 'no-store' });
   init.signal?.throwIfAborted();
   if (!response.ok) {
     if (response.status === 401 && typeof window !== 'undefined' && !navigatingLocations.has(window.location)) {
@@ -40,3 +42,23 @@ export async function requestBff<T>(path: string, init: RequestInit = {}): Promi
   }
   return response.status === 204 ? undefined as T : response.json() as Promise<T>;
 }
+
+// The generated operations of the published BFF Dashboard contract own every path: axios only carries the
+// request through requestBff, which keeps the same-origin cookie, 401 redirect and error handling.
+const contractAdapter: AxiosAdapter = async (config) => {
+  const data = await requestBff<unknown>(axios.getUri(config), {
+    method: (config.method ?? 'get').toUpperCase(),
+    headers: config.headers.toJSON() as Record<string, string>,
+    body: typeof config.data === 'string' ? config.data : undefined,
+    signal: (config.signal as AbortSignal | undefined) ?? undefined,
+  });
+  return {
+    data,
+    status: data === undefined ? 204 : 200,
+    statusText: data === undefined ? 'No Content' : 'OK',
+    headers: {},
+    config,
+  };
+};
+
+export const bffDashboard = getBffDashboard(axios.create({ adapter: contractAdapter, headers: { Accept: 'application/json' } }));

@@ -108,7 +108,7 @@ test('current repeated 401 hands off once to existing Login without another requ
   global.fetch=async path=>{calls.push(path);return Response.json({error:{message:'Session refusée'}},{status:401});};
   await Promise.all([assert.rejects(requestBff('/dashboard/bootstrap'),/Session refusée/),assert.rejects(requestBff('/dashboard/bootstrap'),/Session refusée/)]);
   assert.deepEqual(destinations,['https://login.test.example/?redirect=https%3A%2F%2Fdashboard.test.example%2F%3Fproject%3Dretained']);
-  assert.deepEqual(calls,['/api/bff/dashboard/bootstrap','/api/bff/dashboard/bootstrap']);
+  assert.deepEqual(calls,['/dashboard/bootstrap','/dashboard/bootstrap']);
 });
 
 for(const status of [403,503]){

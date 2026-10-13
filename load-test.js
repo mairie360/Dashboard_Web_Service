@@ -6,7 +6,7 @@ import encoding from 'k6/encoding';
 // ---------------------------------------------------------------------------
 // k6 load test of the Dashboard front (Dashboard_Web_Service).
 // Targets the routes the Next.js server really serves: the page (Next.js render), /health, then
-// the /api/bff/dashboard/bootstrap aggregation the page fetches, relayed by the same-origin proxy
+// the /dashboard/bootstrap aggregation the page fetches, relayed by the same-origin proxy
 // to BFF Dashboard (fan-out User / Project / Calendar). Authentication goes through the accessToken
 // cookie, like in the browser: the proxy turns it into Authorization: Bearer for the BFF.
 // The pinned BFF Dashboard contract only declares GET operations, so there is no write scenario
@@ -70,9 +70,9 @@ export default function (data) {
   });
 
   group('dashboard reads', () => {
-    // Browser path of the page (src/lib/bff-client.ts prefixes /api/bff), not the root catch-all.
-    const dashboardBootstrap = http.get(`${BASE_URL}/api/bff/dashboard/bootstrap`, dataParams);
-    check(dashboardBootstrap, { '/api/bff/dashboard/bootstrap 200': (r) => r.status === 200 });
+    // Browser path of the page (src/lib/bff-client.ts calls the BFF path as is), not the root catch-all.
+    const dashboardBootstrap = http.get(`${BASE_URL}/dashboard/bootstrap`, dataParams);
+    check(dashboardBootstrap, { '/dashboard/bootstrap 200': (r) => r.status === 200 });
   });
 
   sleep(1);

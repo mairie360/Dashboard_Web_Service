@@ -123,7 +123,7 @@ test('anonymous browser bearer and cross-site requests never substitute for cook
   await assert.rejects(requestBff('/dashboard/bootstrap', { headers: { Authorization: 'Bearer forged-browser-value' } }), /session a expiré/);
   assert.equal(dashboard.requests[0].headers.authorization, undefined);
   assert.equal(user.requests.length, 0);
-  const response = await front.browserFetch('/api/bff/dashboard/bootstrap', { headers: { Origin: 'https://foreign.test', 'Sec-Fetch-Site': 'cross-site' } });
+  const response = await front.browserFetch('/dashboard/bootstrap', { headers: { Origin: 'https://foreign.test', 'Sec-Fetch-Site': 'cross-site' } });
   assert.equal(response.status, 403);
   assert.equal(dashboard.requests.length, 1);
 });
