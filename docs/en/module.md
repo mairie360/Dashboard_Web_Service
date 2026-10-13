@@ -53,7 +53,7 @@ This repository contains the browser interface and its Next.js adapters. The ass
 
 ## Data and current state
 
-BFF User `/me` supplies identity. BFF Project supplies `/projects-page?page=1&limit=6`, followed by each project’s details for tasks. BFF Calendar supplies bootstrap for the date range. The BFF has no database of its own and no business mutations.
+Since MAIR-525 BFF_Dashboard reads the APIs directly, never another BFF: Core API supplies identity, Project API the projects and their tasks, Calendar API the events of the date range. The BFF has no database of its own and no business mutations.
 
 ## Scope and limitations
 

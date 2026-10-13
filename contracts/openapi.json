@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "bff_dashboard",
-    "version": "0.0.0-dev.bccf2c39bac5e676c872b2089120d0e3b21ee617"
+    "version": "0.0.0-dev.c89c35c703aa429faec94072338a56f7de084687"
   },
   "paths": {
     "/health": {
@@ -61,31 +61,38 @@
           "status": {
             "$ref": "#/components/schemas/CheckApisResponseStatus"
           },
-          "user_bff": {
-            "$ref": "#/components/schemas/CheckApisResponseUserBff"
+          "core_api": {
+            "$ref": "#/components/schemas/CheckApisResponseCoreApi"
           },
-          "project_bff": {
-            "$ref": "#/components/schemas/CheckApisResponseProjectBff"
+          "project_api": {
+            "$ref": "#/components/schemas/CheckApisResponseProjectApi"
           },
-          "calendar_bff": {
-            "$ref": "#/components/schemas/CheckApisResponseCalendarBff"
+          "calendar_api": {
+            "$ref": "#/components/schemas/CheckApisResponseCalendarApi"
           }
         },
         "required": [
           "status",
-          "user_bff",
-          "project_bff",
-          "calendar_bff"
+          "core_api",
+          "project_api",
+          "calendar_api"
         ]
       },
-      "CheckApisResponseCalendarBff": {
+      "CheckApisResponseCalendarApi": {
         "type": "string",
         "enum": [
           "Connected",
           "Unreachable"
         ]
       },
-      "CheckApisResponseProjectBff": {
+      "CheckApisResponseCoreApi": {
+        "type": "string",
+        "enum": [
+          "Connected",
+          "Unreachable"
+        ]
+      },
+      "CheckApisResponseProjectApi": {
         "type": "string",
         "enum": [
           "Connected",
@@ -97,13 +104,6 @@
         "enum": [
           "OK",
           "Error"
-        ]
-      },
-      "CheckApisResponseUserBff": {
-        "type": "string",
-        "enum": [
-          "Connected",
-          "Unreachable"
         ]
       },
       "DashboardBootstrap": {

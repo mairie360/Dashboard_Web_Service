@@ -53,7 +53,7 @@ Ce dépôt contient l’interface navigateur et ses adaptateurs Next.js. Le BFF 
 
 ## Données et état actuel
 
-BFF User `/me` fournit l’identité. BFF Project fournit `/projects-page?page=1&limit=6` puis les détails de chaque projet pour les tâches. BFF Calendar fournit le bootstrap de la période. Le BFF ne dispose pas de base propre ni de mutations métier.
+Depuis MAIR-525, BFF_Dashboard lit directement les APIs, jamais un autre BFF : Core API fournit l’identité, Project API les projets et leurs tâches, Calendar API les événements de la période. Le BFF ne dispose pas de base propre ni de mutations métier.
 
 ## Périmètre et limites
 
