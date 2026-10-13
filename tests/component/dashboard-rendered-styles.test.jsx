@@ -31,7 +31,8 @@ afterEach(() => style.remove());
 
 async function openDashboard() {
   render(<Home />);
-  return screen.findByRole('heading', { name: 'Tableau de Bord' });
+  await screen.findByRole('heading', { name: 'Projets récents' });
+  return screen.getByRole('heading', { name: 'Tableau de Bord' });
 }
 
 function shadow(value) {
@@ -68,10 +69,9 @@ describe('Dashboard styles on the actual page and published components', () => {
     for (const card of cards) {
       expect(Number.parseFloat(getComputedStyle(card).minWidth)).toBe(0);
       expect(shadow(getComputedStyle(card).boxShadow)).toEqual([
-        { lengths: [0, 5, 15, 0], color: 'rgba(23, 32, 51, 0.14)' },
-        { lengths: [0, 1, 3, 0], color: 'rgba(23, 32, 51, 0.12)' },
+        { lengths: [0, 2, 12, 0], color: 'rgba(23, 32, 51, 0.05)' },
       ]);
-      const action = within(card).getByRole('button', { name: 'Voir tout', exact: true });
+      const action = within(card).getByRole('link', { name: /Voir les projets|Voir les tâches|Ouvrir le calendrier/ });
       expect(getComputedStyle(action).flexShrink).toBe('0');
       const item = within(card).getByRole('button', { name: new RegExp(longTitle) });
       expect(getComputedStyle(item).overflowWrap).toBe('anywhere');
@@ -86,8 +86,8 @@ describe('Dashboard styles on the actual page and published components', () => {
     const computed = getComputedStyle(project);
     expect(computed.borderTopWidth).toBe('1px');
     expect(computed.borderTopStyle).toBe('solid');
-    expect(computed.borderTopColor).toBe('rgb(216, 210, 202)');
-    expect(computed.padding).toBe('12px');
+    expect(computed.borderTopColor).toBe('rgb(120, 139, 167)');
+    expect(computed.padding).toBe('16px');
     expect(getComputedStyle(project.querySelector('span.flex')).flexWrap).toBe('wrap');
     expect(getDashboardBootstrap).toHaveBeenCalledTimes(1);
   });
@@ -97,8 +97,8 @@ describe('Dashboard styles on the actual page and published components', () => {
     const main = heading.closest('main');
     expect(main).not.toBeNull();
     const computed = getComputedStyle(main);
-    expect(computed.paddingBlock).toBe('1.5rem');
-    expect(computed.backgroundColor).toBe('rgb(245, 243, 240)');
+    expect(computed.paddingBlock).toBe('32px');
+    expect(screen.getByRole('contentinfo').closest('aside')).toBeNull();
   });
 
   it('applies reference position, shadow and row rhythm to the real six-entry sidebar', async () => {
@@ -108,13 +108,13 @@ describe('Dashboard styles on the actual page and published components', () => {
     expect(computed.position).toBe('relative');
     expect(computed.zIndex).toBe('20');
     expect(shadow(computed.boxShadow)).toEqual([
-      { lengths: [8, 0, 24, 0], color: 'rgba(12, 28, 48, 0.28)' },
+      { lengths: [4, 0, 16, 0], color: 'rgba(12, 28, 48, 0.1)' },
     ]);
     const buttons = within(sidebar).getAllByRole('button');
     expect(buttons.map((button) => button.textContent)).toEqual(defaultSidebarItems
       .filter(({ label }) => label !== 'Administration').map(({ label }) => label));
     for (const button of buttons) {
-      expect(getComputedStyle(button).minHeight).toBe('44px');
+      expect(getComputedStyle(button).minHeight).toBe('48px');
       expect(getComputedStyle(button).flexShrink).toBe('0');
     }
   });

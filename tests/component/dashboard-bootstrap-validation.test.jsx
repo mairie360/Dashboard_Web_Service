@@ -28,7 +28,7 @@ describe('Dashboard unusable bootstrap recovery', () => {
     render(<Home />);
     expect((await screen.findByRole('alert')).textContent).toBe(readError);
     expect(screen.getByText('Le tableau de bord est indisponible.')).toBeTruthy();
-    expect(screen.queryByRole('heading', { name: 'Tableau de Bord' })).toBeNull();
+    expect(screen.getAllByRole('heading', { name: 'Tableau de Bord', level: 1 })).toHaveLength(1);
     expect(getDashboardBootstrap).toHaveBeenCalledTimes(1);
     await user.click(screen.getByRole('button', { name: 'Réessayer le chargement' }));
     await screen.findByRole('button', { name: /Projet confirmé/ });

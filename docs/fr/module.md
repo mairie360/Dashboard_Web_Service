@@ -62,3 +62,13 @@ L’aperçu est limité et ne remplace pas les listes complètes des modules. Un
 ## Pour développer ou exploiter ce module
 
 Le [guide technique](technical.md) détaille architecture, configuration, routes, session, persistance, tests et CI/CD. Il décrit les sources de vérité et les étapes de synchronisation des contrats avec les dépôts associés.
+
+
+Accessibilité (MAIR-485)
+
+Chaque état initial, chargé ou indisponible conserve un titre de page h1. Les textes secondaires utilisent une couleur contrastée sur le fond de la page.
+
+
+## Direction visuelle commune — MAIR-547
+
+DA claire option 1 : tokens et police communs, navigation accessible et contenu métier conservé. Voir la [recette visuelle](../qa/design-qa.md) pour les preuves, vérifications et limites RGAA.
