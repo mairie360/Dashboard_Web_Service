@@ -218,122 +218,6 @@ services:
     networks:
       - backend
 
-  bff-user:
-    image: ${BFF_USER_IMAGE:-ghcr.io/mairie360/bff-user:dev-46a698b}
-    container_name: dashboard-front-dev-bff-user
-    depends_on:
-      seeder:
-        condition: service_completed_successfully
-      core-api-ready:
-        condition: service_completed_successfully
-    environment:
-      <<: *db-env
-      HOST: "0.0.0.0"
-      PORT: 4000
-      REDIS_URL: redis://redis:6379
-      JWT_SECRET: 'b"secret"'
-      CORE_API_URL: http://core-api:3000
-      # The scanners replay the auth routes from one IP with invalid credentials on purpose: the
-      # auth rate limits of BFF User (MAIR-226) would answer 429 and hide the real responses.
-      AUTH_RATE_LIMIT_ENABLED: "false"
-    expose:
-      - "4000"
-    networks:
-      - backend
-
-  bff-user-ready:
-    image: curlimages/curl:latest
-    container_name: dashboard-front-dev-bff-user-ready
-    depends_on:
-      bff-user:
-        condition: service_started
-    command: >
-      sh -c 'until curl -fsS http://bff-user:4000/health >/dev/null; do
-      echo "waiting for bff-user..."; sleep 2; done; echo "bff-user ready"'
-    networks:
-      - backend
-
-  bff-project:
-    image: ${BFF_PROJECT_IMAGE:-ghcr.io/mairie360/bff-project:dev-0b18e81}
-    container_name: dashboard-front-dev-bff-project
-    depends_on:
-      seeder:
-        condition: service_completed_successfully
-      core-api-ready:
-        condition: service_completed_successfully
-      project-api-ready:
-        condition: service_completed_successfully
-      bff-user-ready:
-        condition: service_completed_successfully
-    environment:
-      <<: *db-env
-      HOST: "0.0.0.0"
-      PORT: 4001
-      REDIS_URL: redis://redis:6379
-      CORE_API_URL: core-api
-      CORE_API_PORT: 3000
-      PROJECT_API_URL: project-api
-      PROJECT_API_PORT: 3001
-      # Same secret as the APIs: BFF_Project verifies the session tokens with it and refuses to start without it.
-      JWT_SECRET: 'b"secret"'
-      PROJECT_API_BASE_PATH: http://project-api:3001
-      USER_BFF_URL: http://bff-user:4000
-    expose:
-      - "4001"
-    networks:
-      - backend
-
-  bff-project-ready:
-    image: curlimages/curl:latest
-    container_name: dashboard-front-dev-bff-project-ready
-    depends_on:
-      bff-project:
-        condition: service_started
-    command: >
-      sh -c 'until curl -fsS http://bff-project:4001/health >/dev/null; do
-      echo "waiting for bff-project..."; sleep 2; done; echo "bff-project ready"'
-    networks:
-      - backend
-
-  bff-calendar:
-    image: ${BFF_CALENDAR_IMAGE:-ghcr.io/mairie360/bff-calendar:dev-fcc4f16}
-    container_name: dashboard-front-dev-bff-calendar
-    depends_on:
-      seeder:
-        condition: service_completed_successfully
-      core-api-ready:
-        condition: service_completed_successfully
-      calendar-api-ready:
-        condition: service_completed_successfully
-    environment:
-      <<: *db-env
-      HOST: "0.0.0.0"
-      PORT: 4002
-      REDIS_URL: redis://redis:6379
-      CORE_API_URL: core-api
-      CORE_API_PORT: 3000
-      CALENDAR_API_URL: calendar-api
-      CALENDAR_API_PORT: 3002
-      # Same secret as the APIs: BFF_Calendar verifies the session tokens with it and refuses to start without it.
-      JWT_SECRET: 'b"secret"'
-      CALENDAR_API_BASE_PATH: http://calendar-api:3002/api
-    expose:
-      - "4002"
-    networks:
-      - backend
-
-  bff-calendar-ready:
-    image: curlimages/curl:latest
-    container_name: dashboard-front-dev-bff-calendar-ready
-    depends_on:
-      bff-calendar:
-        condition: service_started
-    command: >
-      sh -c 'until curl -fsS http://bff-calendar:4002/health >/dev/null; do
-      echo "waiting for bff-calendar..."; sleep 2; done; echo "bff-calendar ready"'
-    networks:
-      - backend
-
   bff-dashboard:
     image: ${BFF_DASHBOARD_IMAGE:-ghcr.io/mairie360/bff-dashboard:dev-c89c35c}
     container_name: dashboard-front-dev-bff-dashboard
@@ -342,21 +226,19 @@ services:
         condition: service_completed_successfully
       core-api-ready:
         condition: service_completed_successfully
-      bff-user-ready:
+      project-api-ready:
         condition: service_completed_successfully
-      bff-project-ready:
-        condition: service_completed_successfully
-      bff-calendar-ready:
+      calendar-api-ready:
         condition: service_completed_successfully
     environment:
       PORT: 4007
-      USER_BFF_URL: http://bff-user:4000
-      PROJECT_BFF_URL: http://bff-project:4001
-      CALENDAR_BFF_URL: http://bff-calendar:4002
       # Same secret as the APIs: BFF_Dashboard verifies the session tokens with it and refuses to start without it.
       JWT_SECRET: 'b"secret"'
       CORE_API_URL: http://core-api:3000
       PROJECT_API_URL: http://project-api:3001
+      # Since MAIR-525 BFF_Dashboard reads Core, Project and Calendar APIs directly (no other BFF) and refuses
+      # to start without one of these URLs.
+      CALENDAR_API_URL: http://calendar-api:3002
     expose:
       - "4007"
     networks:
