@@ -13,7 +13,8 @@
     "test:contracts": "node --test tests/*.test.cjs",
     "test:node": "mkdir -p coverage && node --enable-source-maps --test --experimental-test-coverage --test-coverage-branches=60 --test-coverage-functions=60 --test-coverage-lines=60 --test-coverage-include='src/**' --test-reporter=spec --test-reporter-destination=stdout --test-reporter=lcov --test-reporter-destination=coverage/lcov.info tests/*.test.cjs",
     "test:components": "vitest run",
-    "test": "npm run test:node && npm run test:components"
+    "test": "npm run test:node && npm run test:components",
+    "performance:report": "node scripts/frontend-performance.mjs"
   },
   "dependencies": {
     "@mairie360/bff-dashboard-openapi": "0.0.0-dev.c89c35c703aa429faec94072338a56f7de084687",
@@ -38,7 +39,8 @@
     "jsdom": "30.1.1",
     "tailwindcss": "^4",
     "typescript": "^5",
-    "vitest": "5.0.2"
+    "vitest": "5.0.2",
+    "playwright-core": "1.64.0"
   },
   "overrides": {
     "postcss": "8.5.28",
