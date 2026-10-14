@@ -1,4 +1,5 @@
 "use client";
+import { subscribePageReturn } from "@/lib/page-return";
 
 import {
   DashboardPendingTasks,
@@ -103,6 +104,13 @@ export default function Home() {
       readController.current?.abort();
       readController.current = null;
     };
+  }, [loadDashboard]);
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const page = document;
+    const refresh = () => { if (!page.hidden) void loadDashboard(); };
+    const unsubscribe = subscribePageReturn(refresh);
+    return () => unsubscribe();
   }, [loadDashboard]);
   const view = data && toDashboardModuleData(data);
   const userFirstName = data?.userFirstName.trim() ?? "";
