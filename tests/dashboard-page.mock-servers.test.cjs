@@ -16,7 +16,7 @@ const { bootstrapResponse } = require('./support/fixtures.cjs');
 const { ContractMockServer } = require('./support/contract-mock-server.ts');
 const { OpenApiContract } = require('./support/openapi-contract.ts');
 const { setBrowserFrontUrls } = require('../src/lib/front-urls.ts');
-const Home = require('../src/app/page.tsx').default;
+const Home = require('../src/components/dashboard-page.tsx').default;
 
 const dashboardBff = new ContractMockServer('DASHBOARD_BFF', OpenApiContract.load(path.join(ROOT, 'contracts', 'openapi.json')));
 const front = new FrontApp();

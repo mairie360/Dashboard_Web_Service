@@ -75,6 +75,11 @@ describe('every network call of the front targets an operation of an OpenAPI con
     assert.ok(browserCalls.length > 0, 'no bffDashboard call found: the test would verify nothing');
   });
 
+  test('the access-only server relay performs only the published bootstrap read', () => {
+    assert.deepEqual(browserCalls.filter(entry => entry.file === 'lib/server-dashboard.ts')
+      .map(entry => entry.node.expression.name.text), ['getDashboardBootstrap']);
+  });
+
   test('every called operation exists in the generated client and no path literal is written outside it', () => {
     assert.deepEqual(browserCalls.filter(({ node }) => !GENERATED_OPERATIONS.has(node.expression.name.text)).map(({ ast, node }) => where(ast, node)), []);
     const literals = sources.filter(({ file }) => !['lib/bff-client.ts', 'lib/bff-proxy.ts', 'middleware.ts'].includes(file))
@@ -109,7 +114,14 @@ describe('every network call of the front targets an operation of an OpenAPI con
 describe('coverage scope', () => {
   // La couverture de node:test ne compte que les fichiers chargés : chaque module TypeScript de src est
   // donc chargé ici (les composants .tsx, rendus par Next.js, restent hors périmètre).
-  test('every TypeScript module of src loads outside Next.js', () => {
+  test('every TypeScript module of src loads outside Next.js', t => {
+    const Module = require('node:module');
+    const originalLoad = Module._load;
+    // Next owns the compile-time server-only marker; the real module is still loaded.
+    Module._load = function(request, ...rest) {
+      return request === 'server-only' ? {} : originalLoad.call(this, request, ...rest);
+    };
+    t.after(() => { Module._load = originalLoad; });
     const modules = sources.filter(({ file }) => file.endsWith('.ts'));
     assert.ok(modules.length > 0);
     for (const { file } of modules) assert.doesNotThrow(() => require(path.join(SRC, file)), file);
@@ -150,7 +162,7 @@ describe('one front, one BFF, one OpenAPI contract', () => {
 
   test('requests are only forwarded to the BFF_Dashboard URL', () => {
     const forwards = sources.flatMap(({ file, ast }) => calls(ast, 'forwardToBff').map(node => ({ file, baseUrl: node.arguments[1] })));
-    assert.deepEqual(forwards.map(row => row.file), ['lib/bff-proxy.ts']);
+    assert.deepEqual(forwards.map(row => row.file), ['lib/bff-proxy.ts', 'lib/server-dashboard.ts']);
     assert.ok(forwards.every(row => policy.configuredUrl(row.baseUrl)));
     const bffVariables = [...new Set(sources.flatMap(({ ast }) => policy.envNames(ast).filter(name => name?.includes('BFF'))))].sort();
     assert.deepEqual(bffVariables, ['BFF_DASHBOARD_BASE_URL', 'DASHBOARD_BFF_URL']);
@@ -188,7 +200,7 @@ describe('one front, one BFF, one OpenAPI contract', () => {
     assert.equal(fs.existsSync(path.join(SRC, 'contracts')), false);
     const contractImports = sources.flatMap(({ file, ast }) => ast.statements.filter(ts.isImportDeclaration)
       .map((statement) => statement.moduleSpecifier.text).filter((specifier) => /contract|openapi/i.test(specifier)).map((specifier) => `${file} ${specifier}`));
-    assert.deepEqual(contractImports, [`lib/bff-client.ts ${CONTRACT_PACKAGE}/endpoints/bffDashboard`, `lib/bff-proxy.ts ../../contracts/openapi.json`, `lib/dashboard-view.ts ${CONTRACT_PACKAGE}/model`, `middleware.ts ../contracts/openapi.json`]);
+    assert.deepEqual(contractImports, [`lib/bff-client.ts ${CONTRACT_PACKAGE}/endpoints/bffDashboard`, `lib/bff-proxy.ts ../../contracts/openapi.json`, `lib/dashboard-bootstrap.ts ${CONTRACT_PACKAGE}/model`, `lib/dashboard-view.ts ${CONTRACT_PACKAGE}/model`, `middleware.ts ../contracts/openapi.json`]);
   });
 
   test('contracts/openapi.json is the reconstruction of the installed published package', () => {
