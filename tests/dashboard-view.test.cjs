@@ -75,13 +75,15 @@ describe('formatDueDate', () => {
     }
   });
 
-  test('valid leap days and genuine ISO instants retain the existing UTC and Paris policy', () => {
+  test('valid leap days and genuine ISO instants use the configured instance timezone', () => {
     for (const [value, expected] of [['2000-02-29', '29/02/2000'], ['2028-02-29', '29/02/2028'],
       ['29-02-2028', '29/02/2028'], ['2026-10-25T23:30:00+04:00', '25/10/2026']]) {
       assert.equal(formatDueDate(value), expected);
     }
   });
-  test('formats contract dates with the numeric reference labels', () => {
+  test('formats contract dates with the numeric reference labels', t => {
+    const previous = process.env.INSTANCE_TIMEZONE; process.env.INSTANCE_TIMEZONE = 'Europe/Paris';
+    t.after(() => previous === undefined ? delete process.env.INSTANCE_TIMEZONE : process.env.INSTANCE_TIMEZONE = previous);
     assert.equal(formatDueDate('2026-12-01'), '01/12/2026');
     assert.equal(formatDueDate('05-10-2026'), '05/10/2026');
     // Instant ISO 8601 de BFF Project : jour de l'échéance à Paris.
@@ -89,8 +91,9 @@ describe('formatDueDate', () => {
     assert.equal(formatDueDate('2024-12-31T23:59:59Z'), '01/01/2025');
   });
 
-  test('retains calendar days across host timezones, Paris midnight and DST boundaries', () => {
+  test('retains calendar days and configured Paris instants across host timezones and DST boundaries', () => {
     const originalTimezone = process.env.TZ;
+    const originalInstance = process.env.INSTANCE_TIMEZONE; process.env.INSTANCE_TIMEZONE = 'Europe/Paris';
     try {
       for (const timezone of ['UTC', 'America/Los_Angeles', 'Pacific/Kiritimati']) {
         process.env.TZ = timezone;
@@ -105,6 +108,7 @@ describe('formatDueDate', () => {
         ]) assert.equal(formatDueDate(value), expected, `${timezone}: ${value}`);
       }
     } finally {
+      if (originalInstance === undefined) delete process.env.INSTANCE_TIMEZONE; else process.env.INSTANCE_TIMEZONE = originalInstance;
       if (originalTimezone === undefined) delete process.env.TZ;
       else process.env.TZ = originalTimezone;
     }

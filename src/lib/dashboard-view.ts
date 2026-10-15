@@ -1,3 +1,4 @@
+import { getInstanceTimeZone } from '@mairie360/front-kit/shared';
 import type { ComponentProps } from 'react';
 import type { DashboardModule } from '@mairie360/lib-components';
 import type { DashboardBootstrap } from '@mairie360/bff-dashboard-openapi/model';
@@ -26,8 +27,8 @@ const isCivilDate = (value: string) => {
 const frenchDate = (timeZone: string) => new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone });
 // Une date seule est lue en UTC par Date : elle est formatée en UTC pour ne pas changer de jour.
 const dateOnlyFormat = frenchDate('UTC');
-// Les échéances BFF Project sont des instants ISO 8601 (toISOString) : jour affiché à l'heure de Paris.
-const instantFormat = frenchDate('Europe/Paris');
+// Les échéances BFF Project sont des instants ISO 8601 (toISOString) : jour affiché dans le fuseau de l’instance.
+const instantFormat = () => frenchDate(getInstanceTimeZone());
 
 /** Échéance numérique de la référence (« 01/12/2026 ») ; une valeur non reconnue est affichée telle quelle. */
 export function formatDueDate(value: string): string {
@@ -38,7 +39,7 @@ export function formatDueDate(value: string): string {
   if (!civilDate || !isCivilDate(civilDate)) return value;
   const timestamp = Date.parse(normalized);
   if (Number.isNaN(timestamp)) return value;
-  return (dateOnly ? dateOnlyFormat : instantFormat).format(timestamp);
+  return (dateOnly ? dateOnlyFormat : instantFormat()).format(timestamp);
 }
 
 export function toDashboardModuleData(data: DashboardBootstrap) {

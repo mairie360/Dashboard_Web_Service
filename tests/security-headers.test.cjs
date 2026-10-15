@@ -3,10 +3,10 @@ const { test } = require('node:test');
 require('./support/load-ts.cjs');
 const { NextRequest } = require('next/server');
 const { middleware } = require('../src/middleware.ts');
-const { buildContentSecurityPolicy } = require('../src/lib/content-security-policy.ts');
+const { buildContentSecurityPolicy } = require('@mairie360/front-kit/shared');
 const nextConfig = require('../next.config.ts').default;
 
-const pageRequest = () => new NextRequest('http://localhost:5000/', {headers:{cookie:'accessToken=opaque-contract-session'}});
+const pageRequest = () => new NextRequest('http://localhost:5000/', {headers:{cookie:'accessToken=e30.eyJleHAiOjQxMDI0NDQ4MDB9.signature'}});
 
 test('every page gets a per-request nonce CSP forwarded to Next.js', () => {
   const first = middleware(pageRequest());

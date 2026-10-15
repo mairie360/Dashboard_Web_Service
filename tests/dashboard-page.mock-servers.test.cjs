@@ -170,7 +170,7 @@ test('the first pass renders the loading state, the next one the data of GET /da
   assert.equal(view.props('AppShell').activeItem, 'dashboard');
   assert.equal(view.props('AppShell').user.first_name, 'Alice');
   assert.equal(view.props('AppShell').hrefs.profile, 'https://settings.test.example/');
-  assert.equal(view.props('AppShell').isAdmin, undefined);
+  assert.equal(view.props('AppShell').isAdmin, false);
   assert.equal(typeof view.props('AppShell').onLogout, 'function');
   assert.doesNotMatch(html, />Administration</);
   assert.match(html, /aria-label="Notifications"/);

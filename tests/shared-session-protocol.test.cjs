@@ -66,13 +66,16 @@ test('concurrent bootstrap reads rotate once at Login and preserve the published
   assert.equal(dashboard.requests.length, 12);
   assert.ok(dashboard.requests.every(request => request.headers.cookie === undefined));
   assert.ok(dashboard.requests.every(request => request.headers.authorization !== 'Bearer forged-browser-value'));
-  assert.equal(front.calls.filter(call => call.side === 'owner').length, 6);
+  const renewalCalls = front.calls.filter(call => call.side === 'browser' && call.url.pathname === '/api/auth/refresh');
+  assert.ok(renewalCalls.length > 0);
+  assert.ok(renewalCalls.every(call => call.method === 'POST'));
+  assert.equal(front.calls.filter(call => call.side === 'owner').length, renewalCalls.length);
   assert.deepEqual(destinations, []);
 });
 
 test('a second bootstrap401 navigates once to Login with the requested page and never logs out', async () => {
   dashboard.on('get', '/dashboard/bootstrap', { status: 401, body: { error: { message: 'Still expired' } }, outOfContract: true });
-  await assert.rejects(requestBff('/dashboard/bootstrap'), /session a expiré/);
+  await assert.rejects(requestBff('/dashboard/bootstrap'), /session doit être renouvelée/);
   assert.equal(dashboard.requests.length, 2);
   assert.equal(user.requests.length, 1);
   const destination = new URL(destinations[0]);

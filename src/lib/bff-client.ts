@@ -1,3 +1,4 @@
+import { sessionFetch } from '@mairie360/front-kit/browser';
 import axios, { type AxiosAdapter } from 'axios';
 import { getBffDashboard } from '@mairie360/bff-dashboard-openapi/endpoints/bffDashboard';
 import { getLoginFrontHref } from './navigation';
@@ -19,7 +20,7 @@ export async function requestBff<T>(path: string, init: RequestInit = {}): Promi
   const headers = new Headers(init.headers);
   headers.set('Accept', 'application/json');
   if (init.body && !(init.body instanceof FormData) && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
-  const response = await fetch(path, { ...init, headers, credentials: 'same-origin', cache: 'no-store' });
+  const response = await sessionFetch(path, { ...init, headers, credentials: 'same-origin', cache: 'no-store' });
   init.signal?.throwIfAborted();
   if (!response.ok) {
     if (response.status === 401 && typeof window !== 'undefined' && !navigatingLocations.has(window.location)) {
