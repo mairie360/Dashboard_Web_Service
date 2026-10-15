@@ -46,20 +46,24 @@ export async function requestBff<T>(path: string, init: RequestInit = {}): Promi
 
 // The generated operations of the published BFF Dashboard contract own every path: axios only carries the
 // request through requestBff, which keeps the same-origin cookie, 401 redirect and error handling.
-const contractAdapter: AxiosAdapter = async (config) => {
-  const data = await requestBff<unknown>(axios.getUri(config), {
-    method: (config.method ?? 'get').toUpperCase(),
-    headers: config.headers.toJSON() as Record<string, string>,
-    body: typeof config.data === 'string' ? config.data : undefined,
-    signal: (config.signal as AbortSignal | undefined) ?? undefined,
-  });
-  return {
-    data,
-    status: data === undefined ? 204 : 200,
-    statusText: data === undefined ? 'No Content' : 'OK',
-    headers: {},
-    config,
+export function createDashboardClient(request: typeof requestBff = requestBff) {
+  const contractAdapter: AxiosAdapter = async (config) => {
+    const data = await request<unknown>(axios.getUri(config), {
+      method: (config.method ?? 'get').toUpperCase(),
+      headers: config.headers.toJSON() as Record<string, string>,
+      body: typeof config.data === 'string' ? config.data : undefined,
+      signal: (config.signal as AbortSignal | undefined) ?? undefined,
+    });
+    return {
+      data,
+      status: data === undefined ? 204 : 200,
+      statusText: data === undefined ? 'No Content' : 'OK',
+      headers: {},
+      config,
+    };
   };
-};
 
-export const bffDashboard = getBffDashboard(axios.create({ adapter: contractAdapter, headers: { Accept: 'application/json' } }));
+  return getBffDashboard(axios.create({ adapter: contractAdapter, headers: { Accept: 'application/json' } }));
+}
+
+export const bffDashboard = createDashboardClient();

@@ -4,7 +4,7 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { defaultSidebarItems } from '@mairie360/lib-components';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import Home from '@/app/page';
+import Home from '@/components/dashboard-page';
 
 const getDashboardBootstrap = vi.hoisted(() => vi.fn());
 vi.mock('@/lib/bff-client', () => ({ bffDashboard: { getDashboardBootstrap: async (options) => ({ data: await getDashboardBootstrap(options) }) } }));

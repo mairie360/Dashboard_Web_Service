@@ -200,3 +200,7 @@ rendering and ordinary source-map mapping. No exploit fixture is included.
 The public seven-day release delay and all audit/RGAA/main protections remain
 unchanged. Remaining braces findings still block the audit and integration;
 this partial maintenance does not complete MAIR-436 or certify a release.
+
+## Initial server data / Données initiales serveur — MAIR-526
+
+[English](docs/en/initial-server-data.md) · [Français](docs/fr/donnees-initiales-serveur.md)
