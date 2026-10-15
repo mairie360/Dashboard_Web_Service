@@ -74,7 +74,7 @@ L’état React gère l’affichage et les opérations en cours. Ce dépôt ne d
 
 ## Installation et lancement local
 
-Utiliser Node.js 22 pour reproduire le job de contrats et npm avec le fichier de verrouillage versionné. Les versions des autres jobs et de Docker sont précisées plus bas.
+Utiliser Node.js 24.21.0 (la version épinglée en CI et dans Docker) pour reproduire le job de contrats et npm avec le fichier de verrouillage versionné. Les versions des autres jobs et de Docker sont précisées plus bas.
 
 Les dépendances privées `@mairie360/*` nécessitent un accès GitHub Packages. Configurer `NODE_AUTH_TOKEN` dans l’environnement avec un jeton autorisé à lire ces packages, conformément à `.npmrc`. Ne pas enregistrer la valeur dans Git.
 
@@ -182,11 +182,11 @@ Pour une modification uniquement documentaire, vérifier les liens, l’exactitu
 
 ## CI/CD et exécution Docker
 
-Le job `contracts.yml` utilise Node.js 24 et des références de commit immuables pour `actions/checkout` et `actions/setup-node` (tous deux v7). Il s’exécute sur push, pull request et lancement manuel; il installe avec `npm ci`, contrôle les contrats et lance les tests dédiés.
+Le job `contracts.yml` utilise Node.js 24.21.0 et des références de commit immuables pour `actions/checkout` et `actions/setup-node` (tous deux v7). Il s’exécute sur pull request, lancement manuel et push vers `main` uniquement (MAIR-436); il installe avec `npm ci`, contrôle les contrats et lance les tests dédiés.
 
-`cicd.yml` appelle `mairie360/CICD/.github/workflows/frontend-cicd.yml@v3.1.1`, avec `cicd_version: v3.1.1` et `node_version: "24"`. Le job Semgrep requis s’exécute avec le lint et l’audit npm ; seuls les secrets Codecov et n8n déclarés par le workflow réutilisable sont transmis. `.npmrc` impose un âge minimal de sept jours aux nouvelles résolutions de paquets, sans exclusion. Les étapes réutilisables et les environnements GitHub déterminent les contrôles, publications et déploiements effectifs.
+`cicd.yml` appelle `mairie360/CICD/.github/workflows/frontend-cicd.yml` épinglé sur un commit CICD, avec le même `cicd_version` et `node_version: "24.21.0"`. Il s’exécute sur les pull requests, au déclenchement manuel et sur les push vers `main` uniquement ; son jeton est en lecture seule par défaut et seul le job qui appelle le pipeline de release reçoit les droits d’écriture `contents`, `packages` et `id-token` (MAIR-436, `tests/workflow-permissions.test.cjs`). Le job Semgrep requis s’exécute avec le lint et l’audit npm ; seuls les secrets Codecov et n8n déclarés par le workflow réutilisable sont transmis. `.npmrc` impose un âge minimal de sept jours aux nouvelles résolutions de paquets, sans exclusion. Les étapes réutilisables et les environnements GitHub déterminent les contrôles, publications et déploiements effectifs.
 
-Le Dockerfile utilise par défaut `NODE_VERSION=23.1.0` et le build Next.js `standalone`; la commande de l’image est `["node", "server.js"]`. Le port de l’image et les mappings Compose peuvent différer du port local proposé plus haut.
+Le Dockerfile épingle `NODE_VERSION=24.21.0` (image officielle bookworm-slim épinglée par digest) et le build Next.js `standalone` ; la commande de l’image est `["node", "server.js"]`. Le port de l’image et les mappings Compose peuvent différer du port local proposé plus haut.
 
 Avant un lancement Docker, vérifier les variables de service, les secrets de build et les réseaux dans les fichiers du dépôt. Une CI verte valide ses jobs; elle ne prouve pas la disponibilité des services métier dans un environnement distant.
 
