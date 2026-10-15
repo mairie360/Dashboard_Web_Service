@@ -61,7 +61,7 @@ class FrontApp {
   setOwner(userBff) {
     this.userBff = userBff;
     this.ownerOrigin = 'https://login.owner.test';
-    const { createSessionRefreshHandler } = require('@mairie360/lib-components/next');
+    const { createSessionRefreshHandler } = require('@mairie360/front-kit/next');
     this.ownerRefresh = createSessionRefreshHandler({ userBffUrl: () => userBff.url, cookieOptions: () => ({ secure: false }), allowedOrigins: () => [this.origin] });
     this.allow(userBff.url);
     return this;
@@ -69,6 +69,10 @@ class FrontApp {
 
   install() {
     this.realFetch = global.fetch;
+    this.previousFrontUrl = process.env.DASHBOARD_FRONT_URL;
+    this.previousLoginUrl = process.env.LOGIN_FRONT_URL;
+    process.env.DASHBOARD_FRONT_URL = this.origin;
+    process.env.LOGIN_FRONT_URL = this.ownerOrigin ?? process.env.LOGIN_FRONT_URL ?? 'https://login.test.example/';
     const realFetch = this.realFetch;
     global.fetch = async (input, init = {}) => {
       const url = new URL(input instanceof Request ? input.url : String(input), this.origin);
@@ -81,7 +85,9 @@ class FrontApp {
       if (url.origin === this.origin) {
         this.calls.push({ side: 'browser', method, url });
         const headers = new Headers(init.headers);
-        const cookie = Object.entries(this.cookies).map(([name, value]) => `${name}=${value}`).join('; ');
+        if (!headers.has('origin')) headers.set('origin', this.origin);
+        if (!headers.has('sec-fetch-site')) headers.set('sec-fetch-site', 'same-origin');
+        const cookie = Object.entries(this.cookies).filter(([name]) => name !== 'refreshToken' || url.pathname === '/api' || url.pathname.startsWith('/api/')).map(([name, value]) => `${name}=${value}`).join('; ');
         if (cookie && init.credentials !== 'omit') headers.set('cookie', cookie);
         // `credentials` / `cache` n'ont pas de sens côté serveur : le cookie est posé ci-dessus.
         const { credentials: _credentials, cache: _cache, ...rest } = init;
@@ -103,9 +109,13 @@ class FrontApp {
     return this;
   }
 
-  uninstall() { if (this.realFetch) global.fetch = this.realFetch; }
+  uninstall() {
+    if (this.realFetch) global.fetch = this.realFetch;
+    this.previousFrontUrl === undefined ? delete process.env.DASHBOARD_FRONT_URL : process.env.DASHBOARD_FRONT_URL = this.previousFrontUrl;
+    this.previousLoginUrl === undefined ? delete process.env.LOGIN_FRONT_URL : process.env.LOGIN_FRONT_URL = this.previousLoginUrl;
+  }
 
-  reset() { if (this.userBff) require('@mairie360/lib-components/next').forgetUserSession(this.userBff.url, this.cookies.refreshToken); this.calls.length = 0; this.violations.length = 0; this.cookies = {}; }
+  reset() { if (this.userBff) require('@mairie360/front-kit/next').forgetUserSession(this.userBff.url, this.cookies.refreshToken); this.calls.length = 0; this.violations.length = 0; this.cookies = {}; }
 
   /** Fetch d'une URL du front, tel qu'émis par le navigateur (cookies de la page inclus). */
   browserFetch(pathname, init) { return global.fetch(pathname, init); }

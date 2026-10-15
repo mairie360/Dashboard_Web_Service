@@ -19,7 +19,7 @@ const { loadOrvalContract, resolveOrvalPackage } = require('./support/orval-cont
 
 const dashboardContract = OpenApiContract.load(path.join(ROOT, 'contracts', 'openapi.json'));
 const CONTRACT_PACKAGE = '@mairie360/bff-dashboard-openapi';
-const FETCH_OWNERS = ['lib/bff-client.ts'];
+const FETCH_OWNERS = [];
 
 function sourceFiles(dir = SRC) {
   return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
@@ -83,7 +83,7 @@ describe('every network call of the front targets an operation of an OpenAPI con
     assert.equal(sources.filter(({ ast }) => calls(ast, 'requestBff').length > 0 && ast.fileName.indexOf('bff-client') < 0).length, 0);
   });
 
-  test('fetch is only called by the same-origin client and contract-gated proxy', () => {
+  test('the shared session transport owns raw fetch', () => {
     const owners = sources.filter(({ ast }) => calls(ast, 'fetch').length > 0).map(({ file }) => file).sort();
     assert.deepEqual(owners, FETCH_OWNERS);
   });
@@ -96,7 +96,8 @@ describe('every network call of the front targets an operation of an OpenAPI con
 
   test('the client only builds same-origin requests', () => {
     const client = sources.find(({ file }) => file === 'lib/bff-client.ts');
-    const [call] = calls(client.ast, 'fetch');
+    assert.ok(policy.imports(client.ast).includes('@mairie360/front-kit/browser'));
+    const [call] = calls(client.ast, 'sessionFetch');
     assert.ok(policy.parameterReference(call.arguments[0]));
     assert.ok(ts.isObjectLiteralExpression(call.arguments[1]));
     const credentials = call.arguments[1].properties.find(node => ts.isPropertyAssignment(node) && policy.propertyName(node.name) === 'credentials');
@@ -143,8 +144,8 @@ describe('one front, one BFF, one OpenAPI contract', () => {
     assert.deepEqual(fs.readdirSync(path.join(ROOT, 'contracts')), ['openapi.json']);
   });
 
-  test('the contract-gated proxy is the only route handler', () => {
-    assert.deepEqual(ROUTES.map(({ segments }) => `/${segments.join('/')}`).sort(), ['/[...path]']);
+  test('the contract-gated proxy and two session entry points are the only route handlers', () => {
+    assert.deepEqual(ROUTES.map(({ segments }) => `/${segments.join('/')}`).sort(), ['/[...path]', '/api/auth/refresh', '/api/auth/resume']);
   });
 
   test('requests are only forwarded to the BFF_Dashboard URL', () => {
@@ -187,7 +188,7 @@ describe('one front, one BFF, one OpenAPI contract', () => {
     assert.equal(fs.existsSync(path.join(SRC, 'contracts')), false);
     const contractImports = sources.flatMap(({ file, ast }) => ast.statements.filter(ts.isImportDeclaration)
       .map((statement) => statement.moduleSpecifier.text).filter((specifier) => /contract|openapi/i.test(specifier)).map((specifier) => `${file} ${specifier}`));
-    assert.deepEqual(contractImports, [`lib/bff-client.ts ${CONTRACT_PACKAGE}/endpoints/bffDashboard`, `lib/bff-proxy.ts ../../contracts/openapi.json`, `lib/dashboard-view.ts ${CONTRACT_PACKAGE}/model`]);
+    assert.deepEqual(contractImports, [`lib/bff-client.ts ${CONTRACT_PACKAGE}/endpoints/bffDashboard`, `lib/bff-proxy.ts ../../contracts/openapi.json`, `lib/dashboard-view.ts ${CONTRACT_PACKAGE}/model`, `middleware.ts ../contracts/openapi.json`]);
   });
 
   test('contracts/openapi.json is the reconstruction of the installed published package', () => {
