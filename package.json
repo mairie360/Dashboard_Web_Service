@@ -18,6 +18,7 @@
   },
   "dependencies": {
     "@mairie360/bff-dashboard-openapi": "0.0.0-dev.c89c35c703aa429faec94072338a56f7de084687",
+    "@mairie360/front-kit": "file:vendor/mairie360-front-kit-0.1.0.tgz",
     "@mairie360/lib-components": "0.8.0",
     "axios": "1.20.0",
     "lucide-react": "1.0.0",

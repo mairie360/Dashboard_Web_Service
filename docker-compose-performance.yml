@@ -278,6 +278,7 @@ services:
       # Reserved test destination: anonymous readiness returns307, without
       # contacting a real Login. Authenticated k6 requests are unchanged.
       LOGIN_FRONT_URL: http://login.invalid/
+      DASHBOARD_FRONT_URL: http://dashboard-front:5000/
     expose:
       - "5000"
     networks:
