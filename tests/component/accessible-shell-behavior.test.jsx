@@ -1,6 +1,8 @@
-import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { defaultSidebarItems } from '@mairie360/lib-components';
+import { useState } from 'react';
+import { ConfirmModal } from '@mairie360/lib-components/primitives';
+import { defaultSidebarItems } from '@mairie360/lib-components/shell';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import AccessibleShell from '@/components/accessible-shell';
 import { SIDEBAR_COOKIE } from '@/lib/sidebar-preference';
@@ -44,13 +46,51 @@ it('measures the real footer after resize and disconnects its observer when the 
 });
 
 it('the skip link moves keyboard focus to the retained content target', async () => {
+  desktopViewportStyle = document.createElement('style');
+  desktopViewportStyle.textContent = '.app-desktop-navigation { display:flex; }';
+  document.head.append(desktopViewportStyle);
   shell();
   const skip = screen.getByRole('link', { name: 'Aller au contenu' });
+  const firstNavigationControl = document.querySelector('.app-desktop-navigation button');
+  expect(skip.compareDocumentPosition(firstNavigationControl) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   const destination = document.getElementById(skip.getAttribute('href').slice(1));
   expect(destination.tabIndex).toBe(-1);
-  await userEvent.setup().click(skip);
+  const user = userEvent.setup();
+  await user.tab();
+  expect(document.activeElement).toBe(skip);
+  await user.keyboard('{Enter}');
   expect(document.activeElement).toBe(destination);
   expect(within(destination).getByRole('heading', { name: 'Contenu du tableau' })).toBeTruthy();
+});
+
+it('the sole shared skip link is inert during an external confirmation and restores the same main target on cancellation', async () => {
+  const confirmed = vi.fn();
+  function Confirmation() {
+    const [open, setOpen] = useState(false);
+    return <>
+      <button type="button" onClick={() => setOpen(true)}>Ouvrir la confirmation</button>
+      <ConfirmModal isOpen={open} title="Confirmation locale" message="Confirmer cette action ?"
+        onCancel={() => setOpen(false)} onConfirm={confirmed} />
+    </>;
+  }
+  const user = userEvent.setup();
+  const { container } = render(<AccessibleShell hrefs={hrefs}><h1>Contenu du tableau</h1><Confirmation /></AccessibleShell>);
+  const skip = screen.getByRole('link', { name: 'Aller au contenu' });
+  const main = screen.getByRole('main');
+  expect(skip.getAttribute('href')).toBe(`#${main.id}`);
+  expect(skip.closest('[inert]')).toBeNull();
+  await user.click(screen.getByRole('button', { name: 'Ouvrir la confirmation' }));
+  const dialog = screen.getByRole('dialog', { name: 'Confirmation locale' });
+  await waitFor(() => expect(skip.closest('[inert]')).not.toBeNull());
+  expect(container.querySelector('.app-desktop-navigation').hasAttribute('inert')).toBe(true);
+  expect(container.querySelectorAll(`a[href="#${main.id}"]`)).toHaveLength(1);
+  await user.click(within(dialog).getByRole('button', { name: 'Annuler' }));
+  await waitFor(() => expect(skip.closest('[inert]')).toBeNull());
+  expect(screen.getByRole('main')).toBe(main);
+  expect(screen.getByRole('link', { name: 'Aller au contenu' })).toBe(skip);
+  await user.click(skip);
+  expect(document.activeElement).toBe(main);
+  expect(confirmed).not.toHaveBeenCalled();
 });
 
 it('the collapsed preference restores, exposes keyboard tooltips, persists an explicit toggle and synchronizes on focus', async () => {

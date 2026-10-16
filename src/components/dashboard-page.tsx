@@ -5,7 +5,8 @@ import {
   DashboardPendingTasks,
   DashboardRecentProjects,
   DashboardUpcomingEvents,
-} from "@mairie360/lib-components";
+} from "@mairie360/lib-components/dashboard";
+import { Skeleton } from "@mairie360/lib-components/primitives";
 import { isUsableBootstrap } from '@/lib/dashboard-bootstrap';
 import DashboardPanel from "@/components/dashboard-panel";
 import CurrentDate from "@/components/current-date";
@@ -116,6 +117,7 @@ export default function DashboardPage({ initialData }: { initialData?: Dashboard
       {!data || !view ? <>
         <h1 className="text-[28px] font-bold leading-tight">Tableau de Bord</h1>
         <p role="status">{error && !loading ? "Le tableau de bord est indisponible." : "Chargement du tableau de bord…"}</p>
+        {loading ? <div aria-hidden="true" className="mt-6 grid gap-6 xl:grid-cols-2">{[0, 1, 2].map(index => <Skeleton key={index} className="!h-64" />)}</div> : null}
       </> : <>
         {view.hasUnavailableSource && <p role="status" className="mb-4 rounded bg-white p-4">Certaines données sont temporairement indisponibles.</p>}
         {view.unusableEventCount > 0 && <p role="status" className="mb-4 rounded bg-white p-4">Certains événements reçus ont une date ou une heure illisible et ne sont pas affichés.</p>}
