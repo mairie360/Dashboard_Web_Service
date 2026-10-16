@@ -1,4 +1,5 @@
 import { useId, type ReactNode } from "react";
+import { EmptyState } from "@mairie360/lib-components/primitives";
 import { Calendar, FileCheck2, FolderOpen, type LucideIcon } from "lucide-react";
 
 const icons: Record<string, LucideIcon> = { projects: FolderOpen, tasks: FileCheck2, events: Calendar };
@@ -15,6 +16,6 @@ export default function DashboardPanel({ title, action, href, kind, empty, unava
     <header><h2 id={headingId}>{title}</h2>{href ? <a className="dashboard-panel-action" href={href}>{action}</a> : <button className="dashboard-panel-action" type="button" disabled title="Destination temporairement indisponible">{action}</button>}</header>
     {unavailable && !empty ? <p className="dashboard-source-notice">{unavailableMessage}</p> : null}
     {!empty ? <div className="dashboard-panel-content">{children}</div> : null}
-    {empty ? <div className="dashboard-empty-state"><Icon aria-hidden="true" strokeWidth={1.5} size={72} /><p>{unavailable ? unavailableMessage : emptyMessage}</p></div> : null}
+    {empty ? <EmptyState className="dashboard-empty-state !border-0 !bg-transparent !p-0" title={unavailable ? unavailableMessage : emptyMessage} icon={<Icon aria-hidden="true" strokeWidth={1.5} size={72} />} /> : null}
   </section>;
 }

@@ -1,8 +1,9 @@
 import { readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { resolve } from 'node:path';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { defaultSidebarItems } from '@mairie360/lib-components';
+import { defaultSidebarItems } from '@mairie360/lib-components/shell';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import Home from '@/components/dashboard-page';
 
@@ -10,7 +11,8 @@ const getDashboardBootstrap = vi.hoisted(() => vi.fn());
 vi.mock('@/lib/bff-client', () => ({ bffDashboard: { getDashboardBootstrap: async (options) => ({ data: await getDashboardBootstrap(options) }) } }));
 vi.mock('@/lib/front-urls', () => ({ frontUrl: vi.fn((key) => `https://${key.toLowerCase()}.example/`) }));
 
-const stylesheet = readFileSync(resolve(process.cwd(), 'src/app/globals.css'), 'utf8');
+const require = createRequire(import.meta.url);
+const stylesheet = readFileSync(require.resolve('@mairie360/lib-components/styles.css'), 'utf8') + '\n' + readFileSync(resolve(process.cwd(), 'src/app/globals.css'), 'utf8');
 const longTitle = 'DashboardTitleWithoutSpaces'.repeat(12);
 let style;
 
@@ -36,6 +38,7 @@ async function openDashboard() {
 }
 
 function shadow(value) {
+  value = value.replace(/var\((--[\w-]+)\)/g, (_match, name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim());
   // Normalize computed shadow colors; this never searches stylesheet source.
   return value.split(/,(?![^()]*\))/).map((part) => {
     const pieces = part.trim().split(/\s+(?![^()]*\))/);
