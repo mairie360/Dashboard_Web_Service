@@ -13,7 +13,7 @@ test('Dashboard calls the shared frontend workflow version with Semgrep', () => 
   const reusableWorkflows = [...workflow.matchAll(/^\s+uses:\s+mairie360\/CICD\/\.github\/workflows\/frontend-cicd\.yml@([a-f0-9]{40})\s*$/gm)];
   assert.equal(reusableWorkflows.length, 1, 'Dashboard must call the shared frontend workflow once');
   const [, version] = reusableWorkflows[0];
-  assert.equal(version, '5b7d127d46f95d8951935b6209ca7c2ca857a21d', 'only the reviewed workflow version is accepted; another upgrade requires review');
+  assert.equal(version, 'bbd2207256969f9f63e5477452d86e1f6c56339d', 'only the reviewed workflow version is accepted; another upgrade requires review');
   assert.equal(workflow.match(/cicd_version:\s*"([^"]+)"/)?.[1], version,
     'the reusable workflow ref and input must use the same version');
   assert.doesNotMatch(workflow, /semgrep_fail_on_findings:\s*false|semgrep_config:|continue-on-error:/);
@@ -37,6 +37,9 @@ test('the reusable workflow receives only its declared named secrets', () => {
   assert.deepEqual(mappings.map(([, name, source]) => [name, source]), [
     ['CODECOV_TOKEN', 'CODECOV_TOKEN'],
     ['N8N_WEBHOOK_SECRET', 'N8N_WEBHOOK_SECRET'],
+    ['ANTHROPIC_API_KEY', 'ANTHROPIC_API_KEY'],
+    ['RELEASE_APP_ID', 'RELEASE_APP_ID'],
+    ['RELEASE_APP_PK', 'RELEASE_APP_PK'],
   ]);
 });
 
@@ -147,9 +150,15 @@ test('the exact required legacy status executes both real blocking scanners with
 test('the reusable frontend workflow retains blocking defaults and only declared secrets', () => {
   assert.deepEqual(workflow().jobs.CICD, {
     permissions: { contents: 'write', packages: 'write', 'id-token': 'write' },
-    uses: 'mairie360/CICD/.github/workflows/frontend-cicd.yml@5b7d127d46f95d8951935b6209ca7c2ca857a21d',
-    with: { package_name: 'dashboard-front', node_version: '24.21.0', cicd_version: '5b7d127d46f95d8951935b6209ca7c2ca857a21d' },
-    secrets: { CODECOV_TOKEN: '${{ secrets.CODECOV_TOKEN }}', N8N_WEBHOOK_SECRET: '${{ secrets.N8N_WEBHOOK_SECRET }}' },
+    uses: 'mairie360/CICD/.github/workflows/frontend-cicd.yml@bbd2207256969f9f63e5477452d86e1f6c56339d',
+    with: { package_name: 'dashboard-front', node_version: '24.21.0', cicd_version: 'bbd2207256969f9f63e5477452d86e1f6c56339d' },
+    secrets: {
+      CODECOV_TOKEN: '${{ secrets.CODECOV_TOKEN }}',
+      N8N_WEBHOOK_SECRET: '${{ secrets.N8N_WEBHOOK_SECRET }}',
+      ANTHROPIC_API_KEY: '${{ secrets.ANTHROPIC_API_KEY }}',
+      RELEASE_APP_ID: '${{ secrets.RELEASE_APP_ID }}',
+      RELEASE_APP_PK: '${{ secrets.RELEASE_APP_PK }}',
+    },
   });
   assert.doesNotMatch(read('.github/workflows/cicd.yml'), /secrets:\s*inherit|continue-on-error:|image_scan_fail_on_findings:|semgrep_fail_on_findings:\s*false/);
 });
