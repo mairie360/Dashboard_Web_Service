@@ -19,6 +19,7 @@ const request = (pathname='/', cookie, method='GET') => new NextRequest(`https:/
 beforeEach(()=>{
   destinations.length=0;
   process.env.LOGIN_FRONT_URL='https://login.test.example/';
+  process.env.DASHBOARD_FRONT_URL='https://dashboard.test.example/';
   setBrowserFrontUrls({LOGIN_FRONT_URL:'https://login.test.example/'});
   global.window={location:{href:'https://dashboard.test.example/?project=retained',replace:href=>destinations.push(href)}};
 });
@@ -28,10 +29,11 @@ afterEach(()=>{
   if(originalDashboard===undefined)delete process.env.DASHBOARD_FRONT_URL;else process.env.DASHBOARD_FRONT_URL=originalDashboard;
 });
 
-test('an anonymous page is sent to configured Login before a bootstrap read',()=>{
+test('an anonymous page resumes at its configured frontend before a bootstrap read',()=>{
   const response=middleware(request('/?project=retained'));
   assert.equal(response.status,307);
-  assert.equal(new URL(response.headers.get('location')).origin,'https://login.test.example');
+  assert.equal(new URL(response.headers.get('location')).origin,'https://dashboard.test.example');
+  assert.equal(new URL(response.headers.get('location')).pathname,'/api/auth/resume');
   assert.equal(response.headers.get('cache-control'),'no-store');
   assert.equal(response.headers.get('set-cookie'),null,'Dashboard does not own shared-cookie expiry');
 });
@@ -40,32 +42,34 @@ for(const file of ['docker-compose-security.yml','docker-compose-performance.yml
   test(`isolated frontend readiness in ${file} has a safe configured Login without changing the probe`,()=>{
     const service=yaml.load(fs.readFileSync(path.join(__dirname,'..',file),'utf8')).services['dashboard-front'];
     process.env.LOGIN_FRONT_URL=service.environment.LOGIN_FRONT_URL;
+    process.env.DASHBOARD_FRONT_URL=service.environment.DASHBOARD_FRONT_URL;
     const probe=service.healthcheck.test;
     assert.deepEqual(probe,['CMD','curl','-fsS','-o','/dev/null','http://localhost:5000/']);
     const response=middleware(new NextRequest(probe.at(-1)));
     assert.equal(response.status,307);
-    assert.equal(new URL(response.headers.get('location')).hostname,'login.invalid');
+    assert.equal(new URL(response.headers.get('location')).pathname,'/api/auth/resume');
+    assert.equal(new URL(response.headers.get('location')).origin,new URL(service.environment.DASHBOARD_FRONT_URL).origin);
     assert.equal(response.headers.get('set-cookie'),null);
   });
 }
 
-test('a known-expired cookie goes to Login without automatically revoking the session',()=>{
+test('a known-expired cookie uses local resume without automatically revoking the session',()=>{
   const response=middleware(request('/',token(1)));
   assert.equal(response.status,307);
-  assert.equal(response.headers.get('location'),'https://login.test.example/');
+  assert.equal(new URL(response.headers.get('location')).pathname,'/api/auth/resume');
   assert.equal(response.headers.get('cache-control'),'no-store');
   assert.equal(response.headers.get('set-cookie'),null);
 });
 
-for(const [method,status] of [['HEAD',307],['POST',303]]){
-  test(`anonymous page ${method} redirects with ${status}, never forwards a mutation`,()=>{
+for(const [method,status] of [['HEAD',307],['POST',401]]){
+  test(`anonymous page ${method} responds with ${status}, never forwards a mutation`,()=>{
     const response=middleware(request('/',undefined,method));
     assert.equal(response.status,status);
     assert.equal(response.headers.get('cache-control'),'no-store');
   });
 }
 
-for(const path of ['/dashboard/bootstrap','/dashboard/unknown','/health','/check_apis','/openapi.json','/swagger.json']){
+for(const path of ['/dashboard/bootstrap','/health','/check_apis']){
   test(`anonymous data ${path} receives JSON401, not a cross-origin redirect`,async()=>{
     const response=middleware(request(path));
     assert.equal(response.status,401);
@@ -81,34 +85,37 @@ test('a rejected data mutation is not redirected or replayed',()=>{
   assert.equal(response.status,401);assert.equal(response.headers.get('location'),null);
 });
 
-for(const value of ['', 'javascript:alert(1)', 'https://user:pass@login.test.example/']){
-  test(`unavailable or unsafe Login ${JSON.stringify(value)} fails closed`,()=>{
-    process.env.LOGIN_FRONT_URL=value;
+for(const value of ['', 'javascript:alert(1)', 'https://user:pass@dashboard.test.example/']){
+  test(`unavailable or unsafe public frontend ${JSON.stringify(value)} fails closed`,()=>{
+    process.env.DASHBOARD_FRONT_URL=value;
     const response=middleware(request());
     assert.equal(response.status,503);assert.equal(response.headers.get('location'),null);
     assert.equal(response.headers.get('cache-control'),'no-store');
   });
 }
 
-test('a present non-expired or opaque token preserves the nonce CSP without pretending signature validation',()=>{
-  for(const cookie of [token(4102444800),'opaque-session-token']){
-    const response=middleware(request('/',cookie));
-    assert.equal(response.status,200);
-    const nonce=response.headers.get('x-middleware-request-x-nonce');assert.ok(nonce);
-    assert.match(response.headers.get('content-security-policy'),new RegExp(`nonce-${nonce}`));
-  }
+test('a finite unexpired JWT preserves the nonce CSP without pretending signature validation',()=>{
+  const response=middleware(request('/',token(4102444800)));
+  assert.equal(response.status,200);
+  const nonce=response.headers.get('x-middleware-request-x-nonce');assert.ok(nonce);
+  assert.match(response.headers.get('content-security-policy'),new RegExp(`nonce-${nonce}`));
+  assert.equal(middleware(request('/','opaque-session-token')).status,307);
+});
+
+for(const pathname of ['/openapi.json','/swagger.json'])test(`metadata ${pathname} is unavailable without a BFF request`,()=>{
+  const response=middleware(request(pathname));assert.equal(response.status,404);assert.equal(response.headers.get('location'),null);
 });
 
 test('metadata JSON paths are explicitly covered despite their file extension',()=>{
   assert.ok(config.matcher.includes('/openapi.json'));assert.ok(config.matcher.includes('/swagger.json'));
 });
 
-test('current repeated 401 hands off once to existing Login without another request or replay',async()=>{
+test('concurrent refused reads share one local refresh and hand off to Login without replay',async()=>{
   const calls=[];
   global.fetch=async path=>{calls.push(path);return Response.json({error:{message:'Session refusée'}},{status:401});};
   await Promise.all([assert.rejects(requestBff('/dashboard/bootstrap'),/Session refusée/),assert.rejects(requestBff('/dashboard/bootstrap'),/Session refusée/)]);
   assert.deepEqual(destinations,['https://login.test.example/?redirect=https%3A%2F%2Fdashboard.test.example%2F%3Fproject%3Dretained']);
-  assert.deepEqual(calls,['/dashboard/bootstrap','/dashboard/bootstrap']);
+  assert.deepEqual(calls,['/dashboard/bootstrap','/dashboard/bootstrap','/api/auth/refresh']);
 });
 
 for(const status of [403,503]){
@@ -154,9 +161,9 @@ for (const cookie of [undefined, token(1)]) {
     const response = middleware(request('/?project=retained&task=42', cookie));
     assert.equal(response.status, 307);
     const destination = new URL(response.headers.get('location'));
-    assert.equal(destination.origin, 'https://login.test.example');
-    assert.equal(destination.searchParams.get('resumeSession'), '1');
-    assert.equal(destination.searchParams.get('redirect'), 'https://dashboard.test.example/?project=retained&task=42');
+    assert.equal(destination.origin, 'https://dashboard.test.example');
+    assert.equal(destination.pathname, '/api/auth/resume');
+    assert.equal(destination.searchParams.get('next'), '/?project=retained&task=42');
     assert.equal(response.headers.get('set-cookie'), null);
     assert.equal(response.headers.get('cache-control'), 'no-store');
   });
@@ -168,6 +175,6 @@ test('page guard preserves refresh credentials for the owner and never tries a G
   const response = middleware(new NextRequest('https://dashboard.test.example/', { headers: { cookie: 'refreshToken=disposable-cookie-only-on-api' } }));
   assert.equal(response.status, 307);
   assert.equal(response.headers.get('set-cookie'), null);
-  assert.equal(new URL(response.headers.get('location')).searchParams.get('resumeSession'), '1');
+  assert.equal(new URL(response.headers.get('location')).pathname, '/api/auth/resume');
   assert.ok(!response.headers.get('location').includes('disposable-cookie'));
 });
