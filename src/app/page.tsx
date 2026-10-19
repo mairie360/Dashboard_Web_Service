@@ -1,4 +1,4 @@
-import { createNonce } from '@mairie360/front-kit/shared';
+import { createNonce } from '@mairie360/lib-components/shared';
 import DashboardPage from '@/components/dashboard-page';
 import { loadInitialDashboard } from '@/lib/server-dashboard';
 
