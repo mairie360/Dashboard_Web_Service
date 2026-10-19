@@ -1,4 +1,4 @@
-import { getInstanceTimeZone } from '@mairie360/front-kit/shared';
+import { getInstanceTimeZone } from '@mairie360/lib-components/shared';
 import type { ComponentProps } from 'react';
 import type { DashboardModule } from '@mairie360/lib-components/dashboard';
 import type { DashboardBootstrap } from '@mairie360/bff-dashboard-openapi/model';
