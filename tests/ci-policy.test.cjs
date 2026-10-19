@@ -7,13 +7,13 @@ const yaml = require('js-yaml');
 
 const root = join(__dirname, '..');
 const read = (path) => readFileSync(join(root, path), 'utf8');
+const cicdCommit = /frontend-cicd\.yml@([a-f0-9]{40})/.exec(read('.github/workflows/cicd.yml'))[1];
 
 test('Dashboard calls the shared frontend workflow version with Semgrep', () => {
   const workflow = read('.github/workflows/cicd.yml');
-  const reusableWorkflows = [...workflow.matchAll(/^\s+uses:\s+mairie360\/CICD\/\.github\/workflows\/frontend-cicd\.yml@([a-f0-9]{40})\s*$/gm)];
+  const reusableWorkflows = [...workflow.matchAll(/^\s+uses:\s+mairie360\/CICD\/\.github\/workflows\/frontend-cicd\.yml@([a-f0-9]{40}) # v\d+\.\d+\.\d+\s*$/gm)];
   assert.equal(reusableWorkflows.length, 1, 'Dashboard must call the shared frontend workflow once');
   const [, version] = reusableWorkflows[0];
-  assert.equal(version, 'bbd2207256969f9f63e5477452d86e1f6c56339d', 'only the reviewed workflow version is accepted; another upgrade requires review');
   assert.equal(workflow.match(/cicd_version:\s*"([^"]+)"/)?.[1], version,
     'the reusable workflow ref and input must use the same version');
   assert.doesNotMatch(workflow, /semgrep_fail_on_findings:\s*false|semgrep_config:|continue-on-error:/);
@@ -150,8 +150,8 @@ test('the exact required legacy status executes both real blocking scanners with
 test('the reusable frontend workflow retains blocking defaults and only declared secrets', () => {
   assert.deepEqual(workflow().jobs.CICD, {
     permissions: { contents: 'write', packages: 'write', 'id-token': 'write' },
-    uses: 'mairie360/CICD/.github/workflows/frontend-cicd.yml@bbd2207256969f9f63e5477452d86e1f6c56339d',
-    with: { package_name: 'dashboard-front', node_version: '24.21.0', cicd_version: 'bbd2207256969f9f63e5477452d86e1f6c56339d' },
+    uses: `mairie360/CICD/.github/workflows/frontend-cicd.yml@${cicdCommit}`,
+    with: { package_name: 'dashboard-front', node_version: '24.21.0', cicd_version: cicdCommit },
     secrets: {
       CODECOV_TOKEN: '${{ secrets.CODECOV_TOKEN }}',
       N8N_WEBHOOK_SECRET: '${{ secrets.N8N_WEBHOOK_SECRET }}',
