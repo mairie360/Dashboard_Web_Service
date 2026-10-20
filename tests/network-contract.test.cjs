@@ -173,8 +173,8 @@ describe('one front, one BFF, one OpenAPI contract', () => {
     const { dependencies = {}, devDependencies = {} } = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
     const all = { ...dependencies, ...devDependencies };
     assert.deepEqual(Object.keys(all).filter((name) => /openapi/i.test(name)), [CONTRACT_PACKAGE]);
-    // Release X.Y.Z or 0.0.0-dev.<sha40> of BFF_Dashboard main (scripts/contract-version.mjs), never staging.
-    assert.ok(isAcceptedContractVersion(all[CONTRACT_PACKAGE]), 'version publiée exacte attendue (X.Y.Z ou 0.0.0-dev.<sha>), sans plage ni pré-version staging');
+    // Release X.Y.Z, or 0.0.0-dev.<sha40> / 0.0.0-staging.<sha40> of a BFF_Dashboard main commit (scripts/contract-version.mjs).
+    assert.ok(isAcceptedContractVersion(all[CONTRACT_PACKAGE]), 'exact published version expected (X.Y.Z, 0.0.0-dev.<sha> or 0.0.0-staging.<sha>), no range');
     assert.equal(resolveOrvalPackage(CONTRACT_PACKAGE).version, all[CONTRACT_PACKAGE]);
   });
 
@@ -187,11 +187,13 @@ describe('one front, one BFF, one OpenAPI contract', () => {
     }
   });
 
-  test('the contract version policy accepts releases and dev packages and maps them to image tags', async () => {
+  test('the contract version policy accepts releases, dev and staging packages and maps them to image tags', async () => {
     const { isAcceptedContractVersion, imageTagForContractVersion } = await import('../scripts/contract-version.mjs');
     assert.equal(imageTagForContractVersion('1.1.0'), '1.1.0');
     assert.equal(imageTagForContractVersion('0.0.0-dev.bccf2c39bac5e676c872b2089120d0e3b21ee617'), 'dev-bccf2c3');
-    for (const rejected of ['^1.1.0', '1.1', '0.0.0-staging.bccf2c39bac5e676c872b2089120d0e3b21ee617', '0.0.0-dev.bccf2c3', 'latest']) {
+    assert.equal(isAcceptedContractVersion('0.0.0-staging.bccf2c39bac5e676c872b2089120d0e3b21ee617'), true);
+    assert.equal(imageTagForContractVersion('0.0.0-staging.bccf2c39bac5e676c872b2089120d0e3b21ee617'), 'staging-bccf2c3');
+    for (const rejected of ['^1.1.0', '1.1', '0.0.0-staging.bccf2c3', '0.0.0-dev.bccf2c3', 'latest']) {
       assert.equal(isAcceptedContractVersion(rejected), false, rejected);
     }
   });
