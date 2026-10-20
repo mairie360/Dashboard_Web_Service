@@ -3,7 +3,7 @@ const { test } = require('node:test');
 require('./support/load-ts.cjs');
 const { NextRequest } = require('next/server');
 const { middleware } = require('../src/middleware.ts');
-const { buildContentSecurityPolicy } = require('@mairie360/front-kit/shared');
+const { buildContentSecurityPolicy } = require('@mairie360/lib-components/shared');
 const nextConfig = require('../next.config.ts').default;
 
 const pageRequest = () => new NextRequest('http://localhost:5000/', {headers:{cookie:'accessToken=e30.eyJleHAiOjQxMDI0NDQ4MDB9.signature'}});

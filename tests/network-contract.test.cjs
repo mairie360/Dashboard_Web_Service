@@ -101,7 +101,7 @@ describe('every network call of the front targets an operation of an OpenAPI con
 
   test('the client only builds same-origin requests', () => {
     const client = sources.find(({ file }) => file === 'lib/bff-client.ts');
-    assert.ok(policy.imports(client.ast).includes('@mairie360/front-kit/browser'));
+    assert.ok(policy.imports(client.ast).includes('@mairie360/lib-components/browser'));
     const [call] = calls(client.ast, 'sessionFetch');
     assert.ok(policy.parameterReference(call.arguments[0]));
     assert.ok(ts.isObjectLiteralExpression(call.arguments[1]));

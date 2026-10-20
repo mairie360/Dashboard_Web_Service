@@ -61,7 +61,7 @@ class FrontApp {
   setOwner(userBff) {
     this.userBff = userBff;
     this.ownerOrigin = 'https://login.owner.test';
-    const { createSessionRefreshHandler } = require('@mairie360/front-kit/next');
+    const { createSessionRefreshHandler } = require('@mairie360/lib-components/next');
     this.ownerRefresh = createSessionRefreshHandler({ userBffUrl: () => userBff.url, cookieOptions: () => ({ secure: false }), allowedOrigins: () => [this.origin] });
     this.allow(userBff.url);
     return this;
@@ -115,7 +115,7 @@ class FrontApp {
     this.previousLoginUrl === undefined ? delete process.env.LOGIN_FRONT_URL : process.env.LOGIN_FRONT_URL = this.previousLoginUrl;
   }
 
-  reset() { if (this.userBff) require('@mairie360/front-kit/next').forgetUserSession(this.userBff.url, this.cookies.refreshToken); this.calls.length = 0; this.violations.length = 0; this.cookies = {}; }
+  reset() { if (this.userBff) require('@mairie360/lib-components/next').forgetUserSession(this.userBff.url, this.cookies.refreshToken); this.calls.length = 0; this.violations.length = 0; this.cookies = {}; }
 
   /** Fetch d'une URL du front, tel qu'émis par le navigateur (cookies de la page inclus). */
   browserFetch(pathname, init) { return global.fetch(pathname, init); }
