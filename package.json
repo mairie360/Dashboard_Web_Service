@@ -19,7 +19,7 @@
     "test:bundle": "node --test tests/bundle/*.test.cjs"
   },
   "dependencies": {
-    "@mairie360/bff-dashboard-openapi": "2.0.0",
+    "@mairie360/bff-dashboard-openapi": "0.0.0-dev.51b0f3200f958d32b34399c30af7de24abbe979b",
     "@mairie360/lib-components": "0.10.2",
     "axios": "1.20.0",
     "lucide-react": "1.0.0",
