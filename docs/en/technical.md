@@ -154,7 +154,7 @@ scrolling **main** as well as the document at 390×844, 768×1024 and 1280×720;
 component and CSS guards alone cannot prove fit. Event columns retain their
 existing 1/2/3-column breakpoints.
 
-This front's only contract is the published `@mairie360/bff-dashboard-openapi` package, pinned to an exact version: a release `X.Y.Z`, or, while no release is cut, the `0.0.0-dev.<sha>` package the CICD publishes for the current commit of BFF_Dashboard `main` (MAIR-509; no range, no `staging` prerelease; `scripts/contract-version.mjs` holds the policy and maps a dev package to the `dev-<sha7>` image tag of the stacks), never the local BFF checkout. To adopt a newly published version:
+This front's only contract is the published `@mairie360/bff-dashboard-openapi` package, pinned to an exact version: a release `X.Y.Z`, or, while no release is cut, the `0.0.0-dev.<sha>` package the CICD publishes for the current commit of BFF_Dashboard `main` (MAIR-509), or, once that commit is released on staging, the `0.0.0-staging.<sha40>` package of the same commit, preferred on a staging release for readability (MAIR-600; no range, no `0.0.0-staging.<short sha>`; `scripts/contract-version.mjs` holds the policy and maps a dev package to the `dev-<sha7>` image tag and a staging package to the `staging-<sha7>` image tag, same digest, of the stacks), never the local BFF checkout. To adopt a newly published version:
 
 ```bash
 npm install --save-exact @mairie360/bff-dashboard-openapi@<version>
