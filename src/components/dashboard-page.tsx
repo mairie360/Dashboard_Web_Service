@@ -9,8 +9,7 @@ import {
 import { Skeleton } from "@mairie360/lib-components/primitives";
 import { isUsableBootstrap } from '@/lib/dashboard-bootstrap';
 import DashboardPanel from "@/components/dashboard-panel";
-import CurrentDate from "@/components/current-date";
-import AccessibleShell from "@/components/accessible-shell";
+import { AccessibleShell, CurrentDate } from "@mairie360/lib-components/shell";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { bffDashboard } from "@/lib/bff-client";
 import { frontUrl } from "@/lib/front-urls";
