@@ -222,7 +222,7 @@ services:
       - backend
 
   bff-dashboard:
-    image: ${BFF_DASHBOARD_IMAGE:-ghcr.io/mairie360/bff-dashboard:2.0.0}
+    image: ${BFF_DASHBOARD_IMAGE:-ghcr.io/mairie360/bff-dashboard:dev-51b0f32}
     container_name: dashboard-front-perf-bff-dashboard
     depends_on:
       seeder:

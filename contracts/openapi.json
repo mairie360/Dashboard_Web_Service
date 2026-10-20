@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "bff_dashboard",
-    "version": "2.0.0"
+    "version": "0.0.0-dev.51b0f3200f958d32b34399c30af7de24abbe979b"
   },
   "paths": {
     "/health": {
