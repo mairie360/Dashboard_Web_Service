@@ -220,7 +220,8 @@ test('partially unusable event dates retain only valid returned events and offer
   assert.match(view.text(), /Certains événements reçus ont une date ou une heure illisible/);
   assert.doesNotMatch(view.text(), /Impossible calendar date/);
   // The server-view collector can revisit a shared host node; count real rendered controls.
-  assert.equal((view.html.match(/<button\b[^>]*>Actualiser les dates illisibles<\/button>/g) ?? []).length, 1);
+  // MAIR-608: the lib RetryButton carries its icon before the label.
+  assert.equal((view.html.match(/<button\b[^>]*>(?:<svg\b[^]*?<\/svg>)?Actualiser les dates illisibles<\/button>/g) ?? []).length, 1);
   assert.match(view.text(), /Budget participatif/);
   assert.deepEqual(upstreamCalls(), ['GET /dashboard/bootstrap']);
 });

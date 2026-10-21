@@ -14,11 +14,24 @@ test('MAIR-607 the dashboard owns its module and panels instead of importing a l
     if (!/\.(tsx?|mjs|cjs|js)$/.test(file)) continue;
     assert.doesNotMatch(fs.readFileSync(file, 'utf8'), /@mairie360\/lib-components\/(dashboard|settings|projects|messages|calendar|admin|elearning)/, `${path.relative(root, file)} must not import a removed library entry`);
   }
-  for (const component of ['DashboardModule', 'DashboardMetricCards', 'DashboardPendingTasks', 'DashboardPerformancePanel', 'DashboardQuickActions', 'DashboardRecentProjects', 'DashboardUpcomingEvents']) {
-    assert.ok(fs.existsSync(path.join(root, 'src/components/dashboard', `${component}.tsx`)), `${component} lives in src/components/dashboard`);
-    assert.match(read('src/components/dashboard/index.ts'), new RegExp(`export \\{ ${component} \\}`));
+  // MAIR-608: one folder per panel, split into list + row sub-components; the page is composed under page/.
+  const tree = {
+    'DashboardModule.tsx': 'DashboardModule',
+    'metrics/DashboardMetricCards.tsx': 'DashboardMetricCards',
+    'projects/DashboardRecentProjects.tsx': 'DashboardRecentProjects', 'projects/ProjectRow.tsx': 'ProjectRow',
+    'tasks/DashboardPendingTasks.tsx': 'DashboardPendingTasks', 'tasks/TaskRow.tsx': 'TaskRow',
+    'events/DashboardUpcomingEvents.tsx': 'DashboardUpcomingEvents', 'events/EventRow.tsx': 'EventRow', 'events/EventDateBadge.tsx': 'EventDateBadge',
+    'quick-actions/DashboardQuickActions.tsx': 'DashboardQuickActions', 'quick-actions/QuickActionButton.tsx': 'QuickActionButton',
+    'performance/DashboardPerformancePanel.tsx': 'DashboardPerformancePanel', 'performance/PerformanceMetric.tsx': 'PerformanceMetric',
+    'panels/DashboardPanel.tsx': 'DashboardPanel', 'page/DashboardPage.tsx': 'DashboardPage', 'page/DashboardGrid.tsx': 'DashboardGrid',
+    'page/DashboardHeader.tsx': 'DashboardHeader', 'page/DashboardNotices.tsx': 'DashboardNotices', 'page/DashboardLoading.tsx': 'DashboardLoading',
+  };
+  const index = read('src/components/dashboard/index.ts');
+  for (const [file, component] of Object.entries(tree)) {
+    assert.ok(fs.existsSync(path.join(root, 'src/components/dashboard', file)), `${component} lives in src/components/dashboard/${file}`);
+    assert.match(index, new RegExp(`\\b${component}\\b`), `${component} is exported by the dashboard barrel`);
   }
-  assert.match(read('src/components/dashboard-page.tsx'), /from "@\/components\/dashboard"/);
+  assert.match(read('src/components/dashboard-page.tsx'), /from "@\/components\/dashboard\/page\/DashboardPage"/);
   assert.match(read('src/lib/dashboard-view.ts'), /from '@\/components\/dashboard'/);
 });
 

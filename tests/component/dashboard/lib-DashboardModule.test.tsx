@@ -149,7 +149,8 @@ describe('DashboardModule', () => {
     );
     expect(actions[0].className).toBe(actions[1].className);
     expect(actions[1].className).toBe(actions[2].className);
-    expect(actions[0]).toHaveClass('border-[var(--mairie-border)]', 'bg-[var(--mairie-surface-raised)]', 'text-[var(--mairie-text)]');
+    // MAIR-608: the lib LinkButton (Figma Base/Button/Link, TextIcon) is the one action treatment of a panel.
+    for (const action of actions) { expect(action.tagName).toBe('BUTTON'); expect(action.querySelector('svg')).not.toBeNull(); expect(action).toHaveClass('underline'); }
 
     actions.forEach((action) => fireEvent.click(action));
     expect(onViewAllProjects).toHaveBeenCalledTimes(1);
