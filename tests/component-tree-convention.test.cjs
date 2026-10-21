@@ -41,8 +41,14 @@ test('a component imports its sub-components through their index.ts only', () =>
     for (const match of text.matchAll(/from\s+['"]([^'"]+)['"]/g)) {
       const spec = match[1];
       if (!spec.startsWith('.') && !spec.startsWith('@/components/')) continue;
-      assert.doesNotMatch(spec, /components\/[^/]+\/./, `${rel(file)} must import a component through its folder, not ${spec}`);
       assert.doesNotMatch(spec, /\/index$/, `${rel(file)} must import the folder, not ${spec}`);
+      // A file inside another component's folder (its helpers included) is reached through that folder only.
+      const base = spec.startsWith('@/') ? path.join(root, 'src', spec.slice(2)) : path.resolve(path.dirname(file), spec);
+      const target = ['.tsx', '.ts'].map(ext => base + ext).find(candidate => fs.existsSync(candidate));
+      if (!target) continue;
+      const owner = path.dirname(target);
+      const ownerIsComponent = fs.existsSync(path.join(owner, `${path.basename(owner)}.tsx`));
+      if (ownerIsComponent && !file.startsWith(owner + path.sep)) assert.fail(`${rel(file)} must import ${rel(owner)} through its index.ts, not ${spec}`);
     }
   }
 });
