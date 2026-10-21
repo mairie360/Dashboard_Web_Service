@@ -1,55 +1,50 @@
 # Journal des releases — Dashboard_Web_Service
 
-<!-- release-journal-state {"dev": "ca5636b1c6bfb4b718b7390e7261057759a2e672", "prod": "46b5af3cdec66ac0860e4ceeb91f63f359a0fda4", "prod_tag": "v1.5.0", "staging": "f6719326a93bfbfff94cc41f6a6d07465def06b2", "updated": {"dev": "2026-10-21 11:01 UTC", "staging": "2026-10-20 19:04 UTC"}} -->
+<!-- release-journal-state {"dev": "ca5636b1c6bfb4b718b7390e7261057759a2e672", "prod": "46b5af3cdec66ac0860e4ceeb91f63f359a0fda4", "prod_tag": "v1.5.0", "staging": "ca5636b1c6bfb4b718b7390e7261057759a2e672", "updated": {"dev": "2026-10-21 11:01 UTC", "staging": "2026-10-21 11:06 UTC"}} -->
 > Tenu à jour par la CI (`mairie360/CICD`, action `release/release-journal`) à chaque passage en dev, staging et prod. Ne pas modifier à la main : le fichier est réécrit au passage suivant.
 
 | Environnement | Version | Commit | Mis à jour |
 | --- | --- | --- | --- |
 | prod | v1.5.0 | `46b5af3` | — |
-| staging | — | `f671932` | 2026-10-20 19:04 UTC |
+| staging | — | `ca5636b` | 2026-10-21 11:06 UTC |
 | dev | — | `ca5636b` | 2026-10-21 11:01 UTC |
 
 ## Ajouté sur main depuis la dernière release prod (v1.5.0)
 
 #### Changements de comportement
-- Un push sur `main` ne lance plus que la release dev. Staging et prod se déclenchent à la main via `promote-staging.yml` et `promote-prod.yml` (`gh workflow run promote-staging.yml -R mairie360/Dashboard_Web_Service [-f sha=<sha>]`). (MAIR-494, [#155](https://github.com/mairie360/Dashboard_Web_Service/pull/155))
-- `cicd.yml` et `contracts.yml` ne tournent plus sur push que pour `main`, et les branches de PR ne sont couvertes que par `pull_request`. Le token du workflow est en lecture seule par défaut, et seul le job `CICD` reçoit les droits d'écriture. (MAIR-436, [#131](https://github.com/mairie360/Dashboard_Web_Service/pull/131))
-- `scripts/contract-version.mjs` accepte désormais `0.0.0-staging.<sha40>` (image `staging-<sha7>`) et refuse `0.0.0-staging.<sha court>`. (MAIR-600, [#148](https://github.com/mairie360/Dashboard_Web_Service/pull/148))
+- Un push sur `main` ne lance plus que la release dev (`cicd.yml` s'arrête à `release-dev`). La staging et la prod ne se déploient plus automatiquement : elles se lancent à la main avec `promote-staging.yml` puis `promote-prod.yml` (`workflow_dispatch`, `-f sha=<sha>` facultatif). Staging refuse un commit sans tag `dev-<sha>` et sans run main vert ; prod refuse un commit sans tag `staging-<sha>`. (MAIR-494, [#155](https://github.com/mairie360/Dashboard_Web_Service/pull/155))
+- Le contrat `@mairie360/bff-dashboard-openapi` passe de `0.0.0-dev` à `0.0.0-staging`, puis à la version publiée `2.1.0`. Les stacks de test démarrent `ghcr.io/mairie360/bff-dashboard:2.1.0`, avec `core-api` 2.2.0, `calendar-api` 1.2.0, `project-api` 1.2.0 et `database` / `liquibase-migrations` 3.3.0. (MAIR-612, [#164](https://github.com/mairie360/Dashboard_Web_Service/pull/164) ; [#160](https://github.com/mairie360/Dashboard_Web_Service/pull/160), [#161](https://github.com/mairie360/Dashboard_Web_Service/pull/161), [#162](https://github.com/mairie360/Dashboard_Web_Service/pull/162), [#163](https://github.com/mairie360/Dashboard_Web_Service/pull/163))
 
 #### Technique
-- Contrat `@mairie360/bff-dashboard-openapi` épinglé en `2.1.0` (`contracts/openapi.json` et `package.json`), et stacks de test sur `ghcr.io/mairie360/bff-dashboard:2.1.0`. (MAIR-612, [#164](https://github.com/mairie360/Dashboard_Web_Service/pull/164))
-- Images des stacks de test : `core-api` 2.2.0 ([#161](https://github.com/mairie360/Dashboard_Web_Service/pull/161)), `calendar-api` 1.2.0 ([#160](https://github.com/mairie360/Dashboard_Web_Service/pull/160)), `project-api` 1.2.0 ([#162](https://github.com/mairie360/Dashboard_Web_Service/pull/162)), `database` et `liquibase-migrations` 3.3.0 ([#163](https://github.com/mairie360/Dashboard_Web_Service/pull/163)).
-- CICD épinglé de v4.3.2 à v4.4.3 (`cicd.yml`, `dev-dependency-exception.yml`, `promote-*.yml`). Les secrets du journal de release (`ANTHROPIC_API_KEY`, `RELEASE_APP_ID`, `RELEASE_APP_PK`) sont transmis. (MAIR-571 et MAIR-494, [#138](https://github.com/mairie360/Dashboard_Web_Service/pull/138), [#142](https://github.com/mairie360/Dashboard_Web_Service/pull/142), [#151](https://github.com/mairie360/Dashboard_Web_Service/pull/151), [#159](https://github.com/mairie360/Dashboard_Web_Service/pull/159))
-- Le front n'utilise plus le paquet vendoré `@mairie360/front-kit` : il importe `@mairie360/lib-components` 0.10.2 par sous-chemins, et un test `test:bundle` vérifie le build client. (MAIR-126, [#140](https://github.com/mairie360/Dashboard_Web_Service/pull/140), [#144](https://github.com/mairie360/Dashboard_Web_Service/pull/144))
-- Tests de politique CI (`cicd-pin.test.cjs`, `workflow-permissions.test.cjs`) et règle Renovate sur `cicd_version` / `cicd_ref`, avec le test de bundle AST.
+- Front : les imports `@mairie360/front-kit` (archive vendored) deviennent des sous-chemins de `@mairie360/lib-components` 0.10.2, sans changement de comportement annoncé ; `npm run test:bundle` vérifie le build client. (MAIR-126, [#140](https://github.com/mairie360/Dashboard_Web_Service/pull/140), [#144](https://github.com/mairie360/Dashboard_Web_Service/pull/144))
+- Durcissement CI : jeton en lecture seule par défaut, écriture réservée au job de release, `contracts.yml` et `cicd.yml` déclenchés sur push vers `main` uniquement. Image Dockerfile épinglée sur Node 24.21.0 et token passé en secret BuildKit (d'après la description ; diff non complet). (MAIR-436, [#131](https://github.com/mairie360/Dashboard_Web_Service/pull/131))
+- CICD épinglé sur v4.4.0 puis v4.4.3, avec les secrets du journal de release (`ANTHROPIC_API_KEY`, `RELEASE_APP_ID`, `RELEASE_APP_PK`) transmis au workflow réutilisable. (MAIR-571, [#138](https://github.com/mairie360/Dashboard_Web_Service/pull/138) ; [#151](https://github.com/mairie360/Dashboard_Web_Service/pull/151), [#159](https://github.com/mairie360/Dashboard_Web_Service/pull/159), [#164](https://github.com/mairie360/Dashboard_Web_Service/pull/164))
+- Le script `contract-version` accepte `0.0.0-staging.<sha40>` et refuse le sha court ; les tests de politique et de bundle sont mis à jour. (MAIR-600, [#148](https://github.com/mairie360/Dashboard_Web_Service/pull/148) ; MAIR-575, [#146](https://github.com/mairie360/Dashboard_Web_Service/pull/146))
+- Les tests de politique CICD lisent désormais le commit épinglé dans `cicd.yml` et vérifient le pin `<sha> # vX.Y.Z` suivi par Renovate. (MAIR-571, [#142](https://github.com/mairie360/Dashboard_Web_Service/pull/142))
 
 ## Différence dev → staging (en dev, pas encore en staging)
 
-#### Changements de comportement
-- Un push sur `main` ne lance plus que la release dev : staging et prod passent par `promote-staging.yml` et `promote-prod.yml`, lancés à la main. (MAIR-494, [#155](https://github.com/mairie360/Dashboard_Web_Service/pull/155))
-
-#### Technique
-- Les stacks de test démarrent le BFF `ghcr.io/mairie360/bff-dashboard:2.1.0` au lieu de `staging-3d74a6a`. Le contrat `@mairie360/bff-dashboard-openapi` passe de `0.0.0-staging.3d74a6a...` à `2.1.0`, et `contracts/openapi.json` ne change que sa version. (MAIR-612, [#164](https://github.com/mairie360/Dashboard_Web_Service/pull/164))
-- Images des stacks de test : `core-api` 2.2.0 ([#161](https://github.com/mairie360/Dashboard_Web_Service/pull/161)), `calendar-api` 1.2.0 ([#160](https://github.com/mairie360/Dashboard_Web_Service/pull/160)), `project-api` 1.2.0 ([#162](https://github.com/mairie360/Dashboard_Web_Service/pull/162)), `database` et `liquibase-migrations` 3.3.0 ([#163](https://github.com/mairie360/Dashboard_Web_Service/pull/163)).
-- CICD épinglé de v4.3.2 à v4.4.0 puis v4.4.3 dans `cicd.yml`, `dev-dependency-exception.yml` et les workflows de promotion. (MAIR-494, [#151](https://github.com/mairie360/Dashboard_Web_Service/pull/151), [#159](https://github.com/mairie360/Dashboard_Web_Service/pull/159))
+_Rien._
 
 ## Différence staging → prod (en staging, pas encore en prod)
 
 #### Changements de comportement
-- `scripts/contract-version.mjs` accepte `0.0.0-staging.<sha40>` (image `staging-<sha7>`) et refuse `0.0.0-staging.<sha court>`. Les contrôles de contrat qui utilisaient un sha court échoueront. (MAIR-600, [#148](https://github.com/mairie360/Dashboard_Web_Service/pull/148))
-- `cicd.yml` et `contracts.yml` ne tournent plus sur push que pour `main`. Le token du workflow est en lecture seule par défaut. (MAIR-436, [#131](https://github.com/mairie360/Dashboard_Web_Service/pull/131))
+- Un push sur `main` ne lance plus que la release dev (`cicd.yml` s'arrête à `release-dev`). La staging et la prod ne se déploient plus automatiquement : elles se lancent à la main avec `promote-staging.yml` puis `promote-prod.yml` (`workflow_dispatch`, `-f sha=<sha>` facultatif). Staging refuse un commit sans tag `dev-<sha>` et sans run main vert ; prod refuse un commit sans tag `staging-<sha>`. (MAIR-494, [#155](https://github.com/mairie360/Dashboard_Web_Service/pull/155))
+- Le contrat `@mairie360/bff-dashboard-openapi` passe de `0.0.0-staging` à la version publiée `2.1.0`. Les stacks de test démarrent `ghcr.io/mairie360/bff-dashboard:2.1.0`, avec `core-api` 2.2.0, `calendar-api` 1.2.0, `project-api` 1.2.0 et `database` / `liquibase-migrations` 3.3.0. (MAIR-612, [#164](https://github.com/mairie360/Dashboard_Web_Service/pull/164) ; [#160](https://github.com/mairie360/Dashboard_Web_Service/pull/160), [#161](https://github.com/mairie360/Dashboard_Web_Service/pull/161), [#162](https://github.com/mairie360/Dashboard_Web_Service/pull/162), [#163](https://github.com/mairie360/Dashboard_Web_Service/pull/163))
 
 #### Technique
-- Stacks de test alignées sur les releases prod : BFF `2.0.0`, `database` et `liquibase-migrations` 3.2.0, `core-api` 2.1.0, `project-api` 1.1.0, `calendar-api` 1.1.0. (MAIR-569, [#136](https://github.com/mairie360/Dashboard_Web_Service/pull/136))
-- Le BFF passe par le paquet dev `0.0.0-dev.51b0f32` (image `dev-51b0f32`), puis par `0.0.0-staging.3d74a6a...` (image `staging-3d74a6a`). Le diff de #148 est tronqué : seules les parties visibles ont été vérifiées. (MAIR-575 et MAIR-600, [#146](https://github.com/mairie360/Dashboard_Web_Service/pull/146), [#148](https://github.com/mairie360/Dashboard_Web_Service/pull/148))
-- CICD épinglé à v4.3.1 puis v4.3.2, avec les secrets du journal de release (`ANTHROPIC_API_KEY`, `RELEASE_APP_ID`, `RELEASE_APP_PK`) et la règle Renovate associée. (MAIR-571, [#138](https://github.com/mairie360/Dashboard_Web_Service/pull/138), [#142](https://github.com/mairie360/Dashboard_Web_Service/pull/142))
-- Le front n'utilise plus le paquet vendoré `@mairie360/front-kit` : il importe `@mairie360/lib-components` 0.10.2 par sous-chemins (aucun changement de comportement annoncé). Un test `test:bundle` est ajouté au workflow de performance. (MAIR-126, [#140](https://github.com/mairie360/Dashboard_Web_Service/pull/140), [#144](https://github.com/mairie360/Dashboard_Web_Service/pull/144))
+- Front : les imports `@mairie360/front-kit` (archive vendored) deviennent des sous-chemins de `@mairie360/lib-components` 0.10.2, sans changement de comportement annoncé ; `npm run test:bundle` vérifie le build client. (MAIR-126, [#140](https://github.com/mairie360/Dashboard_Web_Service/pull/140), [#144](https://github.com/mairie360/Dashboard_Web_Service/pull/144))
+- Durcissement CI : jeton en lecture seule par défaut, écriture réservée au job de release, `contracts.yml` et `cicd.yml` déclenchés sur push vers `main` uniquement. Image Dockerfile épinglée sur Node 24.21.0 et token passé en secret BuildKit (d'après la description ; diff non complet). (MAIR-436, [#131](https://github.com/mairie360/Dashboard_Web_Service/pull/131))
+- CICD épinglé sur v4.4.0 puis v4.4.3, avec les secrets du journal de release (`ANTHROPIC_API_KEY`, `RELEASE_APP_ID`, `RELEASE_APP_PK`) transmis au workflow réutilisable. (MAIR-571, [#138](https://github.com/mairie360/Dashboard_Web_Service/pull/138) ; [#151](https://github.com/mairie360/Dashboard_Web_Service/pull/151), [#159](https://github.com/mairie360/Dashboard_Web_Service/pull/159), [#164](https://github.com/mairie360/Dashboard_Web_Service/pull/164))
+- Le script `contract-version` accepte `0.0.0-staging.<sha40>` et refuse le sha court ; les tests de politique et de bundle sont mis à jour. (MAIR-600, [#148](https://github.com/mairie360/Dashboard_Web_Service/pull/148) ; MAIR-575, [#146](https://github.com/mairie360/Dashboard_Web_Service/pull/146))
+- Les tests de politique CICD lisent désormais le commit épinglé dans `cicd.yml` et vérifient le pin `<sha> # vX.Y.Z` suivi par Renovate. (MAIR-571, [#142](https://github.com/mairie360/Dashboard_Web_Service/pull/142))
 
 ## Historique des passages
 
 <!-- release-journal-history:start -->
 | Date | Environnement | Version | Commit | Run |
 | --- | --- | --- | --- | --- |
+| 2026-10-21 11:06 UTC | staging | — | `ca5636b` | [run](https://github.com/mairie360/Dashboard_Web_Service/actions/runs/39588977914) |
 | 2026-10-21 11:01 UTC | dev | — | `ca5636b` | [run](https://github.com/mairie360/Dashboard_Web_Service/actions/runs/39587327950) |
 | 2026-10-21 10:54 UTC | dev | — | `1125ee1` | [run](https://github.com/mairie360/Dashboard_Web_Service/actions/runs/39585017375) |
 | 2026-10-21 10:53 UTC | dev | — | `c6d2efd` | [run](https://github.com/mairie360/Dashboard_Web_Service/actions/runs/39584959936) |
