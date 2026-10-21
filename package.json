@@ -20,7 +20,7 @@
   },
   "dependencies": {
     "@mairie360/bff-dashboard-openapi": "0.0.0-staging.3d74a6a1c8e32709fd9e41a91a661971ce1fb8a0",
-    "@mairie360/lib-components": "1.0.2",
+    "@mairie360/lib-components": "1.0.3",
     "axios": "1.20.0",
     "lucide-react": "1.0.0",
     "next": "16.3.8",
@@ -33,6 +33,7 @@
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "16.3.3",
     "@testing-library/user-event": "14.6.7",
+    "@types/jest-axe": "3.5.9",
     "@types/node": "^24.0.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
