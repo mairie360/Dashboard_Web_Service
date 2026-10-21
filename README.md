@@ -12,7 +12,7 @@ The application shell (collapsible sidebar, top bar, footer, page date) comes fr
 
 ## Dashboard module — MAIR-607
 
-The dashboard module (`DashboardModule` and its panels) used to come from `@mairie360/lib-components/dashboard`. The library now keeps only components shared by several fronts, so these components live in `src/components/dashboard/` with their tests under `tests/component/dashboard/` (same rendered HTML). `tests/lib-business-ownership.test.cjs` pins that no removed library entry is imported.
+The dashboard module (`DashboardModule` and its panels) used to come from `@mairie360/lib-components/dashboard`. The library now keeps only components shared by several fronts, so these components live in `src/components/` (one folder per component: `DashboardModule/`, `DashboardPage/` and the shared panels) with their tests beside each component (`Name.test.tsx`) (same rendered HTML). `tests/lib-business-ownership.test.cjs` pins that no removed library entry is imported.
 
 Le module tableau de bord (`DashboardModule` et ses panneaux) venait de `@mairie360/lib-components/dashboard`. La lib ne garde que les composants partagés par plusieurs fronts : ces composants vivent désormais dans `src/components/dashboard/`, avec leurs tests dans `tests/component/dashboard/` (rendu HTML identique).
 
