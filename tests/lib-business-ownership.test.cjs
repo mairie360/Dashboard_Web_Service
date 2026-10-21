@@ -2,6 +2,7 @@ const assert = require('node:assert/strict');
 const { test } = require('node:test');
 const fs = require('node:fs');
 const path = require('node:path');
+require('./support/load-ts.cjs');
 
 const root = path.resolve(__dirname, '..');
 const read = file => fs.readFileSync(path.join(root, file), 'utf8');
@@ -33,6 +34,21 @@ test('MAIR-607 the dashboard owns its module and panels instead of importing a l
   }
   assert.match(read('src/components/dashboard-page.tsx'), /from "@\/components\/dashboard\/page\/DashboardPage"/);
   assert.match(read('src/lib/dashboard-view.ts'), /from '@\/components\/dashboard'/);
+});
+
+// MAIR-608: callers import the dashboard through its barrel; every re-export must resolve at runtime.
+test('MAIR-608 the dashboard barrel resolves every public export at runtime', () => {
+  const barrel = require('../src/components/dashboard/index.ts');
+  const components = ['DashboardModule', 'DashboardMetricCards', 'DashboardPendingTasks', 'TaskRow', 'DashboardPerformancePanel',
+    'PerformanceMetric', 'DashboardQuickActions', 'QuickActionButton', 'DashboardRecentProjects', 'ProjectRow',
+    'DashboardUpcomingEvents', 'EventRow', 'EventDateBadge', 'DashboardPanel', 'DashboardPanelAction', 'PanelViewAll',
+    'DashboardHeader', 'DashboardNotices', 'DashboardLoading', 'DashboardGrid', 'DashboardPage', 'useDashboardData'];
+  const helpers = ['metricTrend', 'clampProgress', 'byStart', 'eventDateParts', 'dashboardGreeting',
+    'reloadLabel', 'calendarEventHref', 'navigateTo', 'projectHref'];
+  for (const name of [...components, ...helpers]) assert.equal(typeof barrel[name], 'function', `${name} is re-exported as a function`);
+  for (const name of ['projectStatusBadge', 'projectStatusLabels', 'panelMessages', 'dashboardUrls']) assert.ok(barrel[name] && typeof barrel[name] === 'object', `${name} is re-exported as data`);
+  assert.deepEqual(Object.keys(barrel).sort(), [...components, ...helpers, 'projectStatusBadge', 'projectStatusLabels', 'panelMessages', 'dashboardUrls'].sort(),
+    'the barrel exports exactly the documented dashboard API');
 });
 
 test('MAIR-607 the installed library no longer publishes a dashboard entry', () => {
