@@ -4,7 +4,7 @@ const { JSDOM } = require('jsdom');
 require('./support/load-ts.cjs');
 const React = require('react');
 const { renderToStaticMarkup } = require('react-dom/server');
-const DashboardPanel = require('../src/components/dashboard-panel.tsx').default;
+const DashboardPanel = require('../src/components/DashboardPage/components/DashboardGrid/components/DashboardPanel/index.ts').default;
 
 for (const [unavailable, message] of [
   [false, 'Aucun projet récent.'],

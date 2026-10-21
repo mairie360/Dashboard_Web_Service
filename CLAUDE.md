@@ -47,9 +47,40 @@ The security/performance stacks default `BFF_DASHBOARD_IMAGE` to the `ghcr.io/ma
 
 Figma is the source of truth: design and agree any UI change on **Mairie360 – Dashboard_Web_Service** (https://www.figma.com/design/U4LxYJ8TDpZxqB8BmpBuRh) first, then code it. Shared components come from the lib mockup https://www.figma.com/design/T7vetUfuzPEXk5TxjHRiO2 and are instantiated, never redrawn.
 
+## Component tree convention
+
+Every component under `src/components/` is a **folder named after it**, and the folder tree
+mirrors the composition tree:
+
+```
+Name/
+  index.ts          # exports the component (and the helpers it owns)
+  Name.tsx          # imports ONLY its direct sub-components, through their index.ts
+  Name.test.tsx     # its tests, co-located (vitest + jsdom)
+  components/       # one such folder per direct sub-component, recursively
+```
+
+- A component needs nothing but the `index.ts` of its direct sub-components: `Name.tsx` imports
+  `./components/Sub`, never `./components/Sub/Sub` nor a sub-sub-component. Leaves are folders
+  too (without `components/`).
+- Helpers a component owns (models, hooks, `*.ts`) sit beside it and are exported by its
+  `index.ts`; a helper shared by two siblings sits in their closest common ancestor.
+- A big component is acceptable only for a technical reason stated in a comment; otherwise
+  split it so that each visible part is a component and what composes it a sub-component.
+- Page and journey tests stay in `tests/`; per-component tests are the co-located
+  `Name.test.tsx`. `tests/component-tree-convention.test.cjs` enforces the folder, the index,
+  the co-located test and the index-only imports.
+
+## Front tickets and the Figma mockup
+
+A front ticket (Jira + GitHub issue + PR) **must link the Figma frame that serves as the
+example** of what is being built or changed. Without that link the ticket cannot be worked
+on, unless the change does not affect the display (tooling, tests, proxy, contracts…). Update
+and agree the mockup first, then code it: the sync direction is Figma → code.
+
 ## Architecture
 
-- **Dashboard module owned here (MAIR-607) and split into sub-components on the normalised lib (MAIR-608)** — `src/components/dashboard/` is one folder per panel, each split into list + row: `projects/` (`DashboardRecentProjects`, `ProjectRow`, `project-status.ts`), `tasks/` (`DashboardPendingTasks`, `TaskRow`), `events/` (`DashboardUpcomingEvents`, `EventRow`, `EventDateBadge`, `event-date.ts`), `metrics/` (lib `MetricCard`), `quick-actions/` (`QuickActionButton`), `performance/` (`PerformanceMetric`), `panels/` (`DashboardPanel` on the lib `Panel` + `DataState`, `PanelViewAll`), and `page/` (`DashboardPage` = shell + `DashboardNotices` + `DashboardHeader` on the lib `PageHeader` + `DashboardGrid` or `DashboardLoading`; `use-dashboard-data.ts` holds the bootstrap read, page-return reload and retained-cards rule; `dashboard-links.ts` the module destinations). The barrel `index.ts` exports every level. `src/components/dashboard-page.tsx` / `dashboard-panel.tsx` only re-export (app router and tests). Rows use the lib `Text` presets, `StatusBadge`, `PriorityPill`, `ProgressMeter`; `globals.css` keeps layout and wrapping only, colours come from the `--mairie-*` tokens. Tests: `tests/component/dashboard/units/*.test.tsx` (one per level: rows, page parts, hook/links), `tests/component/dashboard/lib-*.test.tsx` (panels and module), `tests/lib-business-ownership.test.cjs` (tree + barrel). The Figma mockup instantiates the lib `PageHeader`, `Panel` titles/actions, `Status/*`, `Priority/*`, `ProgressMeter`, `Skeleton/Card`, `DataState`, `Alert/Unavailable`, `Button/Retry`.
+- **Dashboard module owned here (MAIR-607) and laid out as a component tree (MAIR-608)** — `src/components/` holds two roots and the panels they share, each a component folder (see *Component tree convention*): `DashboardPage/` (the app page: `use-dashboard-data.ts` for the bootstrap read, page-return reload and retained-cards rule; `components/DashboardGrid/` with `dashboard-links.ts` and `components/DashboardPanel/` on the lib `Panel` + `DataState`; `components/DashboardNotices/`, `components/DashboardLoading/`), `DashboardModule/` (storybook-style composition from prepared data: `components/DashboardMetricCards/`, `DashboardPerformancePanel/components/PerformanceMetric/`, `DashboardQuickActions/components/QuickActionButton/`), and the shared panels `DashboardHeader/` (lib `PageHeader`), `DashboardRecentProjects/components/ProjectRow/` (+ `project-status.ts`), `DashboardPendingTasks/components/TaskRow/`, `DashboardUpcomingEvents/components/EventRow/components/EventDateBadge/` (+ `event-order.ts`, `event-date.ts`), `PanelViewAll/`; `dashboard-types.ts` holds the shared types. `src/app/page.tsx` imports `@/components/DashboardPage`. Rows use the lib `Text` presets, `StatusBadge`, `PriorityPill`, `ProgressMeter`; `globals.css` keeps layout and wrapping only, colours come from the `--mairie-*` tokens. Tests: the co-located `*.test.tsx` (one per component), `tests/component-tree-convention.test.cjs` (tree), `tests/lib-business-ownership.test.cjs` (no removed lib entry). The Figma mockup instantiates the lib `PageHeader`, `Panel` titles/actions, `Status/*`, `Priority/*`, `ProgressMeter`, `Skeleton/Card`, `DataState`, `Alert/Unavailable`, `Button/Retry`.
 - **Shell from the lib (MAIR-578)** — `src/components/dashboard/page/DashboardPage.tsx` renders `AccessibleShell` from `@mairie360/lib-components/shell` (the page date comes through the lib `PageHeader`); `src/lib/front-urls-provider.tsx` uses the lib `configureSidebarCookieDomain`. No local `accessible-shell.tsx`, `desktop-navigation.tsx`, `current-date.tsx` or `sidebar-preference.ts` (pinned by `tests/lib-shell-adoption.test.cjs`); the page-context and accessible-shell tests exercise the lib exports.
 
 - **Contract-gated catch-all proxy** — `src/app/[...path]/route.ts` exports `proxyBffRequest` (`src/lib/bff-proxy.ts`) for every method. It matches the path against `contracts/openapi.json` `paths` (brace segments are wildcards): unknown path → 404, method not declared → 405 with `Allow`, `.`/`..` segments → 400; `HEAD` is implied wherever `GET` is declared; `/openapi.json` and `/swagger.json` are always forwarded (GET/HEAD). The current contract only declares `/health`, `/check_apis` and `/dashboard/bootstrap`. **A BFF route is therefore reachable from the browser only once the synced contract declares it.**

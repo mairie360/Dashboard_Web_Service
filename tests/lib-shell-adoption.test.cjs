@@ -12,10 +12,10 @@ test('MAIR-578 the dashboard renders the library shell, not a local copy', () =>
   for (const copy of ['src/components/accessible-shell.tsx', 'src/components/desktop-navigation.tsx', 'src/components/current-date.tsx', 'src/lib/sidebar-preference.ts']) {
     assert.equal(fs.existsSync(path.join(root, copy)), false, `${copy} must not exist`);
   }
-  // MAIR-608: the page is composed under src/components/dashboard/page/; the date comes through the lib PageHeader.
-  const page = read('src/components/dashboard/page/DashboardPage.tsx');
+  // MAIR-608: the page is composed under src/components/DashboardPage/; the date comes through the lib PageHeader.
+  const page = read('src/components/DashboardPage/DashboardPage.tsx');
   assert.match(page, /import \{ AccessibleShell \} from "@mairie360\/lib-components\/shell"/);
-  assert.match(read('src/components/dashboard/page/DashboardHeader.tsx'), /import \{ PageHeader \} from "@mairie360\/lib-components\/primitives"/);
+  assert.match(read('src/components/DashboardHeader/DashboardHeader.tsx'), /import \{ PageHeader \} from "@mairie360\/lib-components\/primitives"/);
   assert.doesNotMatch(page, /@\/components\/(accessible-shell|desktop-navigation|current-date)/);
   assert.match(read('src/lib/front-urls-provider.tsx'), /configureSidebarCookieDomain \} from "@mairie360\/lib-components\/shell"/);
   const shell = require('@mairie360/lib-components/shell');

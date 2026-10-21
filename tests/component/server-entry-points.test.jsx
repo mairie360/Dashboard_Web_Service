@@ -10,7 +10,7 @@ vi.mock('next/font/google', () => ({ Geist: options => ({ variable: options.vari
 vi.mock('@/app/globals.css', () => ({}));
 vi.mock('@mairie360/lib-components/styles.css', () => ({}));
 import RootLayout from '@/app/layout';
-import DashboardPanel from '@/components/dashboard-panel';
+import DashboardPanel from '@/components/DashboardPage/components/DashboardGrid/components/DashboardPanel';
 import { frontUrl, setBrowserFrontUrls } from '@/lib/front-urls';
 
 function InstanceContent() {
