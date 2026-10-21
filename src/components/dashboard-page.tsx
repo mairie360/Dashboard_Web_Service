@@ -5,7 +5,7 @@ import {
   DashboardPendingTasks,
   DashboardRecentProjects,
   DashboardUpcomingEvents,
-} from "@mairie360/lib-components/dashboard";
+} from "@/components/dashboard";
 import { Skeleton } from "@mairie360/lib-components/primitives";
 import { isUsableBootstrap } from '@/lib/dashboard-bootstrap';
 import DashboardPanel from "@/components/dashboard-panel";

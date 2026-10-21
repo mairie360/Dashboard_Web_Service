@@ -10,6 +10,12 @@ Référence de chaque écran de ce front : **[Mairie360 – Dashboard_Web_Servic
 
 The application shell (collapsible sidebar, top bar, footer, page date) comes from `@mairie360/lib-components/shell` (`AccessibleShell`, `CurrentDate`, sidebar-preference helpers); this front keeps no local copy. `tests/lib-shell-adoption.test.cjs` pins that.
 
+## Dashboard module — MAIR-607
+
+The dashboard module (`DashboardModule` and its panels) used to come from `@mairie360/lib-components/dashboard`. The library now keeps only components shared by several fronts, so these components live in `src/components/dashboard/` with their tests under `tests/component/dashboard/` (same rendered HTML). `tests/lib-business-ownership.test.cjs` pins that no removed library entry is imported.
+
+Le module tableau de bord (`DashboardModule` et ses panneaux) venait de `@mairie360/lib-components/dashboard`. La lib ne garde que les composants partagés par plusieurs fronts : ces composants vivent désormais dans `src/components/dashboard/`, avec leurs tests dans `tests/component/dashboard/` (rendu HTML identique).
+
 ## Current shared UI artifact — 10 October 2026
 
 This frontend consumes the published `@mairie360/lib-components@0.6.12` artifact from source commit `6c022cb53da535fd16d4fa80a5cdb943d3791f31`. The selected manifest version, root lock entry, installed package, registry integrity and recorded distribution hashes are checked together by the release tests. Application pins and published BFF contracts are unchanged by this documentation update. Historical 0.6.11 notes below describe the earlier delivery.

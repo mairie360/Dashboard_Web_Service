@@ -1,6 +1,6 @@
 import { getInstanceTimeZone } from '@mairie360/lib-components/shared';
 import type { ComponentProps } from 'react';
-import type { DashboardModule } from '@mairie360/lib-components/dashboard';
+import type { DashboardModule } from '@/components/dashboard';
 import type { DashboardBootstrap } from '@mairie360/bff-dashboard-openapi/model';
 
 // Passage de la réponse /dashboard/bootstrap (contrat BFF_Dashboard) aux props de DashboardModule.
