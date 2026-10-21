@@ -19,7 +19,7 @@
     "test:bundle": "node --test tests/bundle/*.test.cjs"
   },
   "dependencies": {
-    "@mairie360/bff-dashboard-openapi": "0.0.0-staging.3d74a6a1c8e32709fd9e41a91a661971ce1fb8a0",
+    "@mairie360/bff-dashboard-openapi": "2.1.0",
     "@mairie360/lib-components": "1.0.3",
     "axios": "1.20.0",
     "lucide-react": "1.0.0",
@@ -30,10 +30,8 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@testing-library/dom": "10.4.2",
-    "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "16.3.3",
     "@testing-library/user-event": "14.6.7",
-    "@types/jest-axe": "3.5.9",
     "@types/node": "^24.0.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
@@ -47,7 +45,9 @@
     "playwright-core": "1.64.0",
     "tailwindcss": "^4",
     "typescript": "^5",
-    "vitest": "5.0.2"
+    "vitest": "5.0.2",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@types/jest-axe": "3.5.9"
   },
   "overrides": {
     "braces": "$braces",
