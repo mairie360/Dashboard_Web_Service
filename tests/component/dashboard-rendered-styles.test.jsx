@@ -5,7 +5,7 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { defaultSidebarItems } from '@mairie360/lib-components/shell';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import Home from '@/components/dashboard-page';
+import Home from '@/components/DashboardPage';
 
 const getDashboardBootstrap = vi.hoisted(() => vi.fn());
 vi.mock('@/lib/bff-client', () => ({ bffDashboard: { getDashboardBootstrap: async (options) => ({ data: await getDashboardBootstrap(options) }) } }));
@@ -89,8 +89,9 @@ describe('Dashboard styles on the actual page and published components', () => {
     const computed = getComputedStyle(project);
     expect(computed.borderTopWidth).toBe('1px');
     expect(computed.borderTopStyle).toBe('solid');
-    expect(computed.borderTopColor).toBe('rgb(120, 139, 167)');
-    expect(computed.padding).toBe('16px');
+    // JSDOM cannot resolve a var() border colour; the token binding is pinned on the source rule (MAIR-608 charte).
+    expect(stylesheet).toMatch(/\.dashboard-project-row \{[^}]*border-color: var\(--mairie-control-border\)/);
+    expect(computed.padding).toBe('12px');
     expect(getComputedStyle(project.querySelector('span.flex')).flexWrap).toBe('wrap');
     expect(getDashboardBootstrap).toHaveBeenCalledTimes(1);
   });

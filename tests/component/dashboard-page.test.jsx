@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { StrictMode } from "react";
 import { axe } from "jest-axe";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import Home from "@/components/dashboard-page";
+import Home from '@/components/DashboardPage';
 import { frontUrl } from "@/lib/front-urls";
 
 const getDashboardBootstrap = vi.hoisted(() => vi.fn());

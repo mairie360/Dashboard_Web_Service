@@ -16,7 +16,7 @@ const { bootstrapResponse } = require('./support/fixtures.cjs');
 const { ContractMockServer } = require('./support/contract-mock-server.ts');
 const { OpenApiContract } = require('./support/openapi-contract.ts');
 const { setBrowserFrontUrls } = require('../src/lib/front-urls.ts');
-const Home = require('../src/components/dashboard-page.tsx').default;
+const Home = require('../src/components/DashboardPage/index.ts').default;
 
 const dashboardBff = new ContractMockServer('DASHBOARD_BFF', OpenApiContract.load(path.join(ROOT, 'contracts', 'openapi.json')));
 const front = new FrontApp();
@@ -220,7 +220,8 @@ test('partially unusable event dates retain only valid returned events and offer
   assert.match(view.text(), /Certains événements reçus ont une date ou une heure illisible/);
   assert.doesNotMatch(view.text(), /Impossible calendar date/);
   // The server-view collector can revisit a shared host node; count real rendered controls.
-  assert.equal((view.html.match(/<button\b[^>]*>Actualiser les dates illisibles<\/button>/g) ?? []).length, 1);
+  // MAIR-608: the lib RetryButton carries its icon before the label.
+  assert.equal((view.html.match(/<button\b[^>]*>(?:<svg\b[^]*?<\/svg>)?Actualiser les dates illisibles<\/button>/g) ?? []).length, 1);
   assert.match(view.text(), /Budget participatif/);
   assert.deepEqual(upstreamCalls(), ['GET /dashboard/bootstrap']);
 });

@@ -1,5 +1,5 @@
 import { createNonce } from '@mairie360/lib-components/shared';
-import DashboardPage from '@/components/dashboard-page';
+import DashboardPage from '../components/DashboardPage';
 import { loadInitialDashboard } from '@/lib/server-dashboard';
 
 export default async function Home() {

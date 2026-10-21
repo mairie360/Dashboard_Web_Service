@@ -1,7 +1,7 @@
 import { StrictMode } from 'react';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, expect, it, vi } from 'vitest';
-import Home from '@/components/dashboard-page';
+import Home from '@/components/DashboardPage';
 
 const getDashboardBootstrap = vi.hoisted(() => vi.fn());
 vi.mock('@/lib/bff-client', () => ({ bffDashboard: { getDashboardBootstrap } }));

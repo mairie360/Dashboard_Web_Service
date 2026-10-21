@@ -2,10 +2,8 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testi
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { ConfirmModal } from '@mairie360/lib-components/primitives';
-import { defaultSidebarItems } from '@mairie360/lib-components/shell';
+import { AccessibleShell, defaultSidebarItems, SIDEBAR_COOKIE } from '@mairie360/lib-components/shell';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import AccessibleShell from '@/components/accessible-shell';
-import { SIDEBAR_COOKIE } from '@/lib/sidebar-preference';
 
 let desktopViewportStyle;
 const hrefs = Object.fromEntries(defaultSidebarItems.map(({ id }) => [id, `/${id}`]));

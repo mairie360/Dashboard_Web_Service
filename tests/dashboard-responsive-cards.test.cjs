@@ -11,7 +11,7 @@ test('Dashboard retains parsed responsive grid and surface safety policies', (t)
       if (rule.cssRules) visit(rule.cssRules, rule.conditionText || condition);
       if (!rule.style) continue;
       const selectors = (rule.selectorText || '').split(',').map((value) => value.replace(/\s*>\s*/g, ' > ').replace(/\s+/g, ' ').trim());
-      if (selectors.includes('.dashboard-content-grid > section > div:last-child > button .truncate')) {
+      if (selectors.includes('.dashboard-rows > button .truncate')) {
         assert.equal(rule.style.getPropertyValue('white-space'), 'normal');
         assert.equal(rule.style.getPropertyValue('overflow'), 'visible');
         assert.equal(rule.style.getPropertyValue('text-overflow'), 'clip');
@@ -26,7 +26,7 @@ test('Dashboard retains parsed responsive grid and surface safety policies', (t)
         }
       }
       assert.equal(selectors.some((selector) => selector.split(/\s+/).includes('.dashboard-app-shell') && selector.split(/\s+/).includes('header')), false, 'Preserve the shared header stacking');
-      if (condition && selectors.includes('.dashboard-upcoming-events-grid > div:last-child')) {
+      if (condition && selectors.includes('.dashboard-upcoming-events-grid > .dashboard-events-rows')) {
         const columns = rule.style.getPropertyValue('grid-template-columns');
         if (!columns) continue;
         const repeat = columns.match(/^repeat\(\s*(\d+)\s*,\s*minmax\(\s*0(?:px)?\s*,\s*1fr\s*\)\s*\)$/);

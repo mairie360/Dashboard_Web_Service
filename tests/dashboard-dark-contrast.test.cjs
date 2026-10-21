@@ -8,7 +8,7 @@ const root = resolve(__dirname, '..');
 const markup = `<body class="mairie-ui"><aside aria-label="Navigation principale"><nav><button id="navigation" class="bg-[#155bb5] text-white">Tableau de bord</button></nav></aside><div class="dashboard-app-shell"><main>
 <div class="page-title-row"><div><h1>Tableau de bord</h1></div><span id="date" class="page-current-date">Jeudi 15 octobre 2026</span></div>
 <section class="dashboard-panel"><header><a id="projects-link" class="dashboard-panel-action" href="/projects">Voir les projets</a></header><div class="dashboard-panel-content">
-<section class="dashboard-recent-projects rounded-lg border border-[#dfd9d1] bg-white p-6"><div></div><div class="mt-6 space-y-4"><button id="budget" class="block w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#155bb5]/30 disabled:cursor-default"><span class="flex items-center justify-between gap-4"><span id="budget-title" class="font-semibold text-[#172033]">Budget participatif</span><span id="status" class="rounded-md px-2.5 py-1 text-xs font-semibold bg-[#155bb5] text-white">En cours</span></span><span id="budget-metadata" class="mt-2 flex items-center justify-between gap-4 text-sm text-[#687385]">Progression: 50%</span></button></div></section>
+<section class="dashboard-recent-projects rounded-lg border border-[#dfd9d1] bg-white p-6"><div></div><div class="mt-6 space-y-4"><button id="budget" class="dashboard-project-row block w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#155bb5]/30 disabled:cursor-default"><span class="flex items-center justify-between gap-4"><span id="budget-title" class="font-semibold text-[#172033]">Budget participatif</span><span id="status" class="rounded-md px-2.5 py-1 text-xs font-semibold bg-[#155bb5] text-white">En cours</span></span><span id="budget-metadata" class="mt-2 flex items-center justify-between gap-4 text-sm text-[#687385]">Progression: 50%</span></button></div></section>
 <section class="dashboard-pending-tasks"><div></div><div><button id="task" class="flex w-full items-center gap-3 rounded-md border border-[#e5e0da] bg-[#fbfaf9] px-3 py-3 text-left transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#155bb5]/30 disabled:cursor-default"><span id="task-title" class="block truncate font-semibold text-[#243041]">Validation</span><span id="task-date" class="block text-sm text-[#687385]">Échéance: 01/11/2026</span><span id="high" class="rounded-md px-2.5 py-1 text-xs font-medium bg-[#fee2e2] text-[#dc2626]">Haute</span><span id="medium" class="rounded-md px-2.5 py-1 text-xs font-medium bg-[#ffedd5] text-[#c2410c]">Moyenne</span><span id="low" class="rounded-md px-2.5 py-1 text-xs font-medium bg-[#dcfce7] text-[#15803d]">Basse</span></button></div></section>
 </div></section><button id="primary" class="bg-[#155bb5] text-white">Créer un projet</button>
 </main></div></body>`;
@@ -95,10 +95,9 @@ test('the neutral dark surface fix preserves primary, navigation and status back
     assert.ok(view.contrast('primary') >= 4.5);
   } finally { view.dom.window.close(); }
 });
-test('the light Dashboard retains its existing neutral card and action backgrounds', async () => {
+test('the light Dashboard paints its project rows on the charte raised surface (MAIR-608)', async () => {
   const view = await screen('light');
   try {
-    assert.deepEqual(view.background('budget'), [248, 250, 252]);
-    assert.deepEqual(view.background('projects-link'), [248, 250, 252]);
+    assert.deepEqual(view.background('budget'), [248, 247, 248]);
   } finally { view.dom.window.close(); }
 });
