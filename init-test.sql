@@ -10,3 +10,18 @@ ON CONFLICT (id) DO NOTHING;
 INSERT INTO user_roles (user_id, role_id)
 SELECT 2, r.id FROM roles r WHERE lower(r.name) = 'user'
 ON CONFLICT DO NOTHING;
+-- End-to-end journeys (MAIR-603): user 2 carries the "Admin" role instead, so Project API lets it
+-- create the project and the task its widgets show (the journeys create them through the API).
+-- A user holds a single role (user_roles is keyed by user_id), hence an update.
+UPDATE user_roles SET role_id = (SELECT id FROM roles WHERE name = 'Admin') WHERE user_id = 2;
+-- End-to-end journeys (MAIR-603): user 3 only carries the "User" role, outside that project: it must not see it.
+-- Same template password hash as user 2.
+INSERT INTO users (id, first_name, last_name, email, password, status)
+VALUES (3, 'Membre', 'Lecteur', 'membre-lecteur@mairie360.fr', '$argon2id$v=19$m=19456,t=2,p=1$/iKF9PbiDRDs4EKPjlIIhg$UKx9vfwwps250mEP/bYp63CXbEnQGULeUAhDq+az9Aw', 'active')
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO user_roles (user_id, role_id)
+SELECT 3, r.id FROM roles r WHERE lower(r.name) = 'user'
+ON CONFLICT DO NOTHING;
+-- The users above carry explicit ids: move the id sequence past them, or the first account a
+-- journey creates (Administrator) collides with user 2 (MAIR-603).
+SELECT setval(pg_get_serial_sequence('users', 'id'), (SELECT MAX(id) FROM users));
