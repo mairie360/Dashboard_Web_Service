@@ -7,7 +7,6 @@ build
 .env*
 .npmrc.*
 cicd-repo
-tests
 test-results
 playwright-report
 
