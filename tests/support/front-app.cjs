@@ -25,7 +25,7 @@ function matchRoute(pathname) {
   const parts = pathname.split('/').filter(Boolean).map(decodeURIComponent);
   const exact = ROUTES.find(({ segments }) => segments.length === parts.length && segments.every((segment, i) => segment === parts[i]));
   if (exact) return { ...exact, params: {} };
-  const catchAll = ROUTES.find(({ segments }) => {
+  const catchAll = [...ROUTES].sort((a, b) => b.segments.length - a.segments.length).find(({ segments }) => {
     const last = segments.at(-1) ?? '';
     return /^\[\.\.\.\w+\]$/.test(last) && parts.length >= segments.length
       && segments.slice(0, -1).every((segment, i) => segment === parts[i]);
@@ -58,20 +58,46 @@ class FrontApp {
 
   allow(url) { this.allowedOrigins.add(new URL(url).origin); return this; }
 
+  setOwner(userBff) {
+    this.userBff = userBff;
+    this.ownerOrigin = 'https://login.owner.test';
+    const { createSessionRefreshHandler } = require('@mairie360/lib-components/next');
+    this.ownerRefresh = createSessionRefreshHandler({ userBffUrl: () => userBff.url, cookieOptions: () => ({ secure: false }), allowedOrigins: () => [this.origin] });
+    this.allow(userBff.url);
+    return this;
+  }
+
   install() {
     this.realFetch = global.fetch;
+    this.previousFrontUrl = process.env.DASHBOARD_FRONT_URL;
+    this.previousLoginUrl = process.env.LOGIN_FRONT_URL;
+    process.env.DASHBOARD_FRONT_URL = this.origin;
+    process.env.LOGIN_FRONT_URL = this.ownerOrigin ?? process.env.LOGIN_FRONT_URL ?? 'https://login.test.example/';
     const realFetch = this.realFetch;
     global.fetch = async (input, init = {}) => {
       const url = new URL(input instanceof Request ? input.url : String(input), this.origin);
       const method = (init.method ?? (input instanceof Request ? input.method : 'GET')).toUpperCase();
+      if (url.origin === this.ownerOrigin && this.ownerRefresh) {
+        this.calls.push({ side: 'owner', method, url });
+        if (method !== 'POST' || url.pathname !== '/api/auth/refresh') throw new Error('Undeclared Login owner operation');
+        return this.ownerRefresh(new NextRequest(url, init));
+      }
       if (url.origin === this.origin) {
         this.calls.push({ side: 'browser', method, url });
         const headers = new Headers(init.headers);
-        const cookie = Object.entries(this.cookies).map(([name, value]) => `${name}=${value}`).join('; ');
+        if (!headers.has('origin')) headers.set('origin', this.origin);
+        if (!headers.has('sec-fetch-site')) headers.set('sec-fetch-site', 'same-origin');
+        const cookie = Object.entries(this.cookies).filter(([name]) => name !== 'refreshToken' || url.pathname === '/api' || url.pathname.startsWith('/api/')).map(([name, value]) => `${name}=${value}`).join('; ');
         if (cookie && init.credentials !== 'omit') headers.set('cookie', cookie);
         // `credentials` / `cache` n'ont pas de sens côté serveur : le cookie est posé ci-dessus.
         const { credentials: _credentials, cache: _cache, ...rest } = init;
-        return dispatch(new NextRequest(url, { ...rest, method, headers }));
+        const response = await dispatch(new NextRequest(url, { ...rest, method, headers }));
+        for (const cookie of response.headers.getSetCookie()) {
+          const pair = cookie.split(';', 1)[0]; const index = pair.indexOf('=');
+          const name = pair.slice(0, index), value = decodeURIComponent(pair.slice(index + 1));
+          if (/max-age=0/i.test(cookie)) delete this.cookies[name]; else this.cookies[name] = value;
+        }
+        return response;
       }
       this.calls.push({ side: 'server', method, url });
       if (!this.allowedOrigins.has(url.origin)) {
@@ -83,9 +109,13 @@ class FrontApp {
     return this;
   }
 
-  uninstall() { if (this.realFetch) global.fetch = this.realFetch; }
+  uninstall() {
+    if (this.realFetch) global.fetch = this.realFetch;
+    this.previousFrontUrl === undefined ? delete process.env.DASHBOARD_FRONT_URL : process.env.DASHBOARD_FRONT_URL = this.previousFrontUrl;
+    this.previousLoginUrl === undefined ? delete process.env.LOGIN_FRONT_URL : process.env.LOGIN_FRONT_URL = this.previousLoginUrl;
+  }
 
-  reset() { this.calls.length = 0; this.violations.length = 0; this.cookies = {}; }
+  reset() { if (this.userBff) require('@mairie360/lib-components/next').forgetUserSession(this.userBff.url, this.cookies.refreshToken); this.calls.length = 0; this.violations.length = 0; this.cookies = {}; }
 
   /** Fetch d'une URL du front, tel qu'émis par le navigateur (cookies de la page inclus). */
   browserFetch(pathname, init) { return global.fetch(pathname, init); }

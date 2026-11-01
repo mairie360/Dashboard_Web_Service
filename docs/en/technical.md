@@ -1,5 +1,21 @@
 # Dashboard_Web_Service — Technical documentation
 
+## Dependency runtime maintenance — MAIR-436
+
+Next and its matching lint config update to maintenance release `16.3.8`,
+including their associated platform packages, after the seven-day delay.
+The compatible image-runtime correction is scoped to Next's sharp dependency
+(`^0.35.5`, locked `0.35.5`, prebuilt librsvg `2.63.2`). The transitive
+source-map-js lock updates to `1.2.2` within existing parent ranges, after its
+seven-day publication delay. Preserve the global PostCSS `8.5.28` override;
+no unrelated package, contract, route, UI source or security policy changes.
+`tests/dependency-runtime.test.cjs` checks installed versions against the lock
+and exercises only a bounded ordinary SVG and source map, not an exploit.
+The baseline fails four version assertions while both ordinary operations
+already succeed. All six pass on the corrected dependency tree. Remaining
+braces audit findings are not waived; merge and global MAIR-436 acceptance
+remain pending independently of functional/unit/build checks.
+
 ## Shared footer — MAIR-180
 
 The unchanged CI audit exposed the transitive tooling dependency
@@ -32,13 +48,22 @@ The page loads one bootstrap response, maps it to `DashboardModule` and displays
 
 An upcoming-event selection uses the runtime `CALENDAR_FRONT_URL` and appends the mapped event's `date` (`YYYY-MM-DD`) and `event` (ID) query parameters. Existing query parameters are preserved; the general Calendar action still opens its configured base URL. No event fixture or deployment host is embedded in the page.
 
+All six card commands resolve their current Project/Calendar destination through
+the existing `validatedFrontHref` helper, just like AppShell. Only absolute
+HTTP(S) URLs without embedded credentials are accepted; normalization is performed
+on use, not cached in React state or at build time. Invalid/missing configuration
+retains the existing no-navigation behavior without constructing a URL that can
+throw. This changes no environment variable, server route, proxy or contract.
+
 The generic proxy reads the versioned OpenAPI contract to allow paths and methods. It preserves query parameters, binary bodies, statuses and useful headers, filters transport headers, disables caching and does not automatically follow redirects. Its timeout is 15 seconds.
 
 ## Data and persistence
 
 The following sources and limitations describe the associated BFF, which determines persistence for the displayed data.
 
-BFF User `/me` supplies identity. BFF Project supplies `/projects-page?page=1&limit=6`, followed by each project’s details for tasks. BFF Calendar supplies bootstrap for the date range; its event dates can be `YYYY-MM-DD` or `DD-MM-YYYY` and are relayed unchanged, so `src/lib/dashboard-view.ts` normalizes them and skips an event whose date cannot be displayed. Project and task due dates use the numeric local-reference format (`01/12/2026`): BFF Project ISO 8601 instants keep the Europe/Paris day, date-only values retain their UTC day, and an unrecognized value is displayed unchanged. Explicit timezone formatters make this independent of the host timezone; event formatting is unchanged. The BFF has no database of its own and no business mutations.
+Since MAIR-525 BFF_Dashboard reads the APIs directly, never another BFF: Core API supplies identity, Project API the projects and their tasks, Calendar API the events of the date range; its event dates can be `YYYY-MM-DD` or `DD-MM-YYYY` and are relayed unchanged, so `src/lib/dashboard-view.ts` normalizes them and skips an event whose date cannot be displayed. Project and task due dates use the numeric local-reference format (`01/12/2026`): BFF Project ISO 8601 instants keep the Europe/Paris day, date-only values retain their UTC day, and an unrecognized value is displayed unchanged. Explicit timezone formatters make this independent of the host timezone; event formatting is unchanged. The BFF has no database of its own and no business mutations.
+
+Before parsing, the mapper validates Gregorian civil days, including leap years, and accepts deadlines only as the existing date-only formats or ISO date-time strings. Impossible dates and ambiguous free text stay verbatim; `Date.parse` must not invent a day. Event clocks must be HH:mm,00:00–23:59 (missing time retains00:00). `unusableEventCount` is computed locally from rejected display values, never added to the BFF DTO or used to rewrite its source status. Partial event results retain valid records and announce excluded ones. If every returned event is unusable, a labelled unavailable section replaces the false empty label and retains the general Calendar action. The existing guarded bootstrap GET provides explicit recovery; a later confirmed empty list restores the published empty state. UTC/Paris deadlines and the existing local event-clock representation remain unchanged; user-timezone preferences/DST interpretation are not implemented by this validation.
 
 The overview is limited and does not replace complete module listings. Unavailable sources are flagged and missing metrics remain null or absent. Reports and population or performance metrics are not supplied by this contract.
 
@@ -46,7 +71,7 @@ React state manages display and pending operations. This repository defines no b
 
 ## Installation and local startup
 
-Use Node.js 22 to reproduce the contract job and npm with the committed lockfile. Other job and Docker versions are detailed below.
+Use Node.js 24.21.0 (the version pinned in CI and Docker) to reproduce the contract job and npm with the committed lockfile. Other job and Docker versions are detailed below.
 
 Private `@mairie360/*` dependencies require GitHub Packages access. Set `NODE_AUTH_TOKEN` in the environment to a token allowed to read these packages, as configured in `.npmrc`. Do not commit its value.
 
@@ -109,11 +134,11 @@ The only route handler is the BFF proxy [src/app/[...path]/route.ts](../../src/a
 
 This front consumes a single BFF, BFF_Dashboard, and a single OpenAPI contract; it never calls BFF User directly (the displayed first name comes from `/dashboard/bootstrap`). The generic proxy uses an explicit Bearer header or, when absent, the `accessToken` cookie. Business permissions remain those of the BFF and its sources.
 
-The AppShell account menu validates the runtime `LOGIN_FRONT_URL` and navigates to its `/logout` page. If the URL is missing or invalid, Dashboard stays in place and reports an error. Login owns shared-cookie expiry and its BFF User logout call; Dashboard makes no logout request and never contacts a second BFF. End-to-end authenticated logout and Keycloak-wide revocation remain to be verified under MAIR-143/MAIR-226.
+The AppShell account menu validates the runtime `LOGIN_FRONT_URL` and navigates to its `/logout` page. The browser client uses the same handoff once on a current401; aborted responses cannot navigate,403/503/network errors do not log out. If the URL is missing or invalid, Dashboard stays in place and reports an error; correcting configuration permits an explicit retry. Login owns shared-cookie expiry and its BFF User logout call; Dashboard makes no logout request and never contacts a second BFF. End-to-end authenticated logout and Keycloak-wide revocation remain to be verified under MAIR-143/MAIR-226.
 
 The generic proxy returns 400 for an invalid path, 404 for a path outside the contract, 405 for a disallowed method and 502 when the service is unreachable or times out. Upstream responses are preserved, including empty 204/205/304 bodies. On `/dashboard/bootstrap`, BFF_Dashboard returns 401 for a rejected session and 502 when the user context is unavailable (and, from its `mair-121` branch on, 503 when an upstream URL is not configured); the page shows the `error.message` of these responses.
 
-Every response carries `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy`, `Permissions-Policy` and `Cross-Origin-Resource-Policy`, `Cross-Origin-Embedder-Policy` and `Cross-Origin-Opener-Policy` (`next.config.ts`), and `X-Powered-By` is disabled. [src/middleware.ts](../../src/middleware.ts) adds a `Content-Security-Policy` with a per-request nonce to every page (it does not redirect unauthenticated users), which Next.js applies to its scripts. Pages are therefore rendered on demand (`dynamic = "force-dynamic"` in the layout). Stylesheets are limited to the origin and the nonce; only `style` attributes rendered by shared components are allowed through `style-src-attr 'unsafe-inline'`, and `next dev` also allows `'unsafe-eval'`. Any new external resource (image, font, API called from the browser) must be added to the policy in `src/lib/content-security-policy.ts`.
+Before rendering, [src/middleware.ts](../../src/middleware.ts) checks cookie presence/known JWT expiry. Anonymous pages open validated Login; expired cookies open central `/logout`, without Dashboard clearing cookies or adding COOKIE_DOMAIN. Missing/unsafe Login fails503uncached. Data/metadata without a usable cookie return JSON401/no-store, never a cross-origin redirect; JSON metadata paths are explicitly matched. This is not signature/permission validation; a present opaque token still requires BFF authorization. Allowed pages retain the unchanged per-request nonce CSP forwarded to Next.js. Every response retains static security headers and disabled X-Powered-By. Dynamic rendering and stylesheet/attribute/development-eval rules are unchanged; new external resources still require an explicit CSP change.
 
 ## Synchronization and verification
 
@@ -129,10 +154,10 @@ scrolling **main** as well as the document at 390×844, 768×1024 and 1280×720;
 component and CSS guards alone cannot prove fit. Event columns retain their
 existing 1/2/3-column breakpoints.
 
-This front's only contract is the published `@mairie360/bff-dashboard-openapi` package, pinned to an exact `X.X.X` version (no range, no `0.0.0-dev`/`staging` prerelease), never the local BFF checkout. To adopt a newly published version:
+This front's only contract is the published `@mairie360/bff-dashboard-openapi` package, pinned to an exact version: a release `X.Y.Z`, or, while no release is cut, the `0.0.0-dev.<sha>` package the CICD publishes for the current commit of BFF_Dashboard `main` (MAIR-509), or, once that commit is released on staging, the `0.0.0-staging.<sha40>` package of the same commit, preferred on a staging release for readability (MAIR-600; no range, no `0.0.0-staging.<short sha>`; `scripts/contract-version.mjs` holds the policy and maps a dev package to the `dev-<sha7>` image tag and a staging package to the `staging-<sha7>` image tag, same digest, of the stacks), never the local BFF checkout. To adopt a newly published version:
 
 ```bash
-npm install --save-exact @mairie360/bff-dashboard-openapi@X.X.X
+npm install --save-exact @mairie360/bff-dashboard-openapi@<version>
 npm run contracts:sync
 npm run contracts:check
 npm run test:contracts
@@ -144,8 +169,8 @@ npm run build
 
 ### Tests against a contract-driven mock server
 
-- `tests/bff.mock-servers.test.cjs` follows each call end to end: same-origin browser `fetch` (`requestBff`) → Next.js route handler → a real local HTTP server simulating BFF_Dashboard, driven by `contracts/openapi.json`, hence by the published contract. The mock rejects paths, methods and query parameters missing from the contract and validates success responses (mocked errors are marked `outOfContract`, since orval does not type them); BFF_Dashboard is the only reachable origin, any other call fails the test. The only deliberate exception is `/openapi.json` / `/swagger.json`, forwarded by the proxy.
-- `tests/network-contract.test.cjs` analyses the sources: every `requestBff` call uses a literal path and method declared in `contracts/openapi.json`, and `fetch` is only called by `src/lib/bff-client.ts` and `src/lib/bff-proxy.ts`. It also checks that `contracts/` holds a single contract, that the catch-all proxy is the only route handler, that only it forwards to BFF_Dashboard, and that the published contract package and snapshot match. It also loads every `src/**/*.ts` module so coverage counts them.
+- `tests/bff.mock-servers.test.cjs` follows each call end to end: same-origin browser `fetch` (generated `bffDashboard` operations through `requestBff`) → Next.js route handler → a real local HTTP server simulating BFF_Dashboard, driven by `contracts/openapi.json`, hence by the published contract. The mock rejects paths, methods and query parameters missing from the contract and validates success responses (mocked errors are marked `outOfContract`, since orval does not type them); BFF_Dashboard is the only reachable origin, any other call fails the test. The only deliberate exception is `/openapi.json` / `/swagger.json`, forwarded by the proxy.
+- `tests/network-contract.test.cjs` analyses the sources: every `bffDashboard` call is an operation of the generated client, no path is written by hand, axios is only used by `src/lib/bff-client.ts`, and `fetch` is only called by `src/lib/bff-client.ts` and `src/lib/bff-proxy.ts`. It also checks that `contracts/` holds a single contract, that the catch-all proxy is the only route handler, that only it forwards to BFF_Dashboard, and that the published contract package and snapshot match. It also loads every `src/**/*.ts` module so coverage counts them.
 - `tests/dashboard-view.test.cjs` checks the mapping of `/dashboard/bootstrap` onto `DashboardModule` (`src/lib/dashboard-view.ts`) with contract-valid payloads.
 - `tests/support/openapi-contract.ts`, `contract-mock-server.ts` and `orval-contract.ts` are verbatim copies of the BFFs' ones (`BFF_Dashboard`, `BFF_Calendar`); keep them identical.
 
@@ -153,11 +178,11 @@ For documentation-only changes, check links, accuracy in both languages and `git
 
 ## CI/CD and Docker execution
 
-The `contracts.yml` job uses Node.js 24 and immutable commit references for `actions/checkout` and `actions/setup-node` (both v7). It runs on pushes, pull requests and manual dispatch; it installs with `npm ci`, checks contracts and runs the associated tests.
+The `contracts.yml` job uses Node.js 24.21.0 and immutable commit references for `actions/checkout` and `actions/setup-node` (both v7). It runs on pull requests, manual dispatch and pushes to `main` only (MAIR-436); it installs with `npm ci`, checks contracts and runs the associated tests.
 
-`cicd.yml` calls `mairie360/CICD/.github/workflows/frontend-cicd.yml@v3.1.1`, with `cicd_version: v3.1.1` and `node_version: "24"`. The required Semgrep job runs alongside lint and npm audit; only the reusable workflow's declared Codecov and n8n secrets are passed. `.npmrc` applies a seven-day minimum release age to new package resolutions without an exclusion. Reusable steps and GitHub environments determine actual checks, publications and deployments.
+`cicd.yml` calls `mairie360/CICD/.github/workflows/frontend-cicd.yml` pinned to a CICD commit, with the same `cicd_version` and `node_version: "24.21.0"`. It runs on pull requests, on manual dispatch and on pushes to `main` only; its token is read-only by default and only the job calling the release pipeline gets `contents`, `packages` and `id-token` write scopes (MAIR-436, `tests/workflow-permissions.test.cjs`). The required Semgrep job runs alongside lint and npm audit; only the reusable workflow's declared Codecov and n8n secrets are passed. `.npmrc` applies a seven-day minimum release age to new package resolutions without an exclusion. Reusable steps and GitHub environments determine actual checks, publications and deployments.
 
-The Dockerfile defaults to `NODE_VERSION=23.1.0` and the Next.js `standalone` build; the image command is `["node", "server.js"]`. Image ports and Compose mappings can differ from the local port suggested above.
+The Dockerfile pins `NODE_VERSION=24.21.0` (official bookworm-slim image pinned by digest) and the Next.js `standalone` build; the image command is `["node", "server.js"]`. Image ports and Compose mappings can differ from the local port suggested above.
 
 Before running Docker, check service variables, build secrets and networks in the repository files. Green CI validates its jobs; it does not prove business-service availability in a remote environment.
 

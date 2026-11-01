@@ -3,18 +3,17 @@ const { execFileSync } = require('node:child_process');
 const { readFileSync } = require('node:fs');
 const { join } = require('node:path');
 const { test } = require('node:test');
+const yaml = require('js-yaml');
 
 const root = join(__dirname, '..');
 const read = (path) => readFileSync(join(root, path), 'utf8');
+const cicdCommit = /frontend-cicd\.yml@([a-f0-9]{40})/.exec(read('.github/workflows/cicd.yml'))[1];
 
 test('Dashboard calls the shared frontend workflow version with Semgrep', () => {
   const workflow = read('.github/workflows/cicd.yml');
-  const reusableWorkflows = [...workflow.matchAll(/^\s+uses:\s+mairie360\/CICD\/\.github\/workflows\/frontend-cicd\.yml@(v(\d+)\.(\d+)\.(\d+))\s*$/gm)];
+  const reusableWorkflows = [...workflow.matchAll(/^\s+uses:\s+mairie360\/CICD\/\.github\/workflows\/frontend-cicd\.yml@([a-f0-9]{40}) # v\d+\.\d+\.\d+\s*$/gm)];
   assert.equal(reusableWorkflows.length, 1, 'Dashboard must call the shared frontend workflow once');
-  const [, version, major, minor, patch] = reusableWorkflows[0];
-  assert.equal(Number(major), 3, 'a new major workflow version requires review');
-  assert.ok(Number(minor) > 1 || (Number(minor) === 1 && Number(patch) >= 1),
-    'the shared workflow must include the Semgrep security audit');
+  const [, version] = reusableWorkflows[0];
   assert.equal(workflow.match(/cicd_version:\s*"([^"]+)"/)?.[1], version,
     'the reusable workflow ref and input must use the same version');
   assert.doesNotMatch(workflow, /semgrep_fail_on_findings:\s*false|semgrep_config:|continue-on-error:/);
@@ -38,6 +37,9 @@ test('the reusable workflow receives only its declared named secrets', () => {
   assert.deepEqual(mappings.map(([, name, source]) => [name, source]), [
     ['CODECOV_TOKEN', 'CODECOV_TOKEN'],
     ['N8N_WEBHOOK_SECRET', 'N8N_WEBHOOK_SECRET'],
+    ['ANTHROPIC_API_KEY', 'ANTHROPIC_API_KEY'],
+    ['RELEASE_APP_ID', 'RELEASE_APP_ID'],
+    ['RELEASE_APP_PK', 'RELEASE_APP_PK'],
   ]);
 });
 
@@ -49,23 +51,129 @@ test('npm release-age exception applies only to the internal shared component pa
   assert.doesNotMatch(config, /^\s*before\b/m);
 });
 
-test('Dashboard pins the published shared UI release in its lockfile', () => {
-  const manifest = JSON.parse(read('package.json'));
-  const lock = JSON.parse(read('package-lock.json'));
-  const dependency = lock.packages['node_modules/@mairie360/lib-components'];
-  assert.equal(manifest.dependencies['@mairie360/lib-components'], '0.6.8');
-  assert.equal(lock.packages[''].dependencies['@mairie360/lib-components'], '0.6.8');
-  assert.equal(dependency.version, '0.6.8');
-  assert.match(dependency.resolved, /^https:\/\/npm\.pkg\.github\.com\/download\/@mairie360\/lib-components\/0\.6\.8\//);
-  assert.equal(dependency.integrity, 'sha512-Z+AEfIXKdIMEe7eMd8OBG7l6vdLbzISlN66ahGZ1xhqKdBtBmMswcw6pmR7SbD1IBc94d1TaWR+VHJmDEtsutw==');
-});
-
 test('CI and local toolchains support the npm release-age policy', () => {
-  assert.match(read('.github/workflows/cicd.yml'), /node_version:\s*"24"/);
-  assert.match(read('.github/workflows/contracts.yml'), /node-version:\s*'24'/);
+  assert.match(read('.github/workflows/cicd.yml'), /node_version:\s*"24\.22\.1"/);
+  assert.match(read('.github/workflows/contracts.yml'), /node-version:\s*'24\.22\.1'/);
   const version = execFileSync('npm', ['--version'], { cwd: root, encoding: 'utf8' }).trim();
   const match = /^(\d+)\.(\d+)\.(\d+)$/.exec(version);
   assert.ok(match, 'npm must report a stable version');
   assert.ok(Number(match[1]) > 11 || (Number(match[1]) === 11 && Number(match[2]) >= 10),
     'npm >=11.10 is required for min-release-age');
+});
+
+const workflow = () => yaml.load(read('.github/workflows/cicd.yml'));
+const digest = '55fb5f5a527ea2c5c4a95f963e48ef90aa38c7b346054fdc8ee9957a2b55d205';
+
+test('production and development install the lock with a required ephemeral secret and readonly npm policy', () => {
+  for (const file of ['Dockerfile', 'development.Dockerfile']) {
+    const dockerfile = read(file);
+    assert.match(dockerfile, /^# syntax=docker\/dockerfile:1$/m);
+    assert.doesNotMatch(dockerfile, /^(ARG|ENV)\s+NODE_AUTH_TOKEN\b/m);
+    assert.doesNotMatch(dockerfile, /echo.*(_authToken|NODE_AUTH_TOKEN)|npm config set|\bnpm install\b|\/run\/secrets/);
+    const target = file === 'Dockerfile' ? '/app/.npmrc' : '/usr/src/projects/.npmrc';
+    assert.ok(dockerfile.includes('RUN --mount=type=secret,id=node_auth_token,env=NODE_AUTH_TOKEN,required=true \\\n    --mount=type=bind,source=.npmrc,target=' + target + ' \\\n    npm ci\n'));
+    assert.equal([...dockerfile.matchAll(/\bnpm ci\b/g)].length, 1);
+  }
+  assert.match(read('.npmrc'), /^\/\/npm\.pkg\.github\.com\/:_authToken=\$\{NODE_AUTH_TOKEN\}$/m);
+  assert.match(read('.npmrc'), /^min-release-age=7$/m);
+  assert.match(read('.npmrc'), /^min-release-age-exclude\[\]=@mairie360\/lib-components$/m);
+});
+
+test('production, development and both consumer workflows pin the same exact official Node LTS', () => {
+  for (const file of ['Dockerfile', 'development.Dockerfile']) {
+    const dockerfile = read(file);
+    assert.match(dockerfile, /^ARG NODE_VERSION=24\.22\.1$/m);
+    const images = [...dockerfile.matchAll(/^FROM node:\$\{NODE_VERSION\}-bookworm-slim@sha256:([a-f0-9]{64}) AS ([\w-]+)$/gm)];
+    assert.deepEqual(images.map(([, sha]) => sha), file === 'Dockerfile' ? [digest, digest] : [digest]);
+  }
+  assert.equal(workflow().jobs.CICD.with.node_version, '24.22.1');
+  assert.match(read('.github/workflows/contracts.yml'), /node-version: '24\.22\.1'/);
+});
+
+test('production keeps the non-root standalone Node and curl runtime without unused package managers', () => {
+  const dockerfile = read('Dockerfile');
+  const runner = dockerfile.split('FROM runtime-base AS runner\n')[1];
+  assert.ok(runner);
+  assert.match(runner, /^USER nextjs$/m);
+  assert.match(runner, /^ENV PORT=5000$/m);
+  assert.match(runner, /^CMD \["node", "server\.js"\]$/m);
+  assert.doesNotMatch(runner, /NODE_AUTH_TOKEN|\.npmrc|npm|yarn|corepack|COPY \. \./);
+  assert.match(dockerfile, /rm -rf \/usr\/local\/lib\/node_modules\/npm \/usr\/local\/lib\/node_modules\/corepack \/opt\/yarn-v1\.22\.22/);
+  assert.match(dockerfile, /rm -f \/usr\/local\/bin\/npm \/usr\/local\/bin\/npx \/usr\/local\/bin\/corepack \/usr\/local\/bin\/yarn \/usr\/local\/bin\/yarnpkg/);
+  const dev = read('development.Dockerfile');
+  assert.match(dev, /^USER projects$/m);
+  assert.match(dev, /^WORKDIR \/usr\/src\/projects$/m);
+  assert.match(dev, /^ENV PORT=3000$/m);
+  assert.match(dev, /^ENV NODE_ENV=development$/m);
+  assert.match(dev, /^CMD \["npm", "run", "dev"\]$/m);
+});
+
+test('Docker excludes local environments and artifacts while retaining tracked npm policy', () => {
+  const patterns = read('.dockerignore').split(/\r?\n/).map(line => line.trim());
+  for (const item of ['node_modules', '.next', '.git', '.env*', '.npmrc.*', 'cicd-repo', 'coverage', 'test-results', 'playwright-report']) assert.ok(patterns.includes(item), item);
+  assert.ok(!patterns.includes('.npmrc') && !patterns.includes('.npmrc*'));
+});
+
+test('all three Compose frontend builds use the required secret without runtime credentials', () => {
+  for (const file of ['docker-compose.yml', 'docker-compose-security.yml', 'docker-compose-performance.yml']) {
+    const compose = yaml.load(read(file));
+    assert.deepEqual(compose.secrets, { node_auth_token: { environment: 'NODE_AUTH_TOKEN' } });
+    assert.deepEqual(compose.services['dashboard-front'].build, {
+      context: '.', dockerfile: 'Dockerfile', secrets: ['node_auth_token'],
+    });
+    for (const [name, service] of Object.entries(compose.services)) {
+      assert.ok(!service.secrets, `${name}: no runtime secret`);
+      assert.ok(!service.environment || !Object.hasOwn(service.environment, 'NODE_AUTH_TOKEN'), `${name}: no runtime token`);
+      if (name !== 'dashboard-front') assert.ok(!service.build, `${name}: unchanged existing image`);
+    }
+  }
+});
+
+test('the exact required legacy status executes both real blocking scanners without extra access', () => {
+  const checkout = 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1';
+  assert.deepEqual(workflow().jobs.required_security_scan, {
+    name: 'CICD / Code Security Audit (Semgrep)',
+    'runs-on': 'ubuntu-latest', 'timeout-minutes': 20, permissions: { contents: 'read' },
+    steps: [
+      { name: 'Checkout frontend history', uses: checkout, with: { 'fetch-depth': 0, 'persist-credentials': false } },
+      { name: 'Checkout reviewed scanner actions', uses: checkout, with: {
+        repository: 'mairie360/CICD', ref: '5b7d127d46f95d8951935b6209ca7c2ca857a21d', path: 'cicd-repo', 'persist-credentials': false,
+      } },
+      { name: 'Run blocking Semgrep scan', uses: './cicd-repo/actions/frontend-semgrep-pypi', with: {
+        config: 'p/typescript p/react p/owasp-top-ten p/secrets p/dockerfile p/github-actions', fail_on_findings: 'true', artifact_name: 'semgrep-required-check-sarif',
+      } },
+      { name: 'Run blocking redacted Gitleaks scan', uses: './cicd-repo/actions/frontend-gitleaks', with: { fail_on_findings: 'true' } },
+    ],
+  });
+});
+
+test('the reusable frontend workflow retains blocking defaults and only declared secrets', () => {
+  assert.deepEqual(workflow().jobs.CICD, {
+    permissions: { contents: 'write', packages: 'write', 'id-token': 'write' },
+    uses: `mairie360/CICD/.github/workflows/frontend-cicd.yml@${cicdCommit}`,
+    with: { package_name: 'dashboard-front', node_version: '24.22.1', cicd_version: cicdCommit },
+    secrets: {
+      CODECOV_TOKEN: '${{ secrets.CODECOV_TOKEN }}',
+      N8N_WEBHOOK_SECRET: '${{ secrets.N8N_WEBHOOK_SECRET }}',
+      ANTHROPIC_API_KEY: '${{ secrets.ANTHROPIC_API_KEY }}',
+      RELEASE_APP_ID: '${{ secrets.RELEASE_APP_ID }}',
+      RELEASE_APP_PK: '${{ secrets.RELEASE_APP_PK }}',
+    },
+  });
+  assert.doesNotMatch(read('.github/workflows/cicd.yml'), /secrets:\s*inherit|continue-on-error:|image_scan_fail_on_findings:|semgrep_fail_on_findings:\s*false/);
+});
+
+test('the required scan runs for every existing event with a read-only default token', () => {
+  const ci = workflow();
+  // MAIR-436: push runs on main only and the workflow token is read-only by default.
+  assert.deepEqual(ci.on, { push: { branches: ['main'] }, pull_request: null, workflow_dispatch: null });
+  assert.deepEqual(ci.permissions, { contents: 'read' });
+  assert.deepEqual(Object.keys(ci.jobs).sort(), ['CICD', 'required_security_scan']);
+});
+
+test('the reusable pipeline runs on main without a manual Dev approval (MAIR-518)', () => {
+  const ci = workflow();
+  assert.ok(!('dev_approval' in ci.jobs), 'the Preserve Dev approval job is gone: dev images are published automatically');
+  assert.ok(!('needs' in ci.jobs.CICD) && !('if' in ci.jobs.CICD), 'CICD is not gated on main');
+  assert.doesNotMatch(read('.github/workflows/cicd.yml'), /environment:\s*Dev/);
 });
