@@ -83,12 +83,13 @@ states:
       - wait_for: { text: Rénovation de la salle des fêtes }
       - wait_for: { text: Conseil municipal }
   - id: dashboard-empty
-    description: Empty cards (user without project, task or event)
+    description: Empty project and task cards (user without project or task; the seeded events are public, so they still show)
     as: empty
     route: /
     steps:
       - wait_for: { role: heading, name: Tableau de Bord }
-      - wait_for: { text: Aucun événement à venir. }
+      - wait_for: { text: Aucun projet récent. }
+      - wait_for: { text: Aucune tâche en attente. }
   - id: user-menu
     description: Header menu of the user opened (profile, logout)
     as: agent
@@ -97,8 +98,5 @@ states:
       - wait_for: { role: heading, name: Tableau de Bord }
       - click: { role: button, name: Perf }
       - wait_for: { text: Déconnexion }
-  - id: no-session
-    description: Page opened without a session (no middleware redirect, the bootstrap is refused)
-    route: /
-    steps:
-      - wait_for: { text: Le tableau de bord est indisponible. }
+  # No anonymous state: since MAIR-404 the middleware sends a page without a session to Login (or
+  # answers 503 when the Login URL is not usable), so the dashboard itself is never rendered.

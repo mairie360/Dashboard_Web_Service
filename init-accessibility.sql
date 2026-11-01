@@ -5,7 +5,7 @@
 -- init-test.sql nor with rows the APIs create through their sequences.
 \set ON_ERROR_STOP on
 
--- User 3: same role as user 2 but no project, task or event (empty dashboard state). No password:
+-- User 3: same role as user 2 but no project or task (empty cards; the public events still show). No password:
 -- the engine signs its JWT, and chk_users_password_hashed refuses a plaintext one.
 INSERT INTO users (id, first_name, last_name, email, password, status)
 VALUES (3, 'Rgaa', 'Empty', 'rgaa-empty@mairie360.fr', NULL, 'active')
