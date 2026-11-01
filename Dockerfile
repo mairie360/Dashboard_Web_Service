@@ -1,34 +1,35 @@
 # syntax=docker/dockerfile:1
-# --- Stage 1: Build ---
-ARG NODE_VERSION=23.1.0
-FROM node:${NODE_VERSION}-bookworm-slim AS builder
+# MAIR-436 / #82: align the exact Node release with CI and development.
+ARG NODE_VERSION=24.22.1
+FROM node:${NODE_VERSION}-bookworm-slim@sha256:55fb5f5a527ea2c5c4a95f963e48ef90aa38c7b346054fdc8ee9957a2b55d205 AS dependencies
 WORKDIR /app
-
-# Dependency cache layer.
 COPY package.json package-lock.json ./
-
-# The GitHub Packages token is a BuildKit secret (frontend-cicd.yml >= MAIR-416 passes it as
-# `node_auth_token`, the test scripts with --secret id=node_auth_token,env=NODE_AUTH_TOKEN), never a
-# build arg: it stays out of the layers and the provenance. The tracked .npmrc (registry + token
-# placeholder) is bind-mounted read-only; a missing secret fails the build.
+COPY vendor/ ./vendor/
+# The credential and tracked npm policy exist only during install.
 RUN --mount=type=secret,id=node_auth_token,env=NODE_AUTH_TOKEN,required=true \
     --mount=type=bind,source=.npmrc,target=/app/.npmrc \
     npm ci
 
-# Copie du code source et build
+FROM dependencies AS builder
 COPY . .
 RUN npm run build
 
-# --- Stage 2: Runner ---
-FROM node:${NODE_VERSION}-bookworm-slim AS runner
+# The standalone app needs Node and curl, not global package managers.
+FROM node:${NODE_VERSION}-bookworm-slim@sha256:55fb5f5a527ea2c5c4a95f963e48ef90aa38c7b346054fdc8ee9957a2b55d205 AS runtime-base
 WORKDIR /app
 
 # Sécurité & Healthcheck
-RUN apt-get update && apt-get install -y --no-install-recommends curl \
+# Refresh the two vulnerable base packages through signed Debian repositories.
+RUN apt-get update && apt-get install -y --no-install-recommends curl libpcre2-8-0 perl-base \
+    && dpkg --compare-versions "$(dpkg-query -W -f='${Version}' libpcre2-8-0)" ge '10.42-1+deb12u2' \
+    && dpkg --compare-versions "$(dpkg-query -W -f='${Version}' perl-base)" ge '5.36.0-7+deb12u4' \
     && rm -rf /var/lib/apt/lists/* \
+    && rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack /opt/yarn-v1.22.22 \
+    && rm -f /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack /usr/local/bin/yarn /usr/local/bin/yarnpkg \
     && groupadd --system --gid 1001 nodejs \
     && useradd --system --uid 1001 nextjs
 
+FROM runtime-base AS runner
 # On copie le dossier standalone qui contient déjà son propre node_modules
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static

@@ -8,6 +8,7 @@ const { ContractMockServer, unreachableUrl } = require('./support/contract-mock-
 const { OpenApiContract } = require('./support/openapi-contract.ts');
 const { requestBff } = require('../src/lib/bff-client.ts');
 const { toDashboardModuleData } = require('../src/lib/dashboard-view.ts');
+const { setBrowserFrontUrls } = require('../src/lib/front-urls.ts');
 
 // Parcours complet d'un appel du front : fetch same-origin du navigateur (src/lib/bff-client.ts) → route
 // handler Next.js → BFF_Dashboard simulé par un vrai serveur HTTP local, piloté par contracts/openapi.json :
@@ -44,6 +45,19 @@ const upstreamCalls = () => mocks.flatMap((mock) => mock.requests.map((call) => 
 const rejection = (promise) => promise.then(() => assert.fail('la requête aurait dû échouer'), (error) => error.message);
 
 describe('page data: /dashboard/bootstrap through the contract-gated proxy', () => {
+  test('a browser401 from the real proxy delegates once to Login without a second BFF', async (t) => {
+    const destinations=[];
+    global.window={location:{href:'https://dashboard.test.example/',replace:href=>destinations.push(href)}};
+    t.after(()=>{delete global.window;});
+    setBrowserFrontUrls({LOGIN_FRONT_URL:'https://login.test.example/'});
+    dashboardBff.on('get','/dashboard/bootstrap',{status:401,body:{error:{message:'Session refusée'}},outOfContract:true});
+    assert.equal(await rejection(requestBff('/dashboard/bootstrap')),'Votre session a expiré.');
+    assert.equal(await rejection(requestBff('/dashboard/bootstrap')),'Votre session a expiré.');
+    assert.deepEqual(destinations,['https://login.test.example/?redirect=https%3A%2F%2Fdashboard.test.example%2F']);
+    assert.deepEqual(upstreamCalls(),['DASHBOARD_BFF GET /dashboard/bootstrap','DASHBOARD_BFF GET /dashboard/bootstrap']);
+    assert.deepEqual(front.calls.filter(call=>call.side==='browser').map(call=>`${call.method} ${call.url.pathname}`), ['GET /dashboard/bootstrap','POST /api/auth/refresh','GET /dashboard/bootstrap','POST /api/auth/refresh']);
+  });
+
   test('returns the BFF payload and only reaches the declared operation with the session token', async () => {
     dashboardBff.on('get', '/dashboard/bootstrap', { body: bootstrapResponse() });
 
@@ -64,22 +78,22 @@ describe('page data: /dashboard/bootstrap through the contract-gated proxy', () 
     assert.equal(toDashboardModuleData(data).projects.length, 2);
   });
 
-  test('keeps an explicit Authorization header instead of the cookie', async () => {
+  test('ignores a browser Authorization header in favor of the HttpOnly cookie', async () => {
     dashboardBff.on('get', '/dashboard/bootstrap', { body: bootstrapResponse() });
     await requestBff('/dashboard/bootstrap', { headers: { Authorization: 'Bearer explicit' } });
-    assert.equal(dashboardBff.requests[0].headers.authorization, 'Bearer explicit');
+    assert.equal(dashboardBff.requests[0].headers.authorization, `Bearer ${TOKEN}`);
   });
 
   test('forwards no Authorization header without a session cookie', async () => {
     delete front.cookies.accessToken;
     dashboardBff.on('get', '/dashboard/bootstrap', { status: 401, body: { error: { message: 'Session invalide.' } }, outOfContract: true });
-    assert.equal(await rejection(requestBff('/dashboard/bootstrap')), 'Session invalide.');
+    assert.equal(await rejection(requestBff('/dashboard/bootstrap')), 'Votre session a expiré.');
     assert.equal(dashboardBff.requests[0].headers.authorization, undefined);
   });
 
   for (const [status, message] of [
     // Messages réellement produits par BFF_Dashboard (src/clients/upstream.ts).
-    [401, 'Session invalide.'], [502, 'Le service USER_BFF est indisponible.'], [503, 'Le service USER_BFF n’est pas configuré.'],
+    [401, 'Votre session a expiré.'], [502, 'Le service USER_BFF est indisponible.'], [503, 'Le service USER_BFF n’est pas configuré.'],
   ]) {
     test(`surfaces the ${status} error message of the BFF`, async () => {
       dashboardBff.on('get', '/dashboard/bootstrap', { status, body: { error: { message } }, outOfContract: true });
@@ -89,7 +103,7 @@ describe('page data: /dashboard/bootstrap through the contract-gated proxy', () 
 
   test('reads a flat { message } error body and uses an agent-readable fallback without JSON', async () => {
     dashboardBff.on('get', '/dashboard/bootstrap', { status: 401, body: { message: 'Jeton expiré' }, outOfContract: true });
-    assert.equal(await rejection(requestBff('/dashboard/bootstrap')), 'Jeton expiré');
+    assert.equal(await rejection(requestBff('/dashboard/bootstrap')), 'Votre session a expiré.');
     dashboardBff.on('get', '/dashboard/bootstrap', { status: 503, raw: 'upstream down', contentType: 'text/plain', outOfContract: true });
     assert.equal(await rejection(requestBff('/dashboard/bootstrap')), 'Le service est momentanément indisponible. Veuillez réessayer plus tard.');
   });
@@ -120,9 +134,11 @@ describe('page data: /dashboard/bootstrap through the contract-gated proxy', () 
 });
 
 describe('connectivity operations declared in the contract', () => {
+  // /check_apis is typed since the dev contract (CheckApisResponse: status + one entry per aggregated BFF).
+  const bodies = { '/health': { status: 'ok' }, '/check_apis': { status: 'OK', core_api: 'Connected', project_api: 'Connected', calendar_api: 'Connected' } };
   for (const operation of ['/health', '/check_apis']) {
     test(`GET ${operation} is forwarded`, async () => {
-      dashboardBff.on('get', operation, { status: 200, body: { status: 'ok' } });
+      dashboardBff.on('get', operation, { status: 200, body: bodies[operation] });
       const response = await front.browserFetch(operation);
       assert.equal(response.status, 200);
       assert.equal(response.headers.get('cache-control'), 'no-store');
@@ -155,24 +171,11 @@ describe('requests outside the contract never leave the front', () => {
     front.violations.length = 0;
   });
 
-  test('the OpenAPI document of the BFF is the only path forwarded without being declared', async () => {
-    // Exception volontaire du proxy : /openapi.json et /swagger.json sont relayés pour exposer le
-    // contrat, bien qu'ils ne figurent pas dans contracts/openapi.json.
-    const metadataBff = new ContractMockServer('DASHBOARD_BFF', dashboardBff.contract)
-      .allowDeviation(/GET \/(openapi|swagger)\.json n'existe pas dans le contrat/, 'document OpenAPI relayé par le proxy hors contrat');
-    await metadataBff.start();
-    front.allow(metadataBff.url);
-    process.env.DASHBOARD_BFF_URL = metadataBff.url;
-    try {
-      for (const document of ['/openapi.json', '/swagger.json']) {
-        assert.equal((await front.browserFetch(document)).status, 404);
-        assert.equal((await front.browserFetch(document, { method: 'DELETE' })).status, 405);
-      }
-      assert.deepEqual(front.calls.filter(({ side }) => side === 'server').map(({ method, url }) => `${method} ${url.pathname}`), ['GET /openapi.json', 'GET /swagger.json']);
-      assert.deepEqual(metadataBff.violations, []);
-    } finally {
-      process.env.DASHBOARD_BFF_URL = dashboardBff.url;
-      await metadataBff.stop();
+  test('undeclared metadata never reaches the BFF', async () => {
+    for (const document of ['/openapi.json', '/swagger.json']) {
+      for (const method of ['GET', 'DELETE']) assert.equal((await front.browserFetch(document, { method })).status, 404);
     }
+    assert.deepEqual(front.calls.filter(({ side }) => side === 'server'), []);
+    assert.deepEqual(upstreamCalls(), []);
   });
 });

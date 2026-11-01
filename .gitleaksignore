@@ -1,0 +1,4 @@
+# Reviewed false positives from deterministic, non-production test fixtures.
+# Exact commit/file/rule/line fingerprints only; no path, rule or future-token exemption.
+# The cookie contains an unsigned display JWT ending in the literal dummy signature.
+cdff15d7aee225641d244e33c14e3ff8a7ff30bf:tests/security-headers.test.cjs:generic-api-key:9

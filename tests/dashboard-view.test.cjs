@@ -21,6 +21,7 @@ describe('toDashboardModuleData', () => {
   test('maps contract fields onto DashboardModule props', () => {
     assert.deepEqual(toDashboardModuleData(valid()), {
       hasUnavailableSource: false,
+      unusableEventCount: 0,
       projects: [
         { id: 'project-42', name: 'Budget participatif', progress: 50, status: 'in-progress', dueDate: '01/12/2026' },
         { id: 'project-7', name: 'Rénovation de la médiathèque', progress: 100, status: 'completed', dueDate: '30/06/2026' },
@@ -67,7 +68,22 @@ describe('toDashboardModuleData', () => {
 });
 
 describe('formatDueDate', () => {
-  test('formats contract dates with the numeric reference labels', () => {
+  test('does not invent deadlines from impossible civil dates or ambiguous free text', () => {
+    for (const value of ['2026-02-31', '31-02-2026', '2025-02-29', '1900-02-29', '2026-04-31', '2026-00-01',
+      '2026-02-31T09:00:00Z', '2026-02-31T09:00:00+02:00', '3', '2026', '02/03/2026', ' 3 ']) {
+      assert.equal(formatDueDate(value), value, `Unusable value must remain verbatim: ${value}`);
+    }
+  });
+
+  test('valid leap days and genuine ISO instants use the configured instance timezone', () => {
+    for (const [value, expected] of [['2000-02-29', '29/02/2000'], ['2028-02-29', '29/02/2028'],
+      ['29-02-2028', '29/02/2028'], ['2026-10-25T23:30:00+04:00', '25/10/2026']]) {
+      assert.equal(formatDueDate(value), expected);
+    }
+  });
+  test('formats contract dates with the numeric reference labels', t => {
+    const previous = process.env.INSTANCE_TIMEZONE; process.env.INSTANCE_TIMEZONE = 'Europe/Paris';
+    t.after(() => previous === undefined ? delete process.env.INSTANCE_TIMEZONE : process.env.INSTANCE_TIMEZONE = previous);
     assert.equal(formatDueDate('2026-12-01'), '01/12/2026');
     assert.equal(formatDueDate('05-10-2026'), '05/10/2026');
     // Instant ISO 8601 de BFF Project : jour de l'échéance à Paris.
@@ -75,8 +91,9 @@ describe('formatDueDate', () => {
     assert.equal(formatDueDate('2024-12-31T23:59:59Z'), '01/01/2025');
   });
 
-  test('retains calendar days across host timezones, Paris midnight and DST boundaries', () => {
+  test('retains calendar days and configured Paris instants across host timezones and DST boundaries', () => {
     const originalTimezone = process.env.TZ;
+    const originalInstance = process.env.INSTANCE_TIMEZONE; process.env.INSTANCE_TIMEZONE = 'Europe/Paris';
     try {
       for (const timezone of ['UTC', 'America/Los_Angeles', 'Pacific/Kiritimati']) {
         process.env.TZ = timezone;
@@ -91,6 +108,7 @@ describe('formatDueDate', () => {
         ]) assert.equal(formatDueDate(value), expected, `${timezone}: ${value}`);
       }
     } finally {
+      if (originalInstance === undefined) delete process.env.INSTANCE_TIMEZONE; else process.env.INSTANCE_TIMEZONE = originalInstance;
       if (originalTimezone === undefined) delete process.env.TZ;
       else process.env.TZ = originalTimezone;
     }
@@ -105,4 +123,34 @@ describe('formatDueDate', () => {
     const tasks = [{ id: 't', title: 'Sans date', dueDate: '  ', priority: 'medium', completed: false, projectId: 'p' }];
     assert.equal(toDashboardModuleData(valid({ tasks })).tasks[0].dueLabel, 'Sans échéance');
   });
+});
+
+test('impossible event days and clock rollovers are excluded without discarding valid events or their IDs', () => {
+  const events = [
+    { id: 'bad-day', title: 'Impossible day', date: '2026-02-31', startTime: '09:00' },
+    { id: 'bad-leap', title: 'Impossible leap day', date: '2100-02-29', startTime: '09:00' },
+    { id: 'bad-clock', title: 'Next-day rollover', date: '2026-10-06', startTime: '24:00' },
+    { id: 'valid-leap', title: 'Valid leap day', date: '29-02-2028', startTime: '23:59', location: 'Returned location' },
+    { id: 'without-time', title: 'Existing midnight default', date: '2026-12-31' },
+  ];
+  const mapped = toDashboardModuleData(valid({ events }));
+  assert.deepEqual(mapped.events, [
+    { id: 'valid-leap', title: 'Valid leap day', location: 'Returned location', startsAt: '2028-02-29T23:59:00' },
+    { id: 'without-time', title: 'Existing midnight default', location: '', startsAt: '2026-12-31T00:00:00' },
+  ]);
+  assert.equal(mapped.unusableEventCount, 3);
+});
+
+test('unusable event values are distinguished from a confirmed empty event collection', () => {
+  assert.equal(toDashboardModuleData(valid({ events: [] })).unusableEventCount, 0);
+  for (const event of [
+    { id: 'd', title: 'Unreadable day', date: 'bientôt' },
+    { id: 't', title: 'Unreadable time', date: '2026-10-06', startTime: 'midi' },
+    { id: 'm', title: 'Invalid minute', date: '2026-10-06', startTime: '23:60' },
+  ]) {
+    const view = toDashboardModuleData(valid({ events: [event] }));
+    assert.equal(view.unusableEventCount, 1);
+    assert.deepEqual(view.events, []);
+    assert.equal(view.hasUnavailableSource, false, 'Do not rewrite the returned source status');
+  }
 });

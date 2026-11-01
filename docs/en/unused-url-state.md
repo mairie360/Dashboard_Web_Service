@@ -1,0 +1,1 @@
+The dashboard has no interface state driven by its local URL. A complete search of sources, tests and documentation confirmed that `src/lib/use-page-url-state.ts` had no import or usage, so this duplicated hook was removed. Card destinations continue to construct contextual links to projects, tasks and events; no user flow depended on this hook.

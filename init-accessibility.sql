@@ -1,13 +1,14 @@
 -- Data of the RGAA states of rgaa.yaml (MAIR-316), run by the seeder-a11y service of
 -- docker-compose-accessibility.yml only, after init-test.sql (user 2). The ZAP / k6 stacks keep
--- the minimal seed. Schema: ghcr.io/mairie360/liquibase-migrations:1.3.0 (projects, tasks,
+-- the minimal seed. Schema: the liquibase-migrations image of the stack (projects, tasks,
 -- task_assignees, project_members, events). Ids start at 9100 so that they never clash with
 -- init-test.sql nor with rows the APIs create through their sequences.
 \set ON_ERROR_STOP on
 
--- User 3: same role as user 2 but no project, task or event (empty dashboard state).
+-- User 3: same role as user 2 but no project, task or event (empty dashboard state). No password:
+-- the engine signs its JWT, and chk_users_password_hashed refuses a plaintext one.
 INSERT INTO users (id, first_name, last_name, email, password, status)
-VALUES (3, 'Rgaa', 'Empty', 'rgaa-empty@mairie360.fr', 'dummy', 'active')
+VALUES (3, 'Rgaa', 'Empty', 'rgaa-empty@mairie360.fr', NULL, 'active')
 ON CONFLICT (id) DO NOTHING;
 INSERT INTO user_roles (user_id, role_id)
 SELECT 3, r.id FROM roles r WHERE lower(r.name) = 'user'

@@ -15,7 +15,7 @@ html {
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: system-ui, sans-serif;
+  --font-sans: var(--font-geist-sans), system-ui, sans-serif;
   --font-mono: var(--font-geist-mono);
 }
 
@@ -29,90 +29,73 @@ html {
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: system-ui, sans-serif;
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
 }
 
-/* Bound the track, not the overflow: intrinsic card widths must not enlarge main. */
-.dashboard-content-grid > section {
-  min-width: 0;
-  box-shadow: 0 5px 15px rgb(23 32 51 / 14%), 0 1px 3px rgb(23 32 51 / 12%);
+/* Keep the reference's py-6 on desktop too; do not alter other shell consumers. */
+.dashboard-app-shell main {
+  padding-block: 1.5rem;
+  /* Match the opaque reference content, including its header-shadow painting. */
+  background-color: var(--mairie-background);
 }
 
-.dashboard-content-grid > section > div:first-child > h2 {
-  min-width: 0;
-  overflow-wrap: anywhere;
+/* Restore reference presentation without copying the published navigation. */
+.dashboard-app-shell [aria-label="Navigation principale"] {
+  position: relative;
+  z-index: 20;
+  box-shadow: 8px 0 24px rgb(12 28 48 / 28%);
 }
 
-.dashboard-content-grid > section > div:first-child > button {
+.dashboard-app-shell [aria-label="Navigation principale"] nav button {
   flex-shrink: 0;
+  min-height: 44px;
 }
 
-.dashboard-content-grid > section > div:last-child > button {
-  min-width: 0;
-  overflow-wrap: anywhere;
+/* The drawer's published Close button is z-10 and must remain clickable. */
+.dashboard-app-shell [aria-label="Navigation mobile"] [aria-label="Navigation principale"] {
+  z-index: 0;
 }
 
-.dashboard-content-grid > section > div:last-child > button .truncate {
-  white-space: normal;
-  overflow: visible;
-  text-overflow: clip;
-}
+/* MAIR-608: the panels are lib Panels and the rows lib primitives; the page only owns layout and wrapping. */
+.dashboard-content-grid > section { min-width: 0; }
+.dashboard-rows > button { min-width: 0; overflow-wrap: anywhere; }
+.dashboard-rows > button .truncate { white-space: normal; overflow: visible; text-overflow: clip; }
 
-.dashboard-recent-projects > div:last-child > button {
-  border: 1px solid #d8d2ca;
-  border-radius: 6px;
-  background: #fbfaf9;
+.dashboard-project-row {
+  /* Longhands: JSDOM drops shorthands that contain var(). */
+  border-width: 1px;
+  border-style: solid;
+  border-color: var(--mairie-control-border);
+  border-radius: var(--mairie-radius-s);
+  background-color: var(--mairie-surface-raised);
   padding: 12px;
   transition: background-color 150ms, border-color 150ms;
 }
+.dashboard-project-row:hover { background-color: var(--mairie-surface); border-color: var(--mairie-accent); }
+.dashboard-project-row > span.flex { flex-wrap: wrap; }
+.dashboard-project-row > span.flex > span { min-width: 0; }
+.dashboard-project-row > span.flex > span:last-child, .dashboard-task-row > span:last-child { flex-shrink: 0; }
+@media (max-width: 40rem) { .dashboard-project-row > span.flex { gap: 6px; } }
 
-.dashboard-recent-projects > div:last-child > button:hover {
-  background: #ffffff;
-  border-color: #4b908d;
-}
+.dashboard-upcoming-events-grid > .dashboard-events-rows { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.75rem; }
+.dashboard-upcoming-events-grid > .dashboard-events-rows > * { min-width: 0; margin: 0; }
+@media (min-width: 48rem) { .dashboard-upcoming-events-grid > .dashboard-events-rows { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 96rem) { .dashboard-upcoming-events-grid > .dashboard-events-rows { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 
-.dashboard-recent-projects > div:last-child > button > span.flex {
-  flex-wrap: wrap;
-}
+/* Retained companion layout around the shared shell. */
+.app-skip-link { position: fixed; top: 8px; left: 8px; z-index: 100; transform: translateY(-180%); padding: 12px 18px; border-radius: 8px; background: var(--mairie-surface); color: var(--mairie-accent); font-weight: 650; }
+.app-skip-link:focus { transform: none; outline: 3px solid var(--mairie-accent); outline-offset: 3px; }
+.app-main-content { min-width: 0; }
+.app-main-content:focus-visible { outline: 3px solid var(--mairie-accent); outline-offset: -3px; }
 
-.dashboard-recent-projects > div:last-child > button > span.flex > span {
-  min-width: 0;
-}
+/* The lib PageHeader owns the title typography; the page keeps its wrapping rhythm. */
+.page-title-row { gap: 12px 20px; }
+.page-current-date { min-height: 24px; max-width: 100%; }
 
-.dashboard-recent-projects > div:last-child > button > span:first-child > span:last-child,
-.dashboard-pending-tasks > div:last-child > button > span:last-child {
-  flex-shrink: 0;
-}
-
-@media (max-width: 40rem) {
-  .dashboard-recent-projects > div:last-child > button > span.flex {
-    gap: 6px;
-  }
-}
-
-.dashboard-upcoming-events-grid > div:last-child {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 0.75rem;
-}
-
-.dashboard-upcoming-events-grid > div:last-child > * {
-  min-width: 0;
-  margin: 0;
-}
-
-@media (min-width: 48rem) {
-  .dashboard-upcoming-events-grid > div:last-child {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (min-width: 96rem) {
-  .dashboard-upcoming-events-grid > div:last-child {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-
-.dashboard-upcoming-events-grid > div:last-child > p:only-child {
-  grid-column: 1 / -1;
-}
+/* Companion of the selected Settings direction (MAIR-544/546). */
+.dashboard-app-shell { --dashboard-background: var(--mairie-background); --dashboard-surface: var(--mairie-surface); --dashboard-text: var(--mairie-text); --dashboard-muted: var(--mairie-muted); --dashboard-border: var(--mairie-border); --dashboard-accent: var(--mairie-accent); }
+.dashboard-app-shell main { padding-block: 32px; background: var(--dashboard-background); }
+.dashboard-content-grid { gap: 24px; }
+.dashboard-content-grid > .dashboard-panel { min-width: 0; box-shadow: 0 2px 12px rgb(23 32 51 / 5%); }
+.dashboard-panel-action { flex-shrink: 0; color: var(--mairie-accent); }
+.dashboard-panel-action:disabled { opacity: 0.6; cursor: not-allowed; }
