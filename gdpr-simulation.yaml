@@ -1,0 +1,21 @@
+# GDPR usage simulation of the dashboard front (MAIR-497), played by mairie360/CICD
+# tests/gdpr/simulation on the test stack only (docker-compose-gdpr-simulation.yml,
+# gdpr_simulation_test.sh; format: CICD README, "GDPR simulation").
+#
+# Fictitious personas with unique values go through gdpr-journey.yaml (BFF_Dashboard's journey) on the
+# front's origin: the dashboard only reads, so their values are sent in query strings and in a
+# path the proxy refuses. The dashboard is then opened in the browser: the browser console and
+# storage, the requests and cookies of the page, the logs of every container, the Redis keys and the
+# database after the purge are then checked and reviewed (CICD analyze.mjs). The dashboard writes
+# nothing about a persona, so none is erased.
+version: 1
+journey: gdpr-journey.yaml
+personas: 4
+erased: 0
+browser:
+  target: http://dashboard-front:5000
+  # Session of the journey: the front relays it to its BFF as a Bearer token.
+  cookies: {accessToken: "{{env.ADMIN_JWT}}"}
+  pages:
+    - name: dashboard
+      path: "/"

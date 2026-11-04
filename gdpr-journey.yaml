@@ -1,0 +1,26 @@
+# GDPR usage simulation journey of the dashboard front (MAIR-497), played by mairie360/CICD
+# tests/gdpr/simulation for every persona of gdpr-simulation.yaml (gdpr-marker.yaml format of
+# MAIR-290).
+#
+# The journey of BFF_Dashboard's log marker test, sent to the front's own origin: the same-origin proxy
+# (src/lib/bff-proxy.ts) relays it to the BFF with the accessToken cookie as a Bearer token, as for
+# the browser, so the logs of the front see the persona's values in the bodies, the query strings
+# and the deliberate errors. The proxy only forwards same-origin requests (Origin) and the paths of
+# contracts/openapi.json; the first step defines the session headers the next ones reuse
+# (*session).
+version: 1
+target: http://dashboard-front:5000
+wait: /
+# Session of the run (the seeded admin), signed by gdpr_simulation_test.sh.
+env: [ADMIN_JWT]
+steps:
+  - name: read the bootstrap
+    request: {method: GET, path: /dashboard/bootstrap, headers: &session {Cookie: "accessToken={{env.ADMIN_JWT}}", Origin: "http://dashboard-front:5000"}}
+  - name: read the bootstrap with a query string holding the marker
+    request: {method: GET, path: "/dashboard/bootstrap?search={{marker.email}}&name={{marker.first_name}}+{{marker.last_name}}&phone={{marker.phone}}", headers: *session}
+  - name: read the bootstrap with an invalid token (deliberate error)
+    request: {method: GET, path: "/dashboard/bootstrap?search={{marker.email}}", headers: {Cookie: "accessToken={{marker.password}}", Origin: "http://dashboard-front:5000"}}
+    expect: [401]
+  - name: read a route that does not exist (deliberate error)
+    request: {method: GET, path: "/dashboard/{{marker.last_name}}?email={{marker.email}}", headers: *session}
+    expect: [404]

@@ -181,7 +181,7 @@ describe('one front, one BFF, one OpenAPI contract', () => {
   test('the security and performance stacks run the BFF_Dashboard image built from the contract package commit', async () => {
     const { imageTagForContractVersion } = await import('../scripts/contract-version.mjs');
     const { version } = resolveOrvalPackage(CONTRACT_PACKAGE);
-    for (const stack of ['docker-compose-security.yml', 'docker-compose-performance.yml']) {
+    for (const stack of ['docker-compose-security.yml', 'docker-compose-performance.yml', 'docker-compose-accessibility.yml']) {
       const images = composePolicy.bffImages(composePolicy.compose(stack)).filter(image => image.startsWith('ghcr.io/mairie360/bff-dashboard:')).map(image => image.slice(image.lastIndexOf(':') + 1));
       assert.deepEqual(images, [imageTagForContractVersion(version)], stack);
     }
