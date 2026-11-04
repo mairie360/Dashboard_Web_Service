@@ -49,8 +49,8 @@ test('an agent outside the project does not see it in their widgets', async ({ p
   await expect(page.getByText('Projets récents', { exact: true }).first()).toBeVisible();
   // The widgets must have loaded the member's data (none of their own: the empty states), or the
   // negative checks below would also pass on a page whose sources failed or are still loading.
-  await expect(page.getByText('Aucun projet récent.')).toBeVisible();
-  await expect(page.getByText('Aucune tâche en attente.')).toBeVisible();
+  await expect(page.getByText('Aucun projet récent.', { exact: true })).toBeVisible();
+  await expect(page.getByText('Aucune tâche en attente.', { exact: true })).toBeVisible();
   await expect(page.getByText('Certaines données sont temporairement indisponibles.')).toHaveCount(0);
   await expect(page.getByRole('button', { name: new RegExp(projectName) })).toHaveCount(0);
   await expect(page.getByText(taskName)).toHaveCount(0);
