@@ -189,7 +189,7 @@ Before running Docker, check service variables, build secrets and networks in th
 ### End-to-end journeys (MAIR-603)
 
 `./e2e_test.sh` starts `docker-compose-e2e.yml` (the performance stack with a Playwright runner in
-place of k6) and runs the journeys of `e2e/`: the widgets of an agent showing their own project and task (created through Project API), the same project hidden from an agent outside it, and a forged session refused. The prod promotion runs the same script on
+place of k6) and runs the journeys of `e2e/`: the widgets of an agent showing their own project and task (created through Project API), the same project hidden from an agent outside it (checked once that agent's empty panels have loaded), and a forged session refused. The prod promotion runs the same script on
 the verified `staging-<sha>` image (`e2e_tests` job, mairie360/CICD `actions/e2e/fronts`,
 MAIR-602) and blocks the release when a journey fails or when the folder is missing. The report
 (HTML, traces and videos of the failed journeys) is kept in `e2e-report/`. For local iterations,

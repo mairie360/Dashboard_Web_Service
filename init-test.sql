@@ -13,7 +13,7 @@ ON CONFLICT DO NOTHING;
 -- End-to-end journeys (MAIR-603): user 2 carries the "Admin" role instead, so Project API lets it
 -- create the project and the task its widgets show (the journeys create them through the API).
 -- A user holds a single role (user_roles is keyed by user_id), hence an update.
-UPDATE user_roles SET role_id = (SELECT id FROM roles WHERE name = 'Admin') WHERE user_id = 2;
+UPDATE user_roles SET role_id = (SELECT id FROM roles WHERE lower(name) = 'admin') WHERE user_id = 2;
 -- End-to-end journeys (MAIR-603): user 3 only carries the "User" role, outside that project: it must not see it.
 -- Same template password hash as user 2.
 INSERT INTO users (id, first_name, last_name, email, password, status)
