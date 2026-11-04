@@ -1,37 +1,33 @@
 # Journal des releases — Dashboard_Web_Service
 
-<!-- release-journal-state {"dev": "9c16c8c20d25aef3c55d38584b86466ef82df569", "prod": "ca5636b1c6bfb4b718b7390e7261057759a2e672", "prod_tag": "v1.6.0", "staging": "ca5636b1c6bfb4b718b7390e7261057759a2e672", "updated": {"dev": "2026-11-04 18:38 UTC", "prod": "2026-10-21 11:08 UTC", "staging": "2026-10-21 11:06 UTC"}} -->
+<!-- release-journal-state {"dev": "cb3ee742121b3a19f689f880af91c53151aba43f", "prod": "ca5636b1c6bfb4b718b7390e7261057759a2e672", "prod_tag": "v1.6.0", "staging": "ca5636b1c6bfb4b718b7390e7261057759a2e672", "updated": {"dev": "2026-11-04 21:26 UTC", "prod": "2026-10-21 11:08 UTC", "staging": "2026-10-21 11:06 UTC"}} -->
 > Tenu à jour par la CI (`mairie360/CICD`, action `release/release-journal`) à chaque passage en dev, staging et prod. Ne pas modifier à la main : le fichier est réécrit au passage suivant.
 
 | Environnement | Version | Commit | Mis à jour |
 | --- | --- | --- | --- |
 | prod | v1.6.0 | `ca5636b` | 2026-10-21 11:08 UTC |
 | staging | — | `ca5636b` | 2026-10-21 11:06 UTC |
-| dev | — | `9c16c8c` | 2026-11-04 18:38 UTC |
+| dev | — | `cb3ee74` | 2026-11-04 21:26 UTC |
 
 ## Ajouté sur main depuis la dernière release prod (v1.6.0)
 
 #### Changements de comportement
-- Le tableau de bord utilise désormais les composants partagés de la lib (`PageHeader`, `Panel`, `DataState`, `StatusBadge`, `PriorityPill`, `ProgressMeter`, `MetricCard`, `Skeleton.Card`, `LinkButton`, `RetryButton`) : une couleur par statut et par priorité dans tous les fronts. (MAIR-608, [#158](https://github.com/mairie360/Dashboard_Web_Service/pull/158))
-- La navigation et l'en-tête de page viennent de la lib (`AccessibleShell` de `@mairie360/lib-components/shell`) : la navigation bureau locale, la date courante locale et la préférence de barre latérale locale sont supprimées. (MAIR-608, [#158](https://github.com/mairie360/Dashboard_Web_Service/pull/158))
+- Le tableau de bord utilise désormais les composants partagés normalisés de la lib : en-tête de page (`PageHeader`), panneaux `Panel` avec `DataState` pour chaque état, badges `StatusBadge` et `PriorityPill` (une couleur par statut dans chaque front), `ProgressMeter` et cartes de métriques. `globals.css` ne garde que la mise en page et les retours à la ligne, les couleurs viennent des tokens `--mairie-*`. (MAIR-608, [#158](https://github.com/mairie360/Dashboard_Web_Service/pull/158))
+- La coquille de page et la navigation viennent de la lib (`AccessibleShell`) : les composants locaux `desktop-navigation`, `accessible-shell`, `current-date` et la préférence `sidebar-preference` sont retirés du front. (MAIR-608, [#158](https://github.com/mairie360/Dashboard_Web_Service/pull/158))
 
 #### Technique
-- Sécurité des dépendances : `follow-redirects` passe en 1.16.2 (GHSA-mrwp-f3q8-3g9p, [#176](https://github.com/mairie360/Dashboard_Web_Service/pull/176)), Next.js et `eslint-config-next` en 16.4.2 ([#169](https://github.com/mairie360/Dashboard_Web_Service/pull/169)), et zod remplacé par le backport vendu `vendor/zod` (MAIR-770, [#178](https://github.com/mairie360/Dashboard_Web_Service/pull/178)).
-- Runtime Node 24.22.1 (Dockerfile, développement, CI, contrats) avec images de base épinglées par digest ([#169](https://github.com/mairie360/Dashboard_Web_Service/pull/169)).
-- Pipeline : CICD monté jusqu'en v5.3.1 ([#180](https://github.com/mairie360/Dashboard_Web_Service/pull/180), [#182](https://github.com/mairie360/Dashboard_Web_Service/pull/182)), contrôle RGPD des PR ([#97](https://github.com/mairie360/Dashboard_Web_Service/pull/97)), stacks de tests RGAA ([#93](https://github.com/mairie360/Dashboard_Web_Service/pull/93), [#174](https://github.com/mairie360/Dashboard_Web_Service/pull/174)) et simulation RGPD ([#181](https://github.com/mairie360/Dashboard_Web_Service/pull/181)).
-- Garde-fous de CI : politique Gitleaks par chemin ([#184](https://github.com/mairie360/Dashboard_Web_Service/pull/184)), preuve de bundle par source maps côté CI ([#178](https://github.com/mairie360/Dashboard_Web_Service/pull/178)) et tests de politique associés.
+- Dépendances et runtime : Next.js 16.3.8 vers 16.4.2, Node 24.21.0 vers 24.22.1 (Dockerfile et CI), zod remplacé par le backport vendorisé `vendor/zod` avec vérification d'intégrité hors ligne à `postinstall`, `prebuild` et `pretest`, follow-redirects 1.16.2 dans le lock ([#169](https://github.com/mairie360/Dashboard_Web_Service/pull/169), [#178](https://github.com/mairie360/Dashboard_Web_Service/pull/178), [#176](https://github.com/mairie360/Dashboard_Web_Service/pull/176)).
+- CI, tests et outillage : mairie360/CICD épinglé de v4.4.3 jusqu'à v5.5.0 (RGAA, GDPR, E2E Playwright dans `e2e/` et `e2e_test.sh`, simulation RGPD, checklist RGPD des PR, politique Gitleaks, pins de tests), sans effet sur l'interface ([#168](https://github.com/mairie360/Dashboard_Web_Service/pull/168), [#93](https://github.com/mairie360/Dashboard_Web_Service/pull/93), [#174](https://github.com/mairie360/Dashboard_Web_Service/pull/174), [#97](https://github.com/mairie360/Dashboard_Web_Service/pull/97), [#180](https://github.com/mairie360/Dashboard_Web_Service/pull/180), [#181](https://github.com/mairie360/Dashboard_Web_Service/pull/181), [#182](https://github.com/mairie360/Dashboard_Web_Service/pull/182), [#184](https://github.com/mairie360/Dashboard_Web_Service/pull/184), [#167](https://github.com/mairie360/Dashboard_Web_Service/pull/167)).
 
 ## Différence dev → staging (en dev, pas encore en staging)
 
 #### Changements de comportement
-- Le tableau de bord utilise désormais les composants partagés de la lib (`PageHeader`, `Panel`, `DataState`, `StatusBadge`, `PriorityPill`, `ProgressMeter`, `MetricCard`, `Skeleton.Card`, `LinkButton`, `RetryButton`) : une couleur par statut et par priorité dans tous les fronts. (MAIR-608, [#158](https://github.com/mairie360/Dashboard_Web_Service/pull/158))
-- La navigation et l'en-tête de page viennent de la lib (`AccessibleShell` de `@mairie360/lib-components/shell`) : la navigation bureau locale, la date courante locale et la préférence de barre latérale locale sont supprimées. (MAIR-608, [#158](https://github.com/mairie360/Dashboard_Web_Service/pull/158))
+- Le tableau de bord utilise désormais les composants partagés normalisés de la lib : en-tête de page (`PageHeader`), panneaux `Panel` avec `DataState` pour chaque état, badges `StatusBadge` et `PriorityPill` (une couleur par statut dans chaque front), `ProgressMeter` et cartes de métriques. `globals.css` ne garde que la mise en page et les retours à la ligne, les couleurs viennent des tokens `--mairie-*`. (MAIR-608, [#158](https://github.com/mairie360/Dashboard_Web_Service/pull/158))
+- La coquille de page et la navigation viennent de la lib (`AccessibleShell`) : les composants locaux `desktop-navigation`, `accessible-shell`, `current-date` et la préférence `sidebar-preference` sont retirés du front. (MAIR-608, [#158](https://github.com/mairie360/Dashboard_Web_Service/pull/158))
 
 #### Technique
-- Sécurité des dépendances : `follow-redirects` passe en 1.16.2 (GHSA-mrwp-f3q8-3g9p, [#176](https://github.com/mairie360/Dashboard_Web_Service/pull/176)), Next.js et `eslint-config-next` en 16.4.2 ([#169](https://github.com/mairie360/Dashboard_Web_Service/pull/169)), et zod remplacé par le backport vendu `vendor/zod` (MAIR-770, [#178](https://github.com/mairie360/Dashboard_Web_Service/pull/178)).
-- Runtime Node 24.22.1 (Dockerfile, développement, CI, contrats) avec images de base épinglées par digest ([#169](https://github.com/mairie360/Dashboard_Web_Service/pull/169)).
-- Pipeline : CICD monté jusqu'en v5.3.1 ([#180](https://github.com/mairie360/Dashboard_Web_Service/pull/180), [#182](https://github.com/mairie360/Dashboard_Web_Service/pull/182)), contrôle RGPD des PR ([#97](https://github.com/mairie360/Dashboard_Web_Service/pull/97)), stacks de tests RGAA ([#93](https://github.com/mairie360/Dashboard_Web_Service/pull/93), [#174](https://github.com/mairie360/Dashboard_Web_Service/pull/174)) et simulation RGPD ([#181](https://github.com/mairie360/Dashboard_Web_Service/pull/181)).
-- Garde-fous de CI : politique Gitleaks par chemin ([#184](https://github.com/mairie360/Dashboard_Web_Service/pull/184)), preuve de bundle par source maps côté CI ([#178](https://github.com/mairie360/Dashboard_Web_Service/pull/178)) et tests de politique associés.
+- Dépendances et runtime : Next.js 16.3.8 vers 16.4.2, Node 24.21.0 vers 24.22.1 (Dockerfile et CI), zod remplacé par le backport vendorisé `vendor/zod` avec vérification d'intégrité hors ligne à `postinstall`, `prebuild` et `pretest`, follow-redirects 1.16.2 dans le lock ([#169](https://github.com/mairie360/Dashboard_Web_Service/pull/169), [#178](https://github.com/mairie360/Dashboard_Web_Service/pull/178), [#176](https://github.com/mairie360/Dashboard_Web_Service/pull/176)).
+- CI, tests et outillage : mairie360/CICD épinglé de v4.4.3 jusqu'à v5.5.0 (RGAA, GDPR, E2E Playwright dans `e2e/` et `e2e_test.sh`, simulation RGPD, checklist RGPD des PR, politique Gitleaks, pins de tests), sans effet sur l'interface ([#168](https://github.com/mairie360/Dashboard_Web_Service/pull/168), [#93](https://github.com/mairie360/Dashboard_Web_Service/pull/93), [#174](https://github.com/mairie360/Dashboard_Web_Service/pull/174), [#97](https://github.com/mairie360/Dashboard_Web_Service/pull/97), [#180](https://github.com/mairie360/Dashboard_Web_Service/pull/180), [#181](https://github.com/mairie360/Dashboard_Web_Service/pull/181), [#182](https://github.com/mairie360/Dashboard_Web_Service/pull/182), [#184](https://github.com/mairie360/Dashboard_Web_Service/pull/184), [#167](https://github.com/mairie360/Dashboard_Web_Service/pull/167)).
 
 ## Différence staging → prod (en staging, pas encore en prod)
 
@@ -42,6 +38,7 @@ _Rien._
 <!-- release-journal-history:start -->
 | Date | Environnement | Version | Commit | Run |
 | --- | --- | --- | --- | --- |
+| 2026-11-04 21:26 UTC | dev | — | `cb3ee74` | [run](https://github.com/mairie360/Dashboard_Web_Service/actions/runs/41914808837) |
 | 2026-11-04 18:38 UTC | dev | — | `9c16c8c` | [run](https://github.com/mairie360/Dashboard_Web_Service/actions/runs/41887984931) |
 | 2026-11-04 18:24 UTC | dev | — | `2eae44a` | [run](https://github.com/mairie360/Dashboard_Web_Service/actions/runs/41883261104) |
 | 2026-11-03 14:57 UTC | dev | — | `7f7b54f` | [run](https://github.com/mairie360/Dashboard_Web_Service/actions/runs/41656746423) |
