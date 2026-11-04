@@ -1,43 +1,35 @@
 # Journal des releases — Dashboard_Web_Service
 
-<!-- release-journal-state {"dev": "7f7b54f33de833d515217ea5e5ef6a047f42e391", "prod": "ca5636b1c6bfb4b718b7390e7261057759a2e672", "prod_tag": "v1.6.0", "staging": "ca5636b1c6bfb4b718b7390e7261057759a2e672", "updated": {"dev": "2026-11-03 14:57 UTC", "prod": "2026-10-21 11:08 UTC", "staging": "2026-10-21 11:06 UTC"}} -->
+<!-- release-journal-state {"dev": "2eae44aa50c93002520aa59b2ea9159a0ea91fc7", "prod": "ca5636b1c6bfb4b718b7390e7261057759a2e672", "prod_tag": "v1.6.0", "staging": "ca5636b1c6bfb4b718b7390e7261057759a2e672", "updated": {"dev": "2026-11-04 18:24 UTC", "prod": "2026-10-21 11:08 UTC", "staging": "2026-10-21 11:06 UTC"}} -->
 > Tenu à jour par la CI (`mairie360/CICD`, action `release/release-journal`) à chaque passage en dev, staging et prod. Ne pas modifier à la main : le fichier est réécrit au passage suivant.
 
 | Environnement | Version | Commit | Mis à jour |
 | --- | --- | --- | --- |
 | prod | v1.6.0 | `ca5636b` | 2026-10-21 11:08 UTC |
 | staging | — | `ca5636b` | 2026-10-21 11:06 UTC |
-| dev | — | `7f7b54f` | 2026-11-03 14:57 UTC |
+| dev | — | `2eae44a` | 2026-11-04 18:24 UTC |
 
 ## Ajouté sur main depuis la dernière release prod (v1.6.0)
 
 #### Changements de comportement
-- Tableau de bord : les blocs de statut, de priorité, les barres de progression, l'en-tête de page et les cartes de métriques utilisent désormais les composants partagés de `@mairie360/lib-components`, avec une couleur par statut identique sur tous les fronts. La feuille `globals.css` ne garde que la mise en page, donc le rendu de la page d'accueil change. (MAIR-608, [#158](https://github.com/mairie360/Dashboard_Web_Service/pull/158), diff partiellement tronqué)
-- Navigation : le menu latéral est celui de la lib (`AccessibleShell`). Les composants locaux `desktop-navigation`, `accessible-shell`, `current-date` et `sidebar-preference` sont retirés du front. (MAIR-578 / MAIR-608, [#158](https://github.com/mairie360/Dashboard_Web_Service/pull/158))
+- Le tableau de bord utilise désormais les composants partagés de la lib : titre de page avec date (`PageHeader`), panneaux `Panel` et `DataState`, badges `StatusBadge` et `PriorityPill` (une couleur par statut sur tous les fronts), `ProgressMeter`, `MetricCard`, `Skeleton.Card`, `LinkButton` et `RetryButton`. Les couleurs viennent des jetons `--mairie-*`. (MAIR-608, [#158](https://github.com/mairie360/Dashboard_Web_Service/pull/158))
+- Le shell de navigation vient de `@mairie360/lib-components/shell`. Les modules locaux `accessible-shell`, `desktop-navigation`, `current-date` et `sidebar-preference` sont supprimés. (MAIR-608, [#158](https://github.com/mairie360/Dashboard_Web_Service/pull/158))
 
 #### Technique
-- Sécurité Node.js et Next.js : Node 24.22.1 dans les Dockerfiles et la CI, Next.js et eslint-config-next passent de 16.3.8 à 16.4.2, et `tests` n'est plus exclu du contexte Docker. (MAIR-? , [#169](https://github.com/mairie360/Dashboard_Web_Service/pull/169))
-- Zod : remplacement de zod 3.25.76 par un backport vendorisé (3.25.76+mairie360.1) ; `postinstall`, `prebuild` et `pretest` vérifient l'intégrité du vendor, et les source maps ne sont produites que pour la mesure CI de provenance du bundle. (MAIR-770, [#178](https://github.com/mairie360/Dashboard_Web_Service/pull/178))
-- follow-redirects forcé en 1.16.2 dans le lock (GHSA-mrwp-f3q8-3g9p), avec un test de politique. (sans ticket Jira, [#176](https://github.com/mairie360/Dashboard_Web_Service/pull/176))
-- Stack d'accessibilité RGAA : projet Compose dédié, boucles de readiness bornées, rapport remis à zéro à chaque run, verrou `.rgaa-run.lock`. (MAIR-768, [#174](https://github.com/mairie360/Dashboard_Web_Service/pull/174)) Stack RGAA des états de pages et `init-accessibility.sql`. (MAIR-316, [#93](https://github.com/mairie360/Dashboard_Web_Service/pull/93))
-- Checklist RGPD sur les PR (`gdpr-pr.yml`, CICD v4.12.2 puis v5.3.0 par Renovate) et ajout de `ANTHROPIC_WORKSPACE_ID` dans `promote-prod.yml`. (MAIR-295, [#97](https://github.com/mairie360/Dashboard_Web_Service/pull/97) ; MAIR-316, [#93](https://github.com/mairie360/Dashboard_Web_Service/pull/93))
-- Simulation d'usage RGPD (`docker-compose-gdpr-simulation.yml`, `gdpr-simulation.yaml`, `gdpr-journey.yaml`, `gdpr_simulation_test.sh`), stack de test sans port publié. (MAIR-497, [#181](https://github.com/mairie360/Dashboard_Web_Service/pull/181))
-- Pins CICD : v5.2.2 (MAIR-771, [#180](https://github.com/mairie360/Dashboard_Web_Service/pull/180)) puis v5.3.0 (MAIR-497, [#181](https://github.com/mairie360/Dashboard_Web_Service/pull/181)) ; mise à jour Renovate de CICD en v4.5.0 (#168), remplacée ensuite.
+- Images Node 24.22.1 (digests officiels), Next.js et eslint-config-next en 16.4.2, `follow-redirects` en 1.16.2 et test de politique associé. (MAIR-608 / sans ticket, [#169](https://github.com/mairie360/Dashboard_Web_Service/pull/169), [#176](https://github.com/mairie360/Dashboard_Web_Service/pull/176), [#168](https://github.com/mairie360/Dashboard_Web_Service/pull/168))
+- zod remplacé par le backport vendorisé `vendor/zod` (3.25.76+mairie360.1), vérifications d'intégrité lancées en `postinstall`, `prebuild` et `pretest`, preuve de bundle par source maps en CI uniquement, exclusion gitleaks par chemin. (MAIR-770, [#178](https://github.com/mairie360/Dashboard_Web_Service/pull/178))
+- Workflows CI, tests et pins CICD successifs (v4.5.0 puis v5.1.0, v5.2.2, v5.3.0, v5.3.1) ; checklist RGPD sur les PR ([#97](https://github.com/mairie360/Dashboard_Web_Service/pull/97)) ; stack et script d'accessibilité RGAA ([#93](https://github.com/mairie360/Dashboard_Web_Service/pull/93), [#174](https://github.com/mairie360/Dashboard_Web_Service/pull/174)) ; simulation RGPD de promotion prod ([#181](https://github.com/mairie360/Dashboard_Web_Service/pull/181), [#182](https://github.com/mairie360/Dashboard_Web_Service/pull/182)). Aucun effet sur le produit.
 
 ## Différence dev → staging (en dev, pas encore en staging)
 
 #### Changements de comportement
-- Tableau de bord : les blocs de statut, de priorité, les barres de progression, l'en-tête de page et les cartes de métriques utilisent désormais les composants partagés de `@mairie360/lib-components`, avec une couleur par statut identique sur tous les fronts. La feuille `globals.css` ne garde que la mise en page, donc le rendu de la page d'accueil change. (MAIR-608, [#158](https://github.com/mairie360/Dashboard_Web_Service/pull/158), diff partiellement tronqué)
-- Navigation : le menu latéral est celui de la lib (`AccessibleShell`). Les composants locaux `desktop-navigation`, `accessible-shell`, `current-date` et `sidebar-preference` sont retirés du front. (MAIR-578 / MAIR-608, [#158](https://github.com/mairie360/Dashboard_Web_Service/pull/158))
+- Le tableau de bord utilise désormais les composants partagés de la lib : titre de page avec date (`PageHeader`), panneaux `Panel` et `DataState`, badges `StatusBadge` et `PriorityPill` (une couleur par statut sur tous les fronts), `ProgressMeter`, `MetricCard`, `Skeleton.Card`, `LinkButton` et `RetryButton`. Les couleurs viennent des jetons `--mairie-*`. (MAIR-608, [#158](https://github.com/mairie360/Dashboard_Web_Service/pull/158))
+- Le shell de navigation vient de `@mairie360/lib-components/shell`. Les modules locaux `accessible-shell`, `desktop-navigation`, `current-date` et `sidebar-preference` sont supprimés. (MAIR-608, [#158](https://github.com/mairie360/Dashboard_Web_Service/pull/158))
 
 #### Technique
-- Sécurité Node.js et Next.js : Node 24.22.1 dans les Dockerfiles et la CI, Next.js et eslint-config-next passent de 16.3.8 à 16.4.2, et `tests` n'est plus exclu du contexte Docker. (sans ticket Jira, [#169](https://github.com/mairie360/Dashboard_Web_Service/pull/169))
-- Zod : remplacement de zod 3.25.76 par un backport vendorisé (3.25.76+mairie360.1) ; `postinstall`, `prebuild` et `pretest` vérifient l'intégrité du vendor, et les source maps ne sont produites que pour la mesure CI de provenance du bundle. (MAIR-770, [#178](https://github.com/mairie360/Dashboard_Web_Service/pull/178))
-- follow-redirects forcé en 1.16.2 dans le lock (GHSA-mrwp-f3q8-3g9p), avec un test de politique. (sans ticket Jira, [#176](https://github.com/mairie360/Dashboard_Web_Service/pull/176))
-- Stack d'accessibilité RGAA : projet Compose dédié, boucles de readiness bornées, rapport remis à zéro à chaque run, verrou `.rgaa-run.lock`. (MAIR-768, [#174](https://github.com/mairie360/Dashboard_Web_Service/pull/174)) États de pages RGAA et `init-accessibility.sql`. (MAIR-316, [#93](https://github.com/mairie360/Dashboard_Web_Service/pull/93))
-- Checklist RGPD sur les PR (`gdpr-pr.yml`, CICD v4.12.2 puis v5.3.0 par Renovate) et ajout de `ANTHROPIC_WORKSPACE_ID` dans `promote-prod.yml`. (MAIR-295, [#97](https://github.com/mairie360/Dashboard_Web_Service/pull/97) ; MAIR-316, [#93](https://github.com/mairie360/Dashboard_Web_Service/pull/93))
-- Simulation d'usage RGPD (`docker-compose-gdpr-simulation.yml`, `gdpr-simulation.yaml`, `gdpr-journey.yaml`, `gdpr_simulation_test.sh`), stack de test sans port publié. (MAIR-497, [#181](https://github.com/mairie360/Dashboard_Web_Service/pull/181))
-- Pins CICD : v5.2.2 (MAIR-771, [#180](https://github.com/mairie360/Dashboard_Web_Service/pull/180)) puis v5.3.0 (MAIR-497, [#181](https://github.com/mairie360/Dashboard_Web_Service/pull/181)) ; mise à jour Renovate de CICD en v4.5.0 (#168), remplacée ensuite.
+- Images Node 24.22.1 (digests officiels), Next.js et eslint-config-next en 16.4.2, `follow-redirects` en 1.16.2 et test de politique associé. (MAIR-608 / sans ticket, [#169](https://github.com/mairie360/Dashboard_Web_Service/pull/169), [#176](https://github.com/mairie360/Dashboard_Web_Service/pull/176), [#168](https://github.com/mairie360/Dashboard_Web_Service/pull/168))
+- zod remplacé par le backport vendorisé `vendor/zod` (3.25.76+mairie360.1), vérifications d'intégrité lancées en `postinstall`, `prebuild` et `pretest`, preuve de bundle par source maps en CI uniquement, exclusion gitleaks par chemin. (MAIR-770, [#178](https://github.com/mairie360/Dashboard_Web_Service/pull/178))
+- Workflows CI, tests et pins CICD successifs (v4.5.0 puis v5.1.0, v5.2.2, v5.3.0, v5.3.1) ; checklist RGPD sur les PR ([#97](https://github.com/mairie360/Dashboard_Web_Service/pull/97)) ; stack et script d'accessibilité RGAA ([#93](https://github.com/mairie360/Dashboard_Web_Service/pull/93), [#174](https://github.com/mairie360/Dashboard_Web_Service/pull/174)) ; simulation RGPD de promotion prod ([#181](https://github.com/mairie360/Dashboard_Web_Service/pull/181), [#182](https://github.com/mairie360/Dashboard_Web_Service/pull/182)). Aucun effet sur le produit.
 
 ## Différence staging → prod (en staging, pas encore en prod)
 
@@ -48,6 +40,7 @@ _Rien._
 <!-- release-journal-history:start -->
 | Date | Environnement | Version | Commit | Run |
 | --- | --- | --- | --- | --- |
+| 2026-11-04 18:24 UTC | dev | — | `2eae44a` | [run](https://github.com/mairie360/Dashboard_Web_Service/actions/runs/41883261104) |
 | 2026-11-03 14:57 UTC | dev | — | `7f7b54f` | [run](https://github.com/mairie360/Dashboard_Web_Service/actions/runs/41656746423) |
 | 2026-11-02 22:59 UTC | dev | — | `d1b2e79` | [run](https://github.com/mairie360/Dashboard_Web_Service/actions/runs/41540132568) |
 | 2026-11-02 16:15 UTC | dev | — | `6177a3a` | [run](https://github.com/mairie360/Dashboard_Web_Service/actions/runs/41478326106) |
