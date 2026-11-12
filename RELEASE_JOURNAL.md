@@ -1,12 +1,12 @@
 # Journal des releases — Dashboard_Web_Service
 
-<!-- release-journal-state {"dev": "2fdcf10faca5503d58abb06187c826e74641a753", "prod": "ca5636b1c6bfb4b718b7390e7261057759a2e672", "prod_tag": "v1.6.0", "staging": "ca5636b1c6bfb4b718b7390e7261057759a2e672", "updated": {"dev": "2026-11-12 17:07 UTC", "prod": "2026-10-21 11:08 UTC", "staging": "2026-10-21 11:06 UTC"}} -->
+<!-- release-journal-state {"dev": "2fdcf10faca5503d58abb06187c826e74641a753", "prod": "ca5636b1c6bfb4b718b7390e7261057759a2e672", "prod_tag": "v1.6.0", "staging": "2fdcf10faca5503d58abb06187c826e74641a753", "updated": {"dev": "2026-11-12 17:07 UTC", "prod": "2026-10-21 11:08 UTC", "staging": "2026-11-12 19:05 UTC"}} -->
 > Tenu à jour par la CI (`mairie360/CICD`, action `release/release-journal`) à chaque passage en dev, staging et prod. Ne pas modifier à la main : le fichier est réécrit au passage suivant.
 
 | Environnement | Version | Commit | Mis à jour |
 | --- | --- | --- | --- |
 | prod | v1.6.0 | `ca5636b` | 2026-10-21 11:08 UTC |
-| staging | — | `ca5636b` | 2026-10-21 11:06 UTC |
+| staging | — | `2fdcf10` | 2026-11-12 19:05 UTC |
 | dev | — | `2fdcf10` | 2026-11-12 17:07 UTC |
 
 ## Ajouté sur main depuis la dernière release prod (v1.6.0)
@@ -29,6 +29,10 @@
 
 ## Différence dev → staging (en dev, pas encore en staging)
 
+_Rien._
+
+## Différence staging → prod (en staging, pas encore en prod)
+
 - fix: MAIR-816 Release dev: align internal versions and deploy ([#188](https://github.com/mairie360/Dashboard_Web_Service/pull/188))
 - chore(deps): update dependency mairie360/cicd to v5.6.0 (#186) ([#186](https://github.com/mairie360/Dashboard_Web_Service/pull/186))
 - feat: MAIR-603 E2E - Parcours utilisateurs Playwright des fronts (#167) ([#167](https://github.com/mairie360/Dashboard_Web_Service/pull/167))
@@ -45,10 +49,6 @@
 - fix(security): patch Node.js and Next.js (#169) ([#169](https://github.com/mairie360/Dashboard_Web_Service/pull/169))
 - feat!: MAIR-608 Lib UI - Normaliser la charte, les tailles et les composants partagés des fronts ([#158](https://github.com/mairie360/Dashboard_Web_Service/pull/158))
 
-## Différence staging → prod (en staging, pas encore en prod)
-
-_Rien._
-
 > Résumé Claude indisponible pour ce passage : listes brutes des commits.
 
 ## Historique des passages
@@ -56,6 +56,7 @@ _Rien._
 <!-- release-journal-history:start -->
 | Date | Environnement | Version | Commit | Run |
 | --- | --- | --- | --- | --- |
+| 2026-11-12 19:05 UTC | staging | — | `2fdcf10` | [run](https://github.com/mairie360/Dashboard_Web_Service/actions/runs/43285870497) |
 | 2026-11-12 17:07 UTC | dev | — | `2fdcf10` | [run](https://github.com/mairie360/Dashboard_Web_Service/actions/runs/43264188266) |
 | 2026-11-04 21:26 UTC | dev | — | `cb3ee74` | [run](https://github.com/mairie360/Dashboard_Web_Service/actions/runs/41914808837) |
 | 2026-11-04 18:38 UTC | dev | — | `9c16c8c` | [run](https://github.com/mairie360/Dashboard_Web_Service/actions/runs/41887984931) |
