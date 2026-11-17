@@ -38,6 +38,7 @@ name: dashboard-front-gdpr-sim
 services:
   postgres:
     image: ${DB_IMAGE:-ghcr.io/mairie360/database:${UPSTREAM_TAG:-dev}}
+    pull_policy: ${UPSTREAM_PULL_POLICY:-always}
     container_name: dashboard-front-sim-db
     environment:
       POSTGRES_USER: postgres
@@ -57,6 +58,7 @@ services:
 
   liquibase:
     image: ${LIQUIBASE_IMAGE:-ghcr.io/mairie360/liquibase-migrations:${UPSTREAM_TAG:-dev}}
+    pull_policy: ${UPSTREAM_PULL_POLICY:-always}
     container_name: dashboard-front-sim-liquibase
     depends_on:
       postgres:
@@ -122,6 +124,7 @@ services:
 
   core-api:
     image: ${CORE_API_IMAGE:-ghcr.io/mairie360/core-api:${UPSTREAM_TAG:-dev}}
+    pull_policy: ${UPSTREAM_PULL_POLICY:-always}
     container_name: dashboard-front-sim-core-api
     depends_on:
       liquibase:
@@ -163,6 +166,7 @@ services:
 
   project-api:
     image: ${PROJECT_API_IMAGE:-ghcr.io/mairie360/project-api:${UPSTREAM_TAG:-dev}}
+    pull_policy: ${UPSTREAM_PULL_POLICY:-always}
     container_name: dashboard-front-sim-project-api
     depends_on:
       liquibase:
@@ -199,6 +203,7 @@ services:
 
   calendar-api:
     image: ${CALENDAR_API_IMAGE:-ghcr.io/mairie360/calendar-api:${UPSTREAM_TAG:-dev}}
+    pull_policy: ${UPSTREAM_PULL_POLICY:-always}
     container_name: dashboard-front-sim-calendar-api
     depends_on:
       liquibase:
@@ -238,6 +243,7 @@ services:
 
   bff-dashboard:
     image: ${BFF_DASHBOARD_IMAGE:-ghcr.io/mairie360/bff-dashboard:${UPSTREAM_TAG:-dev}}
+    pull_policy: ${UPSTREAM_PULL_POLICY:-always}
     container_name: dashboard-front-sim-bff-dashboard
     depends_on:
       seeder-a11y:
