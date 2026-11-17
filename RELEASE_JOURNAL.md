@@ -1,16 +1,17 @@
 # Journal des releases — Dashboard_Web_Service
 
-<!-- release-journal-state {"dev": "15b51e4c5fb5c30ce82d7db9f6e1fa3ea626eb79", "prod": "2fdcf10faca5503d58abb06187c826e74641a753", "prod_tag": "v1.7.0", "staging": "2fdcf10faca5503d58abb06187c826e74641a753", "updated": {"dev": "2026-11-17 10:47 UTC", "prod": "2026-11-13 01:40 UTC", "staging": "2026-11-12 19:05 UTC"}} -->
+<!-- release-journal-state {"dev": "65212138a64b4c1c3882f3c699202f97aed364f2", "prod": "2fdcf10faca5503d58abb06187c826e74641a753", "prod_tag": "v1.7.0", "staging": "2fdcf10faca5503d58abb06187c826e74641a753", "updated": {"dev": "2026-11-17 13:02 UTC", "prod": "2026-11-13 01:40 UTC", "staging": "2026-11-12 19:05 UTC"}} -->
 > Tenu à jour par la CI (`mairie360/CICD`, action `release/release-journal`) à chaque passage en dev, staging et prod. Ne pas modifier à la main : le fichier est réécrit au passage suivant.
 
 | Environnement | Version | Commit | Mis à jour |
 | --- | --- | --- | --- |
 | prod | v1.7.0 | `2fdcf10` | 2026-11-13 01:40 UTC |
 | staging | — | `2fdcf10` | 2026-11-12 19:05 UTC |
-| dev | — | `15b51e4` | 2026-11-17 10:47 UTC |
+| dev | — | `6521213` | 2026-11-17 13:02 UTC |
 
 ## Ajouté sur main depuis la dernière release prod (v1.7.0)
 
+- ci: MAIR-1008 Nightly rehearsal of the promotion gates (#196) ([#196](https://github.com/mairie360/Dashboard_Web_Service/pull/196))
 - chore(deps): update dependency mairie360/cicd to v5.6.1 (#199) ([#199](https://github.com/mairie360/Dashboard_Web_Service/pull/199))
 - chore(deps): update mairie360 database schema to v3.4.0 (#193) ([#193](https://github.com/mairie360/Dashboard_Web_Service/pull/193))
 - chore(deps): update ghcr.io/mairie360/project-api docker tag to v1.3.0 (#192) ([#192](https://github.com/mairie360/Dashboard_Web_Service/pull/192))
@@ -19,6 +20,7 @@
 
 ## Différence dev → staging (en dev, pas encore en staging)
 
+- ci: MAIR-1008 Nightly rehearsal of the promotion gates (#196) ([#196](https://github.com/mairie360/Dashboard_Web_Service/pull/196))
 - chore(deps): update dependency mairie360/cicd to v5.6.1 (#199) ([#199](https://github.com/mairie360/Dashboard_Web_Service/pull/199))
 - chore(deps): update mairie360 database schema to v3.4.0 (#193) ([#193](https://github.com/mairie360/Dashboard_Web_Service/pull/193))
 - chore(deps): update ghcr.io/mairie360/project-api docker tag to v1.3.0 (#192) ([#192](https://github.com/mairie360/Dashboard_Web_Service/pull/192))
@@ -36,6 +38,7 @@ _Rien._
 <!-- release-journal-history:start -->
 | Date | Environnement | Version | Commit | Run |
 | --- | --- | --- | --- | --- |
+| 2026-11-17 13:02 UTC | dev | — | `6521213` | [run](https://github.com/mairie360/Dashboard_Web_Service/actions/runs/44086790112) |
 | 2026-11-17 10:47 UTC | dev | — | `15b51e4` | [run](https://github.com/mairie360/Dashboard_Web_Service/actions/runs/44066934655) |
 | 2026-11-14 07:06 UTC | dev | — | `0d83a27` | [run](https://github.com/mairie360/Dashboard_Web_Service/actions/runs/43568916992) |
 | 2026-11-13 23:31 UTC | dev | — | `cfb750c` | [run](https://github.com/mairie360/Dashboard_Web_Service/actions/runs/43526802704) |
