@@ -15,13 +15,13 @@ npm ci
 npm run dev -- --port 5000         # needs BFF_Dashboard reachable, see "BFF URL" below
 npm run build && npm run start -- --port 5000
 npm run lint                             # next lint (next/core-web-vitals + next/typescript)
-npm test                                 # node:test on tests/*.test.cjs, then the Vitest component tests + lcov in coverage/lcov.info (what CI runs)
+npm test                                 # node:test on tests/*.test.cjs (lcov in coverage/lcov.info), then the Vitest component tests (what CI runs)
 npm run test:contracts                   # node:test files only, no coverage
 npm run test:components                  # Vitest + jsdom component tests only
 node --test --test-name-pattern="<name>" tests/proxy.test.cjs   # single test
 ```
 
-Tests are plain CommonJS `node:test` files (no Jest, no DOM in these files); new tests must match `tests/*.test.cjs`. They `require('./support/load-ts.cjs')` first, which transpiles `.ts` on the fly (`typescript.transpileModule`, inline source maps so `--enable-source-maps` reports coverage on `.ts` lines) and resolves the `@/*` alias. `npm test` enforces 60% lines/branches/functions, but node:test only counts files a test loads: `tests/network-contract.test.cjs` requires every `src/**/*.ts`, so a new `.ts` module must load outside Next.js; `src/app/page.tsx` is loaded (and covered) by `tests/dashboard-page.mock-servers.test.cjs` only; page logic still lives in `src/lib/dashboard-view.ts`. Source-mapped coverage marks erased lines (type imports, comments) as uncovered.
+Tests are plain CommonJS `node:test` files (no Jest, no DOM in these files); new node tests must match `tests/*.test.cjs`. They `require('./support/load-ts.cjs')` first, which transpiles `.ts` on the fly (`typescript.transpileModule`, inline source maps so `--enable-source-maps` reports coverage on `.ts` lines) and resolves the `@/*` alias. `npm test` enforces 60% lines/branches/functions on the sources the node run owns (`scripts/coverage-scope.cjs`), and a source no test loads is reported missing: `tests/network-contract.test.cjs` requires every `src/**/*.ts`, so a new `.ts` module must load outside Next.js; `src/app/page.tsx` is loaded (and covered) by `tests/dashboard-page.mock-servers.test.cjs` only; page logic still lives in `src/lib/dashboard-view.ts`. Source-mapped coverage marks erased lines (type imports, comments) as uncovered.
 
 Component tests are separate and run by `npm test` after the node tests (`npm run test:components`): Vitest + jsdom + Testing Library (`vitest run --coverage` driven by `scripts/test-components-coverage.cjs`, which composes it with the node coverage; thresholds 60% lines/branches/functions/statements and 60% lines per file), co-located `Name.test.tsx` files under `src/` (see *Component tree convention*), configured by `vitest.config.mjs` with `tests/component/setup.js`.
 
