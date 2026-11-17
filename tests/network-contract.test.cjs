@@ -178,21 +178,16 @@ describe('one front, one BFF, one OpenAPI contract', () => {
     assert.equal(resolveOrvalPackage(CONTRACT_PACKAGE).version, all[CONTRACT_PACKAGE]);
   });
 
-  test('the security and performance stacks run the BFF_Dashboard image built from the contract package commit', async () => {
-    const { imageTagForContractVersion } = await import('../scripts/contract-version.mjs');
-    const { version } = resolveOrvalPackage(CONTRACT_PACKAGE);
+  test('MAIR-998 the security, performance and accessibility stacks run BFF_Dashboard on the moving tag of the stage', () => {
     for (const stack of ['docker-compose-security.yml', 'docker-compose-performance.yml', 'docker-compose-accessibility.yml']) {
-      const images = composePolicy.bffImages(composePolicy.compose(stack)).filter(image => image.startsWith('ghcr.io/mairie360/bff-dashboard:')).map(image => image.slice(image.lastIndexOf(':') + 1));
-      assert.deepEqual(images, [imageTagForContractVersion(version)], stack);
+      const images = composePolicy.bffImageRefs(composePolicy.compose(stack)).filter(image => image.startsWith('ghcr.io/mairie360/bff-dashboard:')).map(image => image.slice(image.indexOf(':') + 1));
+      assert.deepEqual(images, ['${UPSTREAM_TAG:-dev}'], stack);
     }
   });
 
-  test('the contract version policy accepts releases, dev and staging packages and maps them to image tags', async () => {
-    const { isAcceptedContractVersion, imageTagForContractVersion } = await import('../scripts/contract-version.mjs');
-    assert.equal(imageTagForContractVersion('1.1.0'), '1.1.0');
-    assert.equal(imageTagForContractVersion('0.0.0-dev.bccf2c39bac5e676c872b2089120d0e3b21ee617'), 'dev-bccf2c3');
+  test('the contract version policy accepts releases, dev and staging packages', async () => {
+    const { isAcceptedContractVersion } = await import('../scripts/contract-version.mjs');
     assert.equal(isAcceptedContractVersion('0.0.0-staging.bccf2c39bac5e676c872b2089120d0e3b21ee617'), true);
-    assert.equal(imageTagForContractVersion('0.0.0-staging.bccf2c39bac5e676c872b2089120d0e3b21ee617'), 'staging-bccf2c3');
     for (const rejected of ['^1.1.0', '1.1', '0.0.0-staging.bccf2c3', '0.0.0-dev.bccf2c3', 'latest']) {
       assert.equal(isAcceptedContractVersion(rejected), false, rejected);
     }
