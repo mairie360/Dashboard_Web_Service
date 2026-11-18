@@ -37,9 +37,6 @@ test('the reusable workflow receives only its declared named secrets', () => {
   assert.deepEqual(mappings.map(([, name, source]) => [name, source]), [
     ['CODECOV_TOKEN', 'CODECOV_TOKEN'],
     ['N8N_WEBHOOK_SECRET', 'N8N_WEBHOOK_SECRET'],
-    ['ANTHROPIC_API_KEY', 'ANTHROPIC_API_KEY'],
-    ['RELEASE_APP_ID', 'RELEASE_APP_ID'],
-    ['RELEASE_APP_PK', 'RELEASE_APP_PK'],
   ]);
 });
 
@@ -155,9 +152,6 @@ test('the reusable frontend workflow retains blocking defaults and only declared
     secrets: {
       CODECOV_TOKEN: '${{ secrets.CODECOV_TOKEN }}',
       N8N_WEBHOOK_SECRET: '${{ secrets.N8N_WEBHOOK_SECRET }}',
-      ANTHROPIC_API_KEY: '${{ secrets.ANTHROPIC_API_KEY }}',
-      RELEASE_APP_ID: '${{ secrets.RELEASE_APP_ID }}',
-      RELEASE_APP_PK: '${{ secrets.RELEASE_APP_PK }}',
     },
   });
   assert.doesNotMatch(read('.github/workflows/cicd.yml'), /secrets:\s*inherit|continue-on-error:|image_scan_fail_on_findings:|semgrep_fail_on_findings:\s*false/);
@@ -220,7 +214,7 @@ test('MAIR-316: promote-prod passes the secrets of the RGAA AI pre-audit by name
   const workflow = read('.github/workflows/promote-prod.yml');
   assert.doesNotMatch(workflow, /secrets:\s*inherit/);
   assert.match(workflow, /^\s+stack: fronts\s*$/m);
-  for (const name of ['ANTHROPIC_API_KEY', 'ANTHROPIC_WORKSPACE_ID']) {
+  for (const name of ['ANTHROPIC_API_KEY', 'ANTHROPIC_REVIEW_API_KEY', 'ANTHROPIC_WORKSPACE_ID']) {
     assert.match(workflow, new RegExp(`^ {6}${name}: \\$\\{\\{ secrets\\.${name} \\}\\}\\s*$`, 'm'), name);
   }
 });
