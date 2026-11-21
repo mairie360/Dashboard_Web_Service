@@ -28,7 +28,7 @@ describe('Dashboard unusable bootstrap recovery', () => {
     render(<Home />);
     expect((await screen.findByRole('alert')).textContent).toBe(readError);
     expect(screen.getByText('Le tableau de bord est indisponible.')).toBeTruthy();
-    expect(screen.getAllByRole('heading', { name: 'Tableau de Bord', level: 1 })).toHaveLength(1);
+    expect(screen.getAllByRole('heading', { name: /^Bon(?:jour|soir)/, level: 1 })).toHaveLength(1);
     expect(getDashboardBootstrap).toHaveBeenCalledTimes(1);
     await user.click(screen.getByRole('button', { name: 'Réessayer le chargement' }));
     await screen.findByRole('button', { name: /Projet confirmé/ });
@@ -46,13 +46,13 @@ describe('Dashboard unusable bootstrap recovery', () => {
     vi.mocked(getDashboardBootstrap).mockResolvedValueOnce({ userFirstName: 'Non confirmé' });
     await user.click(screen.getByRole('button', { name: 'Actualiser les données indisponibles' }));
     await screen.findByText(readError);
-    expect(screen.getByText('Bienvenue Confirmé, voici un aperçu de vos activités')).toBeTruthy();
+    expect(screen.getByText(/^Bon(?:jour|soir) Confirmé$/)).toBeTruthy();
     expect(screen.getByRole('button', { name: /Projet confirmé/ })).toBeTruthy();
     expect(screen.queryByText(/Non confirmé/)).toBeNull();
     vi.mocked(getDashboardBootstrap).mockResolvedValueOnce(bootstrap({ userFirstName: 'Réponse reçue', projects: [], tasks: [], events: [],
       sources: { projects: 'available', tasks: 'available', calendar: 'available' } }));
     await user.click(screen.getByRole('button', { name: 'Réessayer le chargement' }));
-    await screen.findByText('Bienvenue Réponse reçue, voici un aperçu de vos activités');
+    await screen.findByText(/^Bon(?:jour|soir) Réponse reçue$/);
     expect(screen.getByText('Aucun projet récent.')).toBeTruthy();
     expect(screen.getByText('Aucune tâche en attente.')).toBeTruthy();
     expect(screen.getByText('Aucun événement à venir.')).toBeTruthy();

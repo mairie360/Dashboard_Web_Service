@@ -34,7 +34,7 @@ afterEach(() => style.remove());
 async function openDashboard() {
   render(<Home />);
   await screen.findByRole('heading', { name: 'Projets récents' });
-  return screen.getByRole('heading', { name: 'Tableau de Bord' });
+  return screen.getByRole('heading', { name: /^Bon(?:jour|soir)/ });
 }
 
 function shadow(value) {

@@ -96,7 +96,7 @@ describe("Dashboard page", () => {
 
   it("preserves the heading, ordered cards and their existing controls", async () => {
     await openDashboard();
-    const heading = screen.getByRole("heading", { name: "Tableau de Bord" });
+    const heading = screen.getByRole("heading", { name: /^Bon(?:jour|soir)/ });
     const pageSection = heading.closest("section");
     const cardHeadings = within(pageSection).getAllByRole("heading", { level: 2 });
     expect(cardHeadings.map(node => node.textContent)).toEqual([
@@ -120,7 +120,7 @@ describe("Dashboard page", () => {
     vi.mocked(getDashboardBootstrap).mockResolvedValue(payload);
     await openDashboard();
 
-    const grid = screen.getByRole("heading", { name: "Tableau de Bord" }).closest("section").querySelector(".dashboard-content-grid");
+    const grid = screen.getByRole("heading", { name: /^Bon(?:jour|soir)/ }).closest("section").querySelector(".dashboard-content-grid");
     expect(grid.querySelector(".dashboard-recent-projects")).toBeTruthy();
     expect(grid.querySelector(".dashboard-pending-tasks")).toBeTruthy();
     expect(grid.querySelector(".dashboard-upcoming-events-grid")).toBeTruthy();
@@ -150,7 +150,7 @@ describe("Dashboard page", () => {
     vi.mocked(getDashboardBootstrap).mockResolvedValue(bootstrap({ userFirstName }));
     await openDashboard();
 
-    expect(screen.getByText("Voici un aperçu de vos activités")).toBeTruthy();
+    expect(screen.getByText("Bienvenue sur votre espace Mairie360.")).toBeTruthy();
     expect(screen.queryByText(/Bienvenue\s*,/)).toBeNull();
     expect(screen.queryByRole("button", { name: "Utilisateur" })).toBeNull();
     expect(screen.getByRole("button", { name: /Projet test/ })).toBeTruthy();
@@ -160,7 +160,7 @@ describe("Dashboard page", () => {
     vi.mocked(getDashboardBootstrap).mockResolvedValue(bootstrap({ userFirstName: "  Alice  " }));
     await openDashboard();
 
-    expect(screen.getByText("Bienvenue Alice, voici un aperçu de vos activités")).toBeTruthy();
+    expect(screen.getByText(/^Bon(?:jour|soir) Alice$/)).toBeTruthy();
     expect(screen.getByRole("button", { name: /Alice/ })).toBeTruthy();
     expect(screen.queryByText(/Bienvenue\s{2}|Alice\s{2}/)).toBeNull();
   });
@@ -204,7 +204,7 @@ describe("Dashboard page", () => {
 
     expect((await screen.findByRole("alert")).textContent).toBe("Service indisponible");
     expect(screen.getByRole("status").textContent).toContain("indisponible");
-    expect(screen.getAllByRole("heading", { name: "Tableau de Bord", level: 1 })).toHaveLength(1);
+    expect(screen.getAllByRole("heading", { name: /^Bon(?:jour|soir)/, level: 1 })).toHaveLength(1);
   });
 
   it("recovers an initial failure through keyboard activation without automatically retrying", async () => {
@@ -255,7 +255,7 @@ describe("Dashboard page", () => {
     expect(signal.aborted).toBe(true);
     await act(async () => finish(bootstrap()));
     expect(getDashboardBootstrap).toHaveBeenCalledTimes(1);
-    expect(screen.queryByRole("heading", { name: "Tableau de Bord" })).toBeNull();
+    expect(screen.queryByRole("heading", { name: /^Bon(?:jour|soir)/ })).toBeNull();
   });
 
   it("guards consecutive recovery events before the disabled state renders", async () => {
@@ -288,9 +288,9 @@ describe("Dashboard page", () => {
     expect(reads).toHaveLength(2);
     expect(reads[0].signal.aborted).toBe(true);
     await act(async () => reads[1].resolve(bootstrap({ userFirstName: "Réponse actuelle" })));
-    await screen.findByText("Bienvenue Réponse actuelle, voici un aperçu de vos activités");
+    await screen.findByText(/^Bon(?:jour|soir) Réponse actuelle$/);
     await act(async () => reads[0].resolve(bootstrap({ userFirstName: "Réponse obsolète" })));
-    expect(screen.getByText("Bienvenue Réponse actuelle, voici un aperçu de vos activités")).toBeTruthy();
+    expect(screen.getByText(/^Bon(?:jour|soir) Réponse actuelle$/)).toBeTruthy();
     expect(screen.queryByText(/Réponse obsolète/)).toBeNull();
   });
 
@@ -323,7 +323,7 @@ describe("Dashboard page", () => {
       projects: [], tasks: [], events: [], userFirstName: "Confirmé", metrics: { totalProjects: 0 },
     }));
     await user.click(screen.getByRole("button", { name: "Réessayer le chargement" }));
-    await screen.findByText("Bienvenue Confirmé, voici un aperçu de vos activités");
+    await screen.findByText(/^Bon(?:jour|soir) Confirmé$/);
     expect(screen.getByText("Aucun projet récent.")).toBeTruthy();
     expect(screen.getByText("Aucune tâche en attente.")).toBeTruthy();
     expect(screen.getByText("Aucun événement à venir.")).toBeTruthy();

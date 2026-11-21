@@ -123,7 +123,7 @@ for (const [label, body] of unusableBootstraps) {
     assert.equal(upstreamCalls().length, 2, 'no automatic retry or mutation from retained cards');
     dashboardBff.on('get', '/dashboard/bootstrap', { body: bootstrapResponse({ userFirstName: 'Nouveau confirmé', projects: [], tasks: [], events: [] }) });
     await view.click((_props, text, tag) => tag === 'button' && text === 'Réessayer le chargement');
-    await view.waitFor(html => html.includes('Bienvenue Nouveau confirmé'));
+    await view.waitFor(html => /Bon(?:jour|soir) Nouveau confirmé/.test(html));
     assert.doesNotMatch(view.html, /incohérentes|Budget participatif/);
     assert.match(view.text(), /Aucun projet récent|Aucune tâche en attente|Aucun événement à venir/);
     assert.match(view.text(), /La déconnexion est temporairement indisponible/);
@@ -140,7 +140,7 @@ test('optional event fields and unrecognized display text remain usable bootstra
   body.metrics.totalProjects = null;
   await renderLoadedPage(body);
   assert.doesNotMatch(view.html, /role="alert"/);
-  assert.match(view.text(), /Voici un aperçu de vos activités/);
+  assert.match(view.text(), /Bienvenue sur votre espace Mairie360\./);
   assert.equal(view.props('DashboardRecentProjects').projects[0].dueDate, '3');
   assert.equal(view.props('DashboardPendingTasks').tasks[0].dueLabel, 'Sans échéance');
   assert.deepEqual(view.props('DashboardUpcomingEvents').events.map(event => event.id), ['0']);
@@ -163,7 +163,7 @@ test('the first pass renders the loading state, the next one the data of GET /da
   assert.equal(dashboardBff.requests[0].headers.authorization, `Bearer ${TOKEN}`);
   assert.doesNotMatch(html, /role="alert"/);
   assert.doesNotMatch(html, /<main\b[^>]*>0(?:<|$)/, 'The zero unusable-event count is not rendered as text');
-  assert.match(view.text(), /Bienvenue Alice/);
+  assert.match(view.text(), /Bon(?:jour|soir) Alice/);
   assert.equal(view.find('AppShell').length, 1);
   assert.doesNotMatch(html, /<aside\b[^]*?<footer\b[^]*?<\/footer>[^]*?<\/aside>/);
   // lib-components 2.x: one full-width footer after the main area, outside the navigation.
@@ -268,6 +268,9 @@ test('the shared sidebar opens the configured Settings front without exposing an
 
   assert.equal(navigation.isAdmin, false);
   assert.doesNotMatch(html, />Administration</);
+  // MAIR-1106: Agent entries, « E-learning » instead of « Formation », no Workflows.
+  assert.deepEqual(navigation.sidebarProps.items.map((item) => item.label), ['Tableau de bord', 'Projets', 'Messagerie', 'E-learning', 'Calendrier', 'Administration', 'Paramètres']);
+  assert.doesNotMatch(html, />Formation<|Workflows/);
   await view.click((_props, text, tag) => tag === 'button' && /Paramètres/.test(text));
   assert.deepEqual(assigned, ['https://settings.test.example/']);
 });
@@ -353,7 +356,7 @@ test('composed read recovery replaces retained cards only after confirmed empty 
   assert.equal(upstreamCalls().length, 3, 'retained card navigation is not a retry');
   dashboardBff.on('get', '/dashboard/bootstrap', { body: bootstrapResponse({ projects: [], tasks: [], events: [], userFirstName: 'Confirmé', metrics: { totalProjects: 0 } }) });
   await view.click((props, text, tag) => tag === 'button' && text === 'Réessayer le chargement');
-  await view.waitFor((html) => html.includes('Bienvenue Confirmé') && !html.includes('role="alert"'));
+  await view.waitFor((html) => /Bon(?:jour|soir) Confirmé/.test(html) && !html.includes('role="alert"'));
   for (const text of ['Aucun projet récent', 'Aucune tâche en attente', 'Aucun événement à venir']) assert.ok(view.text().includes(text));
   assert.doesNotMatch(view.html, /Budget participatif|Nouvelle lecture refusée|Actualiser les données indisponibles|Réessayer le chargement/);
   assert.deepEqual(upstreamCalls(), Array(4).fill('GET /dashboard/bootstrap'));
