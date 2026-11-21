@@ -25,14 +25,12 @@ compatible `1.1.21`, avec l’intégrité vérifiée sur le registre, conformém
 [l’avis amont](https://github.com/advisories/GHSA-qhr7-859c-m2p7).
 Aucun seuil d’audit, workflow ou contrôle de sécurité n’est assoupli.
 
-Le paquet est épinglé à `@mairie360/lib-components@0.6.8`, publié par
-[la publication réussie de 0.6.8](https://github.com/mairie360/lib-components/actions/runs/36836970818), qui inclut la correction du pied de page #388.
-L’AppShell affiche désormais le copyright dans la sidebar sombre, hors de la
-navigation défilante. Le tiroir mobile conserve sa gestion du focus. Aucun bandeau
-de pied de page ne réduit la zone de contenu ; seules les informations fournies
-par le service sont affichées (pas de version fictive).
-Les contrats, les API/BFF et les approbations de déploiement sont inchangés.
-Le suivi de l’adoption reste dans [l’issue partagée #387](https://github.com/mairie360/lib-components/issues/387).
+Le paquet est épinglé à `@mairie360/lib-components@2.2.0` (MAIR-825, Dashboard V2). Sa provenance
+(archive, intégrité, empreintes des fichiers) est enregistrée dans `tests/fixtures/shared-ui-releases.json` et
+vérifiée par `tests/shared-sidebar-footer.test.cjs`. Le cadre 2.x porte le logo « mairie / 360 » (plus de
+`public/mairie360-logo.png` local), la charte claire, un pied de page pleine largeur sous la zone de contenu et la
+confirmation de déconnexion du Header (MAIR-834). Les contrats, les API/BFF et les approbations de déploiement
+sont inchangés.
 
 [Présentation du module](module.md) · [English](../en/technical.md) · [README](../../README.md)
 

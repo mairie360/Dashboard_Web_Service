@@ -166,7 +166,8 @@ test('the first pass renders the loading state, the next one the data of GET /da
   assert.match(view.text(), /Bienvenue Alice/);
   assert.equal(view.find('AppShell').length, 1);
   assert.doesNotMatch(html, /<aside\b[^]*?<footer\b[^]*?<\/footer>[^]*?<\/aside>/);
-  assert.match(html, /<\/main>\s*<footer\b/);
+  // lib-components 2.x: one full-width footer after the main area, outside the navigation.
+  assert.match(html, /<\/main>[^]*<footer\b/);
   assert.equal(view.props('AppShell').activeItem, 'dashboard');
   assert.equal(view.props('AppShell').user.first_name, 'Alice');
   assert.equal(view.props('AppShell').hrefs.profile, 'https://settings.test.example/');
@@ -190,7 +191,12 @@ test('the account-menu logout hands off to Login without another BFF call', asyn
   const destinations = [];
   global.window.location.replace = (href) => destinations.push(href);
   await renderLoadedPage();
-  await view.act(() => view.props('AppShell').onLogout());
+  // MAIR-919: the lib Header confirms first (confirmLogout left to its default), and the
+  // returned promise keeps « Se déconnecter » loading until Login opens.
+  assert.notEqual(view.props('AppShell').headerProps?.confirmLogout, false);
+  let pending;
+  await view.act(() => { pending = view.props('AppShell').onLogout(); return pending; });
+  assert.ok(pending instanceof Promise);
 
   assert.deepEqual(destinations, ['https://login.test.example/logout']);
   assert.deepEqual(front.calls.map(({ side, method, url }) => `${side} ${method} ${url.pathname}`), [
@@ -258,11 +264,11 @@ test('the shared sidebar opens the configured Settings front without exposing an
   const assigned = [];
   global.window.location.assign = (href) => assigned.push(href);
   const html = await renderLoadedPage();
-  const sidebar = view.props('Sidebar');
+  const navigation = view.props('DesktopNavigation');
 
-  assert.equal(sidebar.isAdmin, false);
+  assert.equal(navigation.isAdmin, false);
   assert.doesNotMatch(html, />Administration</);
-  await view.act(() => sidebar.onItemSelect(sidebar.items.find((item) => item.id === 'settings')));
+  await view.click((_props, text, tag) => tag === 'button' && /Paramètres/.test(text));
   assert.deepEqual(assigned, ['https://settings.test.example/']);
 });
 

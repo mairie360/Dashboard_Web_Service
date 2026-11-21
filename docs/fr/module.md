@@ -72,3 +72,12 @@ Chaque état initial, chargé ou indisponible conserve un titre de page h1. Les 
 ## Direction visuelle commune — MAIR-547
 
 DA claire option 1 : tokens et police communs, navigation accessible et contenu métier conservé. Voir la [recette visuelle](../qa/design-qa.md) pour les preuves, vérifications et limites RGAA.
+
+## Tableau de bord V2 — MAIR-825
+
+Figma : [index des features](https://www.figma.com/design/U4LxYJ8TDpZxqB8BmpBuRh?node-id=34-861).
+
+- Le bandeau affiche le logo « mairie / 360 » de lib-components ; le front ne sert plus de logo à lui (MAIR-883, F4).
+- « Déconnexion » ouvre d'abord la confirmation « Se déconnecter ? » de la lib ; « Annuler », la croix ou Échap la
+  ferment sans quitter. « Se déconnecter » reste en chargement jusqu'à l'ouverture de la page `/logout` de Login ;
+  sans Login configuré, l'alerte « La déconnexion est temporairement indisponible. » s'affiche (MAIR-919, F6).

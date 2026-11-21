@@ -22,8 +22,8 @@ export default function DashboardPage({ initialData }: { initialData?: Dashboard
       activeItem="dashboard"
       hrefs={getActiveFrontHrefs()}
       user={userFirstName ? { first_name: userFirstName } : undefined}
-      onLogout={() => void logoutAndRedirect().catch(() => setLogoutError("La déconnexion est temporairement indisponible."))}
-      sidebarProps={{ brandLogoSrc: "/mairie360-logo.png" }}
+      // MAIR-919: the lib Header confirms first; the returned promise keeps « Se déconnecter » loading.
+      onLogout={() => logoutAndRedirect().catch(() => setLogoutError("La déconnexion est temporairement indisponible."))}
     >
       <DashboardNotices error={error} logoutError={logoutError} loading={loading} hasUnavailableSource={Boolean(view?.hasUnavailableSource)} unusableEventCount={view?.unusableEventCount ?? 0} hasData={Boolean(data)} onReload={reload} />
       {!data || !view ? <DashboardLoading loading={loading} failed={Boolean(error)} /> : (

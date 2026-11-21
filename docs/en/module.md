@@ -72,3 +72,12 @@ Every initial, loaded or unavailable state retains one h1 page heading. Secondar
 ## Shared visual direction — MAIR-547
 
 Approved light option 1: shared tokens and font, accessible navigation, and preserved business layouts. See the [visual QA](../qa/design-qa.md) for evidence, checks, and RGAA limitations.
+
+## Dashboard V2 — MAIR-825
+
+Figma: [feature index](https://www.figma.com/design/U4LxYJ8TDpZxqB8BmpBuRh?node-id=34-861).
+
+- The navigation shows the « mairie / 360 » logo of lib-components; the front serves no logo of its own (MAIR-883, F4).
+- « Déconnexion » first opens the lib confirmation « Se déconnecter ? »; « Annuler », the cross or Escape close it
+  without leaving. « Se déconnecter » stays loading until Login's `/logout` page opens; when Login is not configured,
+  the alert « La déconnexion est temporairement indisponible. » is shown (MAIR-919, F6).

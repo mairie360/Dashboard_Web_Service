@@ -98,6 +98,7 @@ test('the neutral dark surface fix preserves primary, navigation and status back
 test('the light Dashboard paints its project rows on the charte raised surface (MAIR-608)', async () => {
   const view = await screen('light');
   try {
-    assert.deepEqual(view.background('budget'), [248, 247, 248]);
+    // lib-components 2.x light charte: --mairie-surface-raised is #f1f6f5.
+    assert.deepEqual(view.background('budget'), [241, 246, 245]);
   } finally { view.dom.window.close(); }
 });
