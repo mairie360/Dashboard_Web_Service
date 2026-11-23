@@ -36,7 +36,7 @@ describe('toDashboardModuleData', () => {
       ],
       trainingsUnavailable: false,
       trainings: [
-        { id: 'training-4', title: 'Accueil du public', status: 'in-progress', completedModules: 2, totalModules: 5, progress: 40 },
+        { id: 'training-4', title: 'Accueil du public', status: 'in-progress', completedModules: 2, totalModules: 5, progress: 40, dueLabel: '15/12/2026' },
         { id: 'training-9', title: 'Protection des données', status: 'done', completedModules: 3, totalModules: 3, progress: 100 },
       ],
     });
