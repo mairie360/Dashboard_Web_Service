@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { StrictMode } from "react";
 import { axe } from "jest-axe";
@@ -31,7 +31,8 @@ function bootstrap(overrides = {}) {
 async function openDashboard() {
   const user = userEvent.setup();
   render(<Home />);
-  await screen.findByRole("heading", { name: "Projets récents" });
+  // MAIR-899: the tiles are drawn while loading; wait for their skeleton rows to give way to the data.
+  await waitFor(() => expect(document.querySelector("[data-skeleton]")).toBeNull());
   return user;
 }
 
@@ -48,7 +49,7 @@ describe("Dashboard page", () => {
     payload.projects[0].dueDate = "3";
     vi.mocked(getDashboardBootstrap).mockResolvedValue(payload);
     await openDashboard();
-    expect(screen.getByRole("button", { name: /Projet test/ }).textContent).toContain("Échéance: 3");
+    expect(screen.getByRole("button", { name: /Projet test/ }).textContent).toContain("Échéance : 3");
     expect(screen.getByRole("button", { name: /Projet test/ }).textContent).not.toContain("2001");
     expect(screen.queryByRole("button", { name: /Impossible day/ })).toBeNull();
     expect(screen.getByRole("button", { name: /Valid leap day/ })).toBeTruthy();
@@ -83,7 +84,8 @@ describe("Dashboard page", () => {
     render(<Home />);
     expect(screen.getByRole("status").textContent).toContain("Chargement");
     await act(async () => resolveBootstrap(bootstrap()));
-    await screen.findByRole("heading", { name: "Projets récents" });
+    // MAIR-899: the tiles are drawn while loading; wait for their skeleton rows to give way to the data.
+  await waitFor(() => expect(document.querySelector("[data-skeleton]")).toBeNull());
 
     expect(getDashboardBootstrap).toHaveBeenCalledTimes(1);
     expect(getDashboardBootstrap).toHaveBeenCalledWith(expect.objectContaining({ signal: expect.any(AbortSignal) }));
@@ -123,9 +125,11 @@ describe("Dashboard page", () => {
     const grid = screen.getByRole("heading", { name: /^Bon(?:jour|soir)/ }).closest("section").querySelector(".dashboard-content-grid");
     expect(grid.querySelector(".dashboard-recent-projects")).toBeTruthy();
     expect(grid.querySelector(".dashboard-pending-tasks")).toBeTruthy();
-    expect(grid.querySelector(".dashboard-upcoming-events-grid")).toBeTruthy();
-    expect(within(grid).getAllByRole("button", { name: /Voir les projets|Voir les tâches|Ouvrir le calendrier/ })).toHaveLength(3);
-    expect(within(grid).getAllByText(longTitle)).toHaveLength(4);
+    expect(grid.querySelector(".dashboard-upcoming-events")).toBeTruthy();
+    expect(within(grid).queryAllByRole("link", { name: /Voir les projets|Voir les tâches|Ouvrir le calendrier/ }).length + within(grid).queryAllByRole("button", { name: /Voir les projets|Voir les tâches|Ouvrir le calendrier/ }).length).toBe(3);
+    // Titles keep their own line; the event location follows its time (« 09:00 · lieu », MAIR-907).
+    expect(within(grid).getAllByText(longTitle)).toHaveLength(3);
+    expect(within(grid).getByText(new RegExp(`· ${longTitle}$`))).toBeTruthy();
     expect(getDashboardBootstrap).toHaveBeenCalledTimes(1);
   });
 
@@ -176,7 +180,8 @@ describe("Dashboard page", () => {
     await openDashboard();
 
     const events = screen.getByRole("heading", { name: "Événements à venir" }).closest("section");
-    expect(events.querySelector(".dashboard-upcoming-events-grid")).toBeTruthy();
+    // MAIR-907: one column of compact rows in the tile.
+    expect(events.querySelector(".dashboard-upcoming-events-grid")).toBeNull();
     expect(within(events).getAllByRole("button").slice(1).map((button) => button.textContent)).toEqual([
       expect.stringContaining("Premier rendez-vous"),
       expect.stringContaining("Deuxième rendez-vous"),
@@ -216,7 +221,8 @@ describe("Dashboard page", () => {
     for (let index = 0; index < 20 && document.activeElement !== retry; index += 1) await user.tab();
     expect(document.activeElement).toBe(retry);
     await user.keyboard("{Enter}");
-    await screen.findByRole("heading", { name: "Projets récents" });
+    // MAIR-899: the tiles are drawn while loading; wait for their skeleton rows to give way to the data.
+  await waitFor(() => expect(document.querySelector("[data-skeleton]")).toBeNull());
     expect(getDashboardBootstrap).toHaveBeenCalledTimes(2);
     expect(screen.queryByRole("alert")).toBeNull();
     expect(screen.queryByRole("button", { name: "Réessayer le chargement" })).toBeNull();

@@ -28,17 +28,17 @@ export default function DashboardPage({ initialData }: { initialData?: Dashboard
       activeItem="dashboard"
       hrefs={getActiveFrontHrefs()}
       user={userFirstName ? { first_name: userFirstName } : undefined}
-      // MAIR-919: the lib Header confirms first; the returned promise keeps « Se déconnecter » loading.
       sidebarProps={{ items: dashboardSidebarItems }}
+      // MAIR-919: the lib Header confirms first; the returned promise keeps « Se déconnecter » loading.
       onLogout={() => logoutAndRedirect().catch(() => setLogoutError("La déconnexion est temporairement indisponible."))}
     >
       <DashboardNotices error={error} logoutError={logoutError} loading={loading} hasUnavailableSource={Boolean(view?.hasUnavailableSource)} unusableEventCount={view?.unusableEventCount ?? 0} hasData={Boolean(data)} onReload={reload} />
-      {!data || !view ? <DashboardLoading loading={loading} failed={Boolean(error)} /> : (
-        <section className="dashboard-page mx-auto max-w-[1520px] space-y-4">
-          <DashboardHeader userFirstName={userFirstName} />
-          <DashboardGrid data={data} view={view} />
-        </section>
-      )}
+      <section className="dashboard-page mx-auto max-w-[1520px]">
+        {/* MAIR-899: the final page is drawn at once; only the rows wait for the data. */}
+        <DashboardHeader userFirstName={userFirstName} />
+        {!data || !view ? <DashboardLoading loading={loading} failed={Boolean(error)} /> : null}
+        {data || loading ? <DashboardGrid data={data} view={view} /> : null}
+      </section>
     </AccessibleShell>
   );
 }

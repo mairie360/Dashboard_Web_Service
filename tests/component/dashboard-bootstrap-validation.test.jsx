@@ -101,7 +101,7 @@ describe('Dashboard unusable bootstrap recovery', () => {
     render(<Home />);
     await screen.findByRole('button', { name: /Projet confirmé/ });
     expect(screen.queryByRole('alert')).toBeNull();
-    expect(screen.getByRole('button', { name: /Projet confirmé/ }).textContent).toContain('Échéance: 3');
+    expect(screen.getByRole('button', { name: /Projet confirmé/ }).textContent).toContain('Échéance : 3');
     expect(screen.queryByRole('button', { name: /Date reçue illisible/ })).toBeNull();
     expect(screen.getByRole('button', { name: /Événement facultatif/ })).toBeTruthy();
     expect(screen.getByText(/Certains événements reçus/)).toBeTruthy();

@@ -154,8 +154,12 @@ test('the first pass renders the loading state, the next one the data of GET /da
 
   assert.equal(view.passes, 1);
   assert.equal((view.html.match(/<h1\b/g) || []).length, 1);
-  assert.match(view.html, /<p role="status">Chargement du tableau de bord…<\/p>/);
-  assert.equal(view.find('DashboardRecentProjects').length, 0);
+  // MAIR-899: the announcement is for screen readers; the tiles are drawn at once with 3 skeleton rows each.
+  assert.match(view.html, /<p role="status" class="sr-only">Chargement du tableau de bord…<\/p>/);
+  assert.match(view.html, /Bon(?:jour|soir)/);
+  for (const title of ['Projets récents', 'Tâches en attente', 'Événements à venir']) assert.match(view.html, new RegExp(title));
+  assert.equal((view.html.match(/data-skeleton="/g) || []).length, 9);
+  assert.equal(view.props('DashboardRecentProjects').loading, true);
 
   const html = await view.waitFor((current) => !current.includes('Chargement du tableau de bord'));
 

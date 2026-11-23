@@ -88,3 +88,14 @@ Figma : [index des features](https://www.figma.com/design/U4LxYJ8TDpZxqB8BmpBuRh
 - Entrées du bandeau : celles de la lib, « E-learning » à la place de « Formation » ; Administration pour les seuls
   administrateurs, pas de Workflows (MAIR-1106). Le pied de page reste jusqu'à ce que lib-components 2.3 le rende
   optionnel (MAIR-1092).
+- Tuiles (MAIR-1107, F1) : grille 2 × 2 de tuiles identiques qui remplit la hauteur sous l'accueil dès 900 px (une
+  colonne en dessous, la page défile plutôt que de couper le contenu) ; liens « Voir les… » sans flèche ; états vide
+  et indisponible centrés.
+- Lignes compactes (MAIR-907, F1/F5) : 3 au plus par tuile (premiers projets et tâches, événements les plus proches),
+  sans fond, filet `--mairie-border` entre les lignes, marge de 10 px, `--mairie-surface-raised` au survol, focus
+  `--mairie-accent`. Projets : nom et statut, puis « Échéance : … », la piste de progression et son pourcentage ;
+  tâches : titre et priorité, puis l'échéance (plus de point coloré) ; événements : badge date (jour en gras, mois
+  abrégé, liseré `--mairie-module-calendar`), titre, « heure · lieu ».
+- Chargement (MAIR-899, F1) : la page finale est dessinée d'emblée (accueil, tuiles avec titre et lien) ; chaque tuile
+  montre 3 lignes squelettes à la taille des vraies, « Chargement du tableau de bord… » n'est annoncé qu'aux lecteurs
+  d'écran, et l'animation s'arrête avec `prefers-reduced-motion`.

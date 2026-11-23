@@ -26,20 +26,21 @@ test('Dashboard retains parsed responsive grid and surface safety policies', (t)
         }
       }
       assert.equal(selectors.some((selector) => selector.split(/\s+/).includes('.dashboard-app-shell') && selector.split(/\s+/).includes('header')), false, 'Preserve the shared header stacking');
-      if (condition && selectors.includes('.dashboard-upcoming-events-grid > .dashboard-events-rows')) {
+      if (selectors.includes('.dashboard-tiles')) {
         const columns = rule.style.getPropertyValue('grid-template-columns');
         if (!columns) continue;
-        const repeat = columns.match(/^repeat\(\s*(\d+)\s*,\s*minmax\(\s*0(?:px)?\s*,\s*1fr\s*\)\s*\)$/);
-        assert.ok(repeat, 'Keep bounded responsive event tracks');
-        grids.push({ condition: condition.replace(/\s+/g, ''), columns: Number(repeat[1]) });
+        const repeat = columns.match(/^(?:repeat\(\s*(\d+)\s*,\s*)?minmax\(\s*0(?:px)?\s*,\s*1fr\s*\)\s*\)?$/);
+        assert.ok(repeat, 'Keep bounded responsive tile tracks');
+        grids.push({ condition: (condition || 'all').replace(/\s+/g, ''), columns: Number(repeat[1] || 1) });
       }
     }
   }
   visit(window.document.styleSheets[0].cssRules);
   assert.equal(titleFallbackChecked, true, 'Retain the consumer fallback for truncated title markup');
+  // MAIR-1107: one column of tiles on mobile, a 2 x 2 grid from 900 px.
   assert.deepEqual(grids, [
-    { condition: '(min-width:48rem)', columns: 2 },
-    { condition: '(min-width:96rem)', columns: 3 },
+    { condition: 'all', columns: 1 },
+    { condition: '(min-width:900px)', columns: 2 },
   ]);
   // CSSOM policy inspection does not execute media queries or prove layout.
 });

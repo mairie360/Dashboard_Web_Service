@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { resolve } from 'node:path';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { defaultSidebarItems } from '@mairie360/lib-components/shell';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -33,7 +33,8 @@ afterEach(() => style.remove());
 
 async function openDashboard() {
   render(<Home />);
-  await screen.findByRole('heading', { name: 'Projets récents' });
+  // MAIR-899: the tiles are drawn while loading; wait for their skeleton rows to give way to the data.
+  await waitFor(() => expect(document.querySelector('[data-skeleton]')).toBeNull());
   return screen.getByRole('heading', { name: /^Bon(?:jour|soir)/ });
 }
 
@@ -87,12 +88,13 @@ describe('Dashboard styles on the actual page and published components', () => {
     }
     const project = within(cards[0]).getByRole('button', { name: new RegExp(longTitle) });
     const computed = getComputedStyle(project);
-    expect(computed.borderTopWidth).toBe('1px');
-    expect(computed.borderTopStyle).toBe('solid');
-    // JSDOM cannot resolve a var() border colour; the token binding is pinned on the source rule (MAIR-608 charte).
-    expect(stylesheet).toMatch(/\.dashboard-project-row \{[^}]*border-color: var\(--mairie-control-border\)/);
-    expect(computed.padding).toBe('12px');
-    expect(getComputedStyle(project.querySelector('span.flex')).flexWrap).toBe('wrap');
+    // MAIR-907 compact row: no frame, a rule under the row, 10 px inset; the rule is the --mairie-border token.
+    expect(computed.borderTopWidth).toBe('0px');
+    expect(computed.borderBottomStyle).toBe('solid');
+    expect(stylesheet).toMatch(/\.dashboard-row \{[^}]*border-color: var\(--mairie-border\)/);
+    expect(stylesheet).toMatch(/\.dashboard-rows > \.dashboard-row:last-child \{ border-bottom-width: 0; \}/);
+    expect(computed.padding).toBe('10px');
+    expect(getComputedStyle(project.querySelector('.dashboard-row-line')).flexWrap).toBe('wrap');
     expect(getDashboardBootstrap).toHaveBeenCalledTimes(1);
   });
 

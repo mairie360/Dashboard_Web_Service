@@ -1,8 +1,7 @@
 "use client";
-import { ArrowRight } from "lucide-react";
 import { LinkButton } from "@mairie360/lib-components/primitives";
 
-/** « Voir tout » action of a standalone panel. */
+/** « Voir tout » action of a standalone panel (text link without arrow, MAIR-1107). */
 export const PanelViewAll = ({ onClick, label = "Voir tout" }: { onClick: () => void; label?: string }) => (
-  <LinkButton icon={ArrowRight} size="s" onClick={onClick}>{label}</LinkButton>
+  <LinkButton size="s" onClick={onClick}>{label}</LinkButton>
 );

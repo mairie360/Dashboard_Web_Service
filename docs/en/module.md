@@ -87,3 +87,14 @@ Figma: [feature index](https://www.figma.com/design/U4LxYJ8TDpZxqB8BmpBuRh?node-
   until the lib PageHeader « Accueil » variant (MAIR-1113) is published.
 - Navigation entries: the lib defaults with « E-learning » instead of « Formation »; Administration only for
   administrators, no Workflows (MAIR-1106). The footer stays until lib-components 2.3 makes it optional (MAIR-1092).
+- Tiles (MAIR-1107, F1): a 2 × 2 grid of equal tiles that fills the height under the welcome from 900 px (one column
+  below, the page scrolling rather than cutting content); the « Voir les… » links have no arrow; empty and unavailable
+  states are centred.
+- Compact rows (MAIR-907, F1/F5): at most 3 per tile (first projects and tasks, soonest events), no background, a
+  `--mairie-border` rule between rows, 10 px inset, `--mairie-surface-raised` on hover, `--mairie-accent` focus ring.
+  Projects: name and status, then « Échéance : … », the progress track and its percentage; tasks: title and priority,
+  then the deadline (no coloured dot any more); events: date badge (bold day, short month, `--mairie-module-calendar`
+  top edge), title, « heure · lieu ».
+- Loading (MAIR-899, F1): the final page is drawn at once (welcome, tiles with their titles and links); each tile shows
+  3 skeleton rows the size of the real ones, « Chargement du tableau de bord… » is announced to screen readers only,
+  and the shimmer stops under `prefers-reduced-motion`.

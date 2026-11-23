@@ -42,6 +42,9 @@ export function formatDueDate(value: string): string {
   return (dateOnly ? dateOnlyFormat : instantFormat()).format(timestamp);
 }
 
+/** Rows shown per tile so the dashboard fits the screen without scrolling (MAIR-907). */
+export const DASHBOARD_TILE_ROWS = 3;
+
 export function toDashboardModuleData(data: DashboardBootstrap) {
   const events = data.events.flatMap((event) => {
     const date = isoDate(event.date);
@@ -51,22 +54,24 @@ export function toDashboardModuleData(data: DashboardBootstrap) {
     // Keep the existing local-clock representation and the Intl parse guard.
     return Number.isNaN(Date.parse(startsAt)) ? [] : [{ id: String(event.id), title: event.title, location: event.location ?? '', startsAt }];
   });
+  // Local wall-clock ISO strings sort chronologically; the soonest events fill the tile.
+  const upcoming = [...events].sort((left, right) => left.startsAt.localeCompare(right.startsAt)).slice(0, DASHBOARD_TILE_ROWS);
   return {
     hasUnavailableSource: Object.values(data.sources).includes('unavailable'),
     unusableEventCount: data.events.length - events.length,
-    projects: data.projects.map((project) => ({
+    projects: data.projects.slice(0, DASHBOARD_TILE_ROWS).map((project) => ({
       id: project.id,
       name: project.title,
       progress: project.progress,
       status: project.status === 'done' ? 'completed' as const : 'in-progress' as const,
       dueDate: formatDueDate(project.dueDate),
     })),
-    tasks: data.tasks.map((task) => ({
+    tasks: data.tasks.slice(0, DASHBOARD_TILE_ROWS).map((task) => ({
       id: `${task.projectId}:${task.id}`,
       title: task.title,
       dueLabel: task.dueDate.trim() ? formatDueDate(task.dueDate) : 'Sans échéance',
       priority: task.priority,
     })),
-    events,
+    events: upcoming,
   } satisfies Pick<ModuleProps, 'projects' | 'tasks' | 'events'> & Record<string, unknown>;
 }

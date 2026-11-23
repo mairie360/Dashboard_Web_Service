@@ -1,13 +1,11 @@
 "use client";
-import { Skeleton } from "@mairie360/lib-components/primitives";
 
-import { DashboardHeader } from '@/components/DashboardHeader';
-
-/** The page before any confirmed data: title, status line and skeleton panels (Figma 02 « chargement »). */
+/**
+ * Announcement of the page before any confirmed data (Figma F1, MAIR-899): the tiles themselves show
+ * skeleton rows, so the status line is only read by screen readers while loading.
+ */
 export const DashboardLoading = ({ loading, failed }: { loading: boolean; failed: boolean }) => (
-  <>
-    <DashboardHeader />
-    <p role="status">{failed && !loading ? "Le tableau de bord est indisponible." : "Chargement du tableau de bord…"}</p>
-    {loading ? <div aria-hidden="true" className="dashboard-content-grid mt-6 grid gap-6 xl:grid-cols-2">{[0, 1, 2].map((index) => <Skeleton.Card key={index} className={index === 2 ? "xl:col-span-2" : undefined} />)}</div> : null}
-  </>
+  failed && !loading
+    ? <p role="status">Le tableau de bord est indisponible.</p>
+    : <p role="status" className="sr-only">Chargement du tableau de bord…</p>
 );
