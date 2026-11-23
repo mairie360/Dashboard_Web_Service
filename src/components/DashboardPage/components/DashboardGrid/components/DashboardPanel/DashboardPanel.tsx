@@ -2,7 +2,7 @@
 import type { ReactNode } from "react";
 import { DataState, LinkButton, Panel, WarningAlert } from "@mairie360/lib-components/primitives";
 
-export type DashboardPanelKind = "projects" | "tasks" | "events";
+export type DashboardPanelKind = "projects" | "tasks" | "events" | "trainings";
 export interface DashboardPanelProps {
   title: string;
   /** Label of the destination link (« Voir les projets »). */
@@ -22,6 +22,7 @@ export const panelMessages: Record<DashboardPanelKind, { empty: string; unavaila
   projects: { empty: "Aucun projet récent.", unavailable: "Les projets sont temporairement indisponibles." },
   tasks: { empty: "Aucune tâche en attente.", unavailable: "Les tâches sont temporairement indisponibles." },
   events: { empty: "Aucun événement à venir.", unavailable: "Les événements sont temporairement indisponibles." },
+  trainings: { empty: "Aucune formation en cours.", unavailable: "Les formations sont temporairement indisponibles." },
 };
 
 /** Action of a tile: a text link to the module, without arrow (MAIR-1107), or disabled when its URL is not configured. */

@@ -105,3 +105,13 @@ Figma: [feature index](https://www.figma.com/design/U4LxYJ8TDpZxqB8BmpBuRh?node-
   that fails shows a Panel with the error DataState « Le tableau de bord est indisponible. ». Each explicit recovery is
   announced by a toast (success « Tableau de bord à jour » / « Tableau de bord chargé », error « Le calendrier est
   toujours indisponible » / « Le service ne répond toujours pas »…).
+- Identity and commune (MAIR-889, MAIR-883, F4/F6): the user menu shows « Prénom Nom · Rôle » from the bootstrap
+  (no role label when it has none); « Commune de <nom> » in the expanded navigation and the Header's « Mairie de »
+  block use the commune of the instance (`MAIRIE_NAME` on BFF_Dashboard), and nothing is shown without it.
+- « Mes formations » (MAIR-1110, F1): 4th tile, the 3 trainings of the agent from BFF_Dashboard (unfinished first):
+  title, status pill, « Module x sur y », progress track in `--mairie-module-training` and its percentage. A row
+  opens the training in the E-learning front (`?course=<id>`), « Voir les formations » its catalogue (disabled
+  without `ELEARNING_FRONT_URL`). The contract has no training deadline, so « avant le <date> » is not shown.
+  Unavailable trainings (ELearning API down or not configured on BFF_Dashboard) show the tile's own state, without the
+  page banner. A bootstrap from an older BFF (without these fields) stays usable: no role, no commune, trainings
+  unavailable.

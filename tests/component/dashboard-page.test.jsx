@@ -103,7 +103,7 @@ describe("Dashboard page", () => {
     const pageSection = heading.closest("section");
     const cardHeadings = within(pageSection).getAllByRole("heading", { level: 2 });
     expect(cardHeadings.map(node => node.textContent)).toEqual([
-      "Projets récents", "Tâches en attente", "Événements à venir",
+      "Projets récents", "Tâches en attente", "Événements à venir", "Mes formations",
     ]);
     const cardGrid = cardHeadings[0].closest("section").parentElement;
     expect(heading.closest("header").nextElementSibling).toBe(cardGrid);
