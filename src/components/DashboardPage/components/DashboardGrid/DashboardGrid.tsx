@@ -7,7 +7,8 @@ import DashboardPanel from './components/DashboardPanel';
 import { DashboardRecentProjects } from '@/components/DashboardRecentProjects';
 import { DashboardPendingTasks } from '@/components/DashboardPendingTasks';
 import { DashboardUpcomingEvents } from '@/components/DashboardUpcomingEvents';
-import { calendarEventHref, dashboardUrls, navigateTo, projectHref } from './dashboard-links';
+import { DashboardTrainings } from '@/components/DashboardTrainings';
+import { calendarEventHref, dashboardUrls, navigateTo, projectHref, trainingHref } from './dashboard-links';
 
 export interface DashboardGridProps {
   /** Null while the first read is pending: every tile shows its skeleton rows (MAIR-899). */
@@ -15,7 +16,7 @@ export interface DashboardGridProps {
   view: ReturnType<typeof toDashboardModuleData> | null;
 }
 
-/** The tiles of the dashboard in a 2 × 2 grid of equal tiles (MAIR-1107), wired to their module destinations. */
+/** The four tiles of the dashboard in a 2 × 2 grid of equal tiles (MAIR-1107, MAIR-1110), wired to their module destinations. */
 export const DashboardGrid = ({ data, view }: DashboardGridProps) => {
   const loading = !data || !view;
   return (
@@ -33,6 +34,9 @@ export const DashboardGrid = ({ data, view }: DashboardGridProps) => {
         {view && view.unusableEventCount > 0 && view.events.length === 0
           ? <Caption as="p" role="status" className="block py-8 text-center">Les événements reçus ne peuvent pas être affichés : leurs dates ou heures sont illisibles.</Caption>
           : <DashboardUpcomingEvents bare loading={loading} events={view?.events} onOpenCalendar={() => navigateTo(dashboardUrls.calendar)} onSelect={(event) => navigateTo(calendarEventHref(event))} />}
+      </DashboardPanel>
+      <DashboardPanel title="Mes formations" kind="trainings" action="Voir les formations" href={dashboardUrls.elearning} loading={loading} empty={view?.trainings.length === 0} unavailable={Boolean(view?.trainingsUnavailable)}>
+        <DashboardTrainings bare loading={loading} trainings={view?.trainings} onViewAll={() => navigateTo(dashboardUrls.elearning)} onSelect={(training) => navigateTo(trainingHref(training.id))} />
       </DashboardPanel>
     </div>
   );

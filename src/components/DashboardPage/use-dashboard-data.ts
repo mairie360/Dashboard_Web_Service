@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { bffDashboard } from '../../lib/bff-client';
-import { isUsableBootstrap } from '../../lib/dashboard-bootstrap';
+import { isUsableBootstrap, withDefaults } from '../../lib/dashboard-bootstrap';
 import { subscribePageReturn } from '@mairie360/lib-components/shared';
 import { type DashboardBootstrap, toDashboardModuleData } from '../../lib/dashboard-view';
 
@@ -31,7 +31,7 @@ export interface DashboardData {
  * reloads on page return, and retains the last confirmed cards when a read fails.
  */
 export function useDashboardData(initialData?: DashboardBootstrap | null): DashboardData {
-  const [initial] = useState(() => isUsableBootstrap(initialData) ? initialData : null);
+  const [initial] = useState(() => isUsableBootstrap(initialData) ? withDefaults(initialData) : null);
   const [data, setData] = useState<DashboardBootstrap | null>(initial);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(!initial);
@@ -47,9 +47,11 @@ export function useDashboardData(initialData?: DashboardBootstrap | null): Dashb
       if (!isUsableBootstrap(response)) {
         throw UNUSABLE_BOOTSTRAP;
       }
-      setData(response);
+      // An older BFF without the MAIR-825 fields gets their neutral values.
+      const complete = withDefaults(response);
+      setData(complete);
       setError("");
-      return { ok: true, data: response };
+      return { ok: true, data: complete };
     } catch (reason) {
       if (!controller.signal.aborted && readController.current === controller) {
         // Retain the last confirmed cards; a failed read is not an empty result. Only the front's own

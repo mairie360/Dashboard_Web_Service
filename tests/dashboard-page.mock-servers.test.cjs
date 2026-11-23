@@ -157,8 +157,8 @@ test('the first pass renders the loading state, the next one the data of GET /da
   // MAIR-899: the announcement is for screen readers; the tiles are drawn at once with 3 skeleton rows each.
   assert.match(view.html, /<p role="status" class="sr-only">Chargement du tableau de bord…<\/p>/);
   assert.match(view.html, /Bon(?:jour|soir)/);
-  for (const title of ['Projets récents', 'Tâches en attente', 'Événements à venir']) assert.match(view.html, new RegExp(title));
-  assert.equal((view.html.match(/data-skeleton="/g) || []).length, 9);
+  for (const title of ['Projets récents', 'Tâches en attente', 'Événements à venir', 'Mes formations']) assert.match(view.html, new RegExp(title));
+  assert.equal((view.html.match(/data-skeleton="/g) || []).length, 12);
   assert.equal(view.props('DashboardRecentProjects').loading, true);
 
   const html = await view.waitFor((current) => !current.includes('Chargement du tableau de bord'));
@@ -170,8 +170,8 @@ test('the first pass renders the loading state, the next one the data of GET /da
   assert.match(view.text(), /Bon(?:jour|soir) Alice/);
   assert.equal(view.find('AppShell').length, 1);
   assert.doesNotMatch(html, /<aside\b[^]*?<footer\b[^]*?<\/footer>[^]*?<\/aside>/);
-  // lib-components 2.x: one full-width footer after the main area, outside the navigation.
-  assert.match(html, /<\/main>[^]*<footer\b/);
+  // MAIR-1106: the page base of lib-components 2.3 has no footer.
+  assert.doesNotMatch(html, /<footer\b|role="contentinfo"/);
   assert.equal(view.props('AppShell').activeItem, 'dashboard');
   assert.equal(view.props('AppShell').user.first_name, 'Alice');
   assert.equal(view.props('AppShell').hrefs.profile, 'https://settings.test.example/');
@@ -276,6 +276,10 @@ test('the shared sidebar opens the configured Settings front without exposing an
   // MAIR-1106: Agent entries, « E-learning » instead of « Formation », no Workflows.
   assert.deepEqual(navigation.sidebarProps.items.map((item) => item.label), ['Tableau de bord', 'Projets', 'Messagerie', 'E-learning', 'Calendrier', 'Administration', 'Paramètres']);
   assert.doesNotMatch(html, />Formation<|Workflows/);
+  // MAIR-883: the commune of the bootstrap, never the lib's placeholder name.
+  assert.deepEqual(view.props('AppShell').headerProps, { showCommune: true, commune: 'Saint-Pierre' });
+  assert.equal(navigation.sidebarProps.brandLabel, 'Saint-Pierre');
+  assert.doesNotMatch(html, /Saint-André/);
   await view.click((_props, text, tag) => tag === 'button' && /Paramètres/.test(text));
   assert.deepEqual(assigned, ['https://settings.test.example/']);
 });
@@ -493,4 +497,35 @@ test('card destination validation uses the latest normalized runtime URL without
   assert.equal(destination.searchParams.get('date'), '2026-09-18');
   assert.equal(destination.searchParams.get('event'), '9');
   assert.deepEqual(upstreamCalls(), ['GET /dashboard/bootstrap']);
+});
+
+test('MAIR-889: the user menu gets the full name and the role of the bootstrap', async () => {
+  await renderLoadedPage();
+  assert.deepEqual(view.props('AppShell').user, { first_name: 'Alice', last_name: 'Martin', name: 'Alice Martin', role: 'Agent' });
+});
+
+test('MAIR-889 / MAIR-883: without role nor commune, no empty label and no placeholder commune', async () => {
+  await renderLoadedPage(bootstrapResponse({ userLastName: '', userRole: null, communeName: null }));
+  assert.deepEqual(view.props('AppShell').user, { first_name: 'Alice' });
+  assert.deepEqual(view.props('AppShell').headerProps, { showCommune: false });
+  assert.equal(view.props('DesktopNavigation').sidebarProps.brandLabel, undefined);
+  assert.doesNotMatch(view.html, /Saint-André|Commune de/);
+});
+
+test('MAIR-1110: « Mes formations » lists the trainings and opens them in the E-learning front', async () => {
+  setBrowserFrontUrls({ ELEARNING_FRONT_URL: 'https://elearning.test.example/?source=dashboard' });
+  await renderLoadedPage();
+  assert.match(view.text(), /Mes formations[^]*Accueil du public[^]*Module 3 sur 5[^]*Protection des données/);
+  const trainings = view.props('DashboardTrainings');
+  await view.act(() => trainings.onSelect(trainings.trainings[0]));
+  assert.equal(window.location.href, 'https://elearning.test.example/?source=dashboard&course=4');
+  await view.act(() => trainings.onViewAll());
+  assert.equal(window.location.href, 'https://elearning.test.example/?source=dashboard');
+  assert.deepEqual(upstreamCalls(), ['GET /dashboard/bootstrap']);
+});
+
+test('MAIR-1110: unavailable trainings show their own state without the page banner', async () => {
+  await renderLoadedPage(bootstrapResponse({ trainings: [], sources: { projects: 'available', tasks: 'available', calendar: 'available', trainings: 'unavailable' } }));
+  assert.match(view.text(), /Les formations sont temporairement indisponibles\./);
+  assert.doesNotMatch(view.text(), /Certaines données sont temporairement indisponibles/);
 });

@@ -104,7 +104,8 @@ describe('Dashboard styles on the actual page and published components', () => {
     expect(main).not.toBeNull();
     const computed = getComputedStyle(main);
     expect(computed.paddingBlock).toBe('32px');
-    expect(screen.getByRole('contentinfo').closest('aside')).toBeNull();
+    // MAIR-1106: no footer on the lib 2.3 page base.
+    expect(screen.queryByRole('contentinfo')).toBeNull();
   });
 
   it('applies reference position, shadow and row rhythm to the real six-entry sidebar', async () => {

@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "bff_dashboard",
-    "version": "2.1.0"
+    "version": "0.0.0-dev.7f32f3944c6cf6a72a3ac5035a7fd57c014e7bb4"
   },
   "paths": {
     "/health": {
@@ -135,6 +135,27 @@
           },
           "sources": {
             "$ref": "#/components/schemas/DashboardBootstrapSources"
+          },
+          "userLastName": {
+            "type": "string"
+          },
+          "userRole": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "communeName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "trainings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DashboardBootstrapTrainingsItem"
+            }
           }
         },
         "required": [
@@ -143,7 +164,11 @@
           "tasks",
           "events",
           "metrics",
-          "sources"
+          "sources",
+          "userLastName",
+          "userRole",
+          "communeName",
+          "trainings"
         ]
       },
       "DashboardBootstrapEventsItem": {
@@ -235,12 +260,16 @@
           },
           "calendar": {
             "$ref": "#/components/schemas/DashboardBootstrapSourcesCalendar"
+          },
+          "trainings": {
+            "$ref": "#/components/schemas/DashboardBootstrapSourcesTrainings"
           }
         },
         "required": [
           "projects",
           "tasks",
-          "calendar"
+          "calendar",
+          "trainings"
         ]
       },
       "DashboardBootstrapSourcesCalendar": {
@@ -258,6 +287,13 @@
         ]
       },
       "DashboardBootstrapSourcesTasks": {
+        "type": "string",
+        "enum": [
+          "available",
+          "unavailable"
+        ]
+      },
+      "DashboardBootstrapSourcesTrainings": {
         "type": "string",
         "enum": [
           "available",
@@ -301,6 +337,45 @@
           "high",
           "medium",
           "low"
+        ]
+      },
+      "DashboardBootstrapTrainingsItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/DashboardBootstrapTrainingsItemStatus"
+          },
+          "completedModules": {
+            "type": "number"
+          },
+          "totalModules": {
+            "type": "number"
+          },
+          "progress": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "status",
+          "completedModules",
+          "totalModules",
+          "progress"
+        ]
+      },
+      "DashboardBootstrapTrainingsItemStatus": {
+        "type": "string",
+        "enum": [
+          "todo",
+          "in-progress",
+          "done"
         ]
       },
       "ErrorResponse": {

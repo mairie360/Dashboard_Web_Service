@@ -34,7 +34,18 @@ describe('toDashboardModuleData', () => {
         { id: '9', title: 'Conseil municipal', location: 'Mairie', startsAt: '2026-09-18T09:00:00' },
         { id: 'evt-2', title: 'Permanence', location: '', startsAt: '2026-09-20T00:00:00' },
       ],
+      trainingsUnavailable: false,
+      trainings: [
+        { id: 'training-4', title: 'Accueil du public', status: 'in-progress', completedModules: 2, totalModules: 5, progress: 40 },
+        { id: 'training-9', title: 'Protection des données', status: 'done', completedModules: 3, totalModules: 3, progress: 100 },
+      ],
     });
+  });
+
+  test('MAIR-1110: unavailable trainings get their own state, not the page banner', () => {
+    const view = toDashboardModuleData(valid({ trainings: [], sources: { projects: 'available', tasks: 'available', calendar: 'available', trainings: 'unavailable' } }));
+    assert.equal(view.trainingsUnavailable, true);
+    assert.equal(view.hasUnavailableSource, false);
   });
 
   test('every contract project status maps to a status supported by the component', () => {

@@ -83,11 +83,11 @@ Figma : [index des features](https://www.figma.com/design/U4LxYJ8TDpZxqB8BmpBuRh
   sans Login configuré, l'alerte « La déconnexion est temporairement indisponible. » s'affiche (MAIR-919, F6).
 - Le haut de page est un accueil : h1 « Bonjour <prénom> » (« Bonsoir » à partir de 18 h, heure de l'instance) et
   « Bienvenue sur votre espace Mairie360. » ; plus de titre « Tableau de bord » ni de date, l'entrée active du
-  bandeau repère la page. Il est aussi rendu pendant le chargement (MAIR-924, F1). La taille de 34 px est posée
-  localement en attendant la variante « Accueil » du PageHeader de la lib (MAIR-1113).
+  bandeau repère la page. Il est aussi rendu pendant le chargement (MAIR-924, F1). Il utilise la variante
+  « Accueil » du PageHeader de la lib (`variant="welcome"`, MAIR-1113, lib-components 2.3).
 - Entrées du bandeau : celles de la lib, « E-learning » à la place de « Formation » ; Administration pour les seuls
-  administrateurs, pas de Workflows (MAIR-1106). Le pied de page reste jusqu'à ce que lib-components 2.3 le rende
-  optionnel (MAIR-1092).
+  administrateurs, pas de Workflows (MAIR-1106). Plus de pied de page : lib-components 2.3 l'a retiré de la base de
+  page (MAIR-1092). Le bloc commune du Header est masqué tant que le bootstrap ne donne pas la commune.
 - Tuiles (MAIR-1107, F1) : grille 2 × 2 de tuiles identiques qui remplit la hauteur sous l'accueil dès 900 px (une
   colonne en dessous, la page défile plutôt que de couper le contenu) ; liens « Voir les… » sans flèche ; états vide
   et indisponible centrés.
@@ -105,3 +105,13 @@ Figma : [index des features](https://www.figma.com/design/U4LxYJ8TDpZxqB8BmpBuRh
   affiché. Un premier chargement en échec affiche un Panel avec le DataState d'erreur « Le tableau de bord est
   indisponible. ». Chaque relance explicite est annoncée par un toast (succès « Tableau de bord à jour » / « Tableau
   de bord chargé », erreur « Le calendrier est toujours indisponible » / « Le service ne répond toujours pas »…).
+- Identité et commune (MAIR-889, MAIR-883, F4/F6) : le menu utilisateur affiche « Prénom Nom · Rôle » du bootstrap
+  (pas de libellé de rôle vide) ; « Commune de <nom> » dans le bandeau déplié et le bloc « Mairie de » du Header
+  reprennent la commune de l'instance (`MAIRIE_NAME` sur BFF_Dashboard), rien ne s'affiche sans elle.
+- « Mes formations » (MAIR-1110, F1) : 4e tuile, les 3 formations de l'agent fournies par BFF_Dashboard (non
+  terminées d'abord) : titre, statut, « Module x sur y », piste de progression `--mairie-module-training` et
+  pourcentage. Une ligne ouvre la formation dans le front E-learning (`?course=<id>`), « Voir les formations » son
+  catalogue (désactivé sans `ELEARNING_FRONT_URL`). Le contrat ne donne pas d'échéance de formation : « avant le
+  <date> » n'est pas affiché. Des formations indisponibles (ELearning API en panne ou non configurée sur
+  BFF_Dashboard) affichent l'état propre à la tuile, sans le bandeau de page. Un bootstrap d'un BFF plus ancien (sans
+  ces champs) reste utilisable : pas de rôle, pas de commune, formations indisponibles.

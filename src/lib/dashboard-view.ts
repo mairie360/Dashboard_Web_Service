@@ -57,7 +57,10 @@ export function toDashboardModuleData(data: DashboardBootstrap) {
   // Local wall-clock ISO strings sort chronologically; the soonest events fill the tile.
   const upcoming = [...events].sort((left, right) => left.startsAt.localeCompare(right.startsAt)).slice(0, DASHBOARD_TILE_ROWS);
   return {
-    hasUnavailableSource: Object.values(data.sources).includes('unavailable'),
+    // The banner covers projects, tasks and calendar; « Mes formations » shows its own unavailable state
+    // (ELearning API is optional for BFF_Dashboard: an instance without it would otherwise always warn).
+    hasUnavailableSource: [data.sources.projects, data.sources.tasks, data.sources.calendar].includes('unavailable'),
+    trainingsUnavailable: (data.sources.trainings ?? 'unavailable') === 'unavailable',
     unusableEventCount: data.events.length - events.length,
     projects: data.projects.slice(0, DASHBOARD_TILE_ROWS).map((project) => ({
       id: project.id,
@@ -73,5 +76,10 @@ export function toDashboardModuleData(data: DashboardBootstrap) {
       priority: task.priority,
     })),
     events: upcoming,
+    // MAIR-1110: the BFF orders them (unfinished first) and caps them at 3.
+    trainings: (data.trainings ?? []).slice(0, DASHBOARD_TILE_ROWS).map((training) => ({
+      id: training.id, title: training.title, status: training.status,
+      completedModules: training.completedModules, totalModules: training.totalModules, progress: training.progress,
+    })),
   } satisfies Pick<ModuleProps, 'projects' | 'tasks' | 'events'> & Record<string, unknown>;
 }

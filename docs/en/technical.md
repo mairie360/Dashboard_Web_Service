@@ -24,11 +24,11 @@ The unchanged CI audit exposed the transitive tooling dependency
 [the upstream advisory](https://github.com/advisories/GHSA-qhr7-859c-m2p7).
 No audit threshold, workflow or security policy is relaxed.
 
-The package is pinned to published `@mairie360/lib-components@2.2.0` (MAIR-825, Dashboard V2). Its provenance
+The package is pinned to published `@mairie360/lib-components@2.3.0` (MAIR-825, Dashboard V2). Its provenance
 (tarball, integrity, artifact hashes) is recorded in `tests/fixtures/shared-ui-releases.json` and checked by
 `tests/shared-sidebar-footer.test.cjs`. The 2.x shell carries the « mairie / 360 » logo (no local
-`public/mairie360-logo.png` any more), the light charte, one full-width footer after the main area, and the
-logout confirmation of the Header (MAIR-834). Contracts, APIs/BFFs and deployment approvals are unchanged.
+`public/mairie360-logo.png` any more), the light charte, no footer (MAIR-1092, 2.3), the « Accueil » PageHeader
+variant (MAIR-1113) and the logout confirmation of the Header (MAIR-834). Contracts, APIs/BFFs and deployment approvals are unchanged.
 
 [Module overview](module.md) · [Français](../fr/technical.md) · [README](../../README.md)
 
