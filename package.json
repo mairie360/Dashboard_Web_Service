@@ -33,13 +33,10 @@
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
-    "@jridgewell/trace-mapping": "0.3.31",
     "@tailwindcss/postcss": "^4",
     "@testing-library/dom": "10.4.2",
-    "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "16.3.3",
     "@testing-library/user-event": "14.6.7",
-    "@types/jest-axe": "3.5.9",
     "@types/node": "^24.0.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
@@ -54,7 +51,10 @@
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "5.0.2",
-    "zod": "file:vendor/zod"
+    "@testing-library/jest-dom": "^6.9.1",
+    "@types/jest-axe": "3.5.9",
+    "zod": "file:vendor/zod",
+    "@jridgewell/trace-mapping": "0.3.31"
   },
   "overrides": {
     "braces": "$braces",
