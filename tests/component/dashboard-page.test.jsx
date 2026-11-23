@@ -275,6 +275,8 @@ describe("Dashboard page", () => {
     const user = await openDashboard();
     await user.click(screen.getByRole("button", { name: /Test/ }));
     await user.click(await screen.findByText("Déconnexion", { exact: true }));
+    // MAIR-919: lib-components 2.x confirms the logout first (MAIR-834).
+    await user.click(await screen.findByRole("button", { name: "Se déconnecter" }));
     expect((await screen.findByRole("alert")).textContent).toBe("La déconnexion est temporairement indisponible.");
     expect(screen.getByRole("button", { name: /Projet test/ })).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Réessayer le chargement" })).toBeNull();
@@ -316,6 +318,8 @@ describe("Dashboard page", () => {
     expect(screen.getByRole("button", { name: /Projet test/ })).toBeTruthy();
     await user.click(screen.getByRole("button", { name: /Test/ }));
     await user.click(await screen.findByText("Déconnexion", { exact: true }));
+    // MAIR-919: lib-components 2.x confirms the logout first (MAIR-834).
+    await user.click(await screen.findByRole("button", { name: "Se déconnecter" }));
     await screen.findByText("La déconnexion est temporairement indisponible.");
     expect(getDashboardBootstrap).toHaveBeenCalledTimes(3);
 

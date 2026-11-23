@@ -42,6 +42,8 @@ describe('Dashboard unusable bootstrap recovery', () => {
     await screen.findByRole('button', { name: /Projet confirmé/ });
     await user.click(screen.getByRole('button', { name: /Confirmé/ }));
     await user.click(await screen.findByText('Déconnexion', { exact: true }));
+    // MAIR-919: lib-components 2.x confirms the logout first (MAIR-834).
+    await user.click(await screen.findByRole('button', { name: 'Se déconnecter' }));
     await screen.findByText('La déconnexion est temporairement indisponible.');
     vi.mocked(getDashboardBootstrap).mockResolvedValueOnce({ userFirstName: 'Non confirmé' });
     await user.click(screen.getByRole('button', { name: 'Actualiser les données indisponibles' }));
