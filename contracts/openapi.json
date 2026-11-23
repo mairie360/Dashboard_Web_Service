@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "bff_dashboard",
-    "version": "0.0.0-dev.7f32f3944c6cf6a72a3ac5035a7fd57c014e7bb4"
+    "version": "0.0.0-dev.8a2e30901090c9b45a16129fca5fe61a057f682d"
   },
   "paths": {
     "/health": {
@@ -156,6 +156,13 @@
             "items": {
               "$ref": "#/components/schemas/DashboardBootstrapTrainingsItem"
             }
+          },
+          "unreadMessages": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0
           }
         },
         "required": [
@@ -168,7 +175,8 @@
           "userLastName",
           "userRole",
           "communeName",
-          "trainings"
+          "trainings",
+          "unreadMessages"
         ]
       },
       "DashboardBootstrapEventsItem": {
@@ -263,16 +271,27 @@
           },
           "trainings": {
             "$ref": "#/components/schemas/DashboardBootstrapSourcesTrainings"
+          },
+          "messages": {
+            "$ref": "#/components/schemas/DashboardBootstrapSourcesMessages"
           }
         },
         "required": [
           "projects",
           "tasks",
           "calendar",
-          "trainings"
+          "trainings",
+          "messages"
         ]
       },
       "DashboardBootstrapSourcesCalendar": {
+        "type": "string",
+        "enum": [
+          "available",
+          "unavailable"
+        ]
+      },
+      "DashboardBootstrapSourcesMessages": {
         "type": "string",
         "enum": [
           "available",
@@ -359,6 +378,12 @@
           },
           "progress": {
             "type": "number"
+          },
+          "dueDate": {
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -367,7 +392,8 @@
           "status",
           "completedModules",
           "totalModules",
-          "progress"
+          "progress",
+          "dueDate"
         ]
       },
       "DashboardBootstrapTrainingsItemStatus": {

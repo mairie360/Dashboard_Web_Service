@@ -12,11 +12,30 @@ import { DashboardLoading } from './components/DashboardLoading';
 import { DashboardNotices } from './components/DashboardNotices';
 import { useDashboardData } from './use-dashboard-data';
 
+/** The Messagerie badge (MAIR-1106): the unread count, « 99+ » beyond, nothing at 0 or when Message API is unavailable. */
+export function unreadBadge(unreadMessages: number | null | undefined): string | undefined {
+  if (typeof unreadMessages !== "number" || !Number.isInteger(unreadMessages) || unreadMessages <= 0) return undefined;
+  return unreadMessages > 99 ? "99+" : String(unreadMessages);
+}
+
+/** The unread count to show, only while Message API is available (MAIR-1106): never a stale or inconsistent number. */
+export function dashboardUnreadCount(data: DashboardBootstrap | null | undefined): number | null {
+  return data?.sources?.messages === "available" ? data.unreadMessages ?? null : null;
+}
+
 /**
- * Entries of the navigation (MAIR-1106): the lib defaults, « Formation » labelled « E-learning ».
- * Administration stays admin-only (filtered by the shell from the trusted role); there is no Workflows entry.
+ * Entries of the navigation (MAIR-1106): the lib defaults, « Formation » labelled « E-learning », and the unread
+ * count on « Messagerie ». Administration stays admin-only (filtered by the shell from the trusted role); there is
+ * no Workflows entry.
  */
-export const dashboardSidebarItems = defaultSidebarItems.map((item) => item.id === "training" ? { ...item, label: "E-learning" } : item);
+export function dashboardSidebarItems(unreadMessages?: number | null) {
+  const badge = unreadBadge(unreadMessages);
+  return defaultSidebarItems.map((item) => {
+    if (item.id === "training") return { ...item, label: "E-learning" };
+    if (item.id === "messages" && badge) return { ...item, badge };
+    return item;
+  });
+}
 
 /** The account shown in the Header: first and last name, and the role when the bootstrap gives one. */
 export function dashboardUser(data: DashboardBootstrap | null) {
@@ -42,7 +61,7 @@ export default function DashboardPage({ initialData }: { initialData?: Dashboard
       user={dashboardUser(data)}
       // MAIR-883: « Commune de <nom> » in the expanded navigation and the Header's « Mairie de » block, only when
       // the instance names its commune (lib 2.3 otherwise shows a placeholder name).
-      sidebarProps={{ items: dashboardSidebarItems, ...(communeName ? { brandLabel: communeName } : {}) }}
+      sidebarProps={{ items: dashboardSidebarItems(dashboardUnreadCount(data)), ...(communeName ? { brandLabel: communeName } : {}) }}
       headerProps={communeName ? { showCommune: true, commune: communeName } : { showCommune: false }}
       // MAIR-919: the lib Header confirms first; the returned promise keeps « Se déconnecter » loading.
       onLogout={() => logoutAndRedirect().catch(() => setLogoutError("La déconnexion est temporairement indisponible."))}

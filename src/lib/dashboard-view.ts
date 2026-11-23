@@ -80,6 +80,8 @@ export function toDashboardModuleData(data: DashboardBootstrap) {
     trainings: (data.trainings ?? []).slice(0, DASHBOARD_TILE_ROWS).map((training) => ({
       id: training.id, title: training.title, status: training.status,
       completedModules: training.completedModules, totalModules: training.totalModules, progress: training.progress,
+      // MAIR-1110: « avant le <date> » only when ELearning API gives a deadline.
+      ...(training.dueDate?.trim() ? { dueLabel: formatDueDate(training.dueDate) } : {}),
     })),
   } satisfies Pick<ModuleProps, 'projects' | 'tasks' | 'events'> & Record<string, unknown>;
 }
