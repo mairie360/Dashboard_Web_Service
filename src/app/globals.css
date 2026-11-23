@@ -107,11 +107,8 @@ button.dashboard-row:disabled { cursor: default; }
 
 /* The lib PageHeader owns the title typography; the page keeps its wrapping rhythm. */
 .page-title-row { gap: 12px 20px; }
-/* MAIR-924 welcome header (Figma F1): 34 px bold title, 14 px muted subtitle 2 px below, 28 px around.
-   To be replaced by the lib PageHeader « Accueil » variant (MAIR-1113). */
+/* MAIR-924: the lib PageHeader « welcome » variant draws the title and subtitle; the page keeps 28 px around it. */
 .dashboard-welcome { margin-top: 28px; margin-bottom: 28px; }
-.dashboard-welcome h1 { font-size: 34px; line-height: 1.15; font-weight: 700; letter-spacing: -0.02em; }
-.dashboard-welcome h1 + * { margin-top: 2px; font-size: 14px; color: var(--mairie-muted); }
 .page-current-date { min-height: 24px; max-width: 100%; }
 
 /* Companion of the selected Settings direction (MAIR-544/546). */

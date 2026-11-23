@@ -30,6 +30,8 @@ export default function DashboardPage({ initialData }: { initialData?: Dashboard
       hrefs={getActiveFrontHrefs()}
       user={userFirstName ? { first_name: userFirstName } : undefined}
       sidebarProps={{ items: dashboardSidebarItems }}
+      // lib 2.3 shows a « Mairie de » block with a placeholder name by default: hidden until the commune is known (MAIR-883).
+      headerProps={{ showCommune: false }}
       // MAIR-919: the lib Header confirms first; the returned promise keeps « Se déconnecter » loading.
       onLogout={() => logoutAndRedirect().catch(() => setLogoutError("La déconnexion est temporairement indisponible."))}
     >

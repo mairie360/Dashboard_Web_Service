@@ -83,10 +83,11 @@ Figma: [feature index](https://www.figma.com/design/U4LxYJ8TDpZxqB8BmpBuRh?node-
   the alert « La déconnexion est temporairement indisponible. » is shown (MAIR-919, F6).
 - The top of the page is a welcome: h1 « Bonjour <first name> » (« Bonsoir » from 18:00 on the instance clock) and
   « Bienvenue sur votre espace Mairie360. »; there is no « Tableau de bord » title nor date any more, the active
-  navigation entry marks the page. It is rendered while loading too (MAIR-924, F1). The 34 px size is set locally
-  until the lib PageHeader « Accueil » variant (MAIR-1113) is published.
+  navigation entry marks the page. It is rendered while loading too (MAIR-924, F1). It uses the lib PageHeader
+  « Accueil » variant (`variant="welcome"`, MAIR-1113, lib-components 2.3).
 - Navigation entries: the lib defaults with « E-learning » instead of « Formation »; Administration only for
-  administrators, no Workflows (MAIR-1106). The footer stays until lib-components 2.3 makes it optional (MAIR-1092).
+  administrators, no Workflows (MAIR-1106). No footer: lib-components 2.3 removed it from the page base (MAIR-1092). The Header's commune block is hidden until
+  the bootstrap gives the commune.
 - Tiles (MAIR-1107, F1): a 2 × 2 grid of equal tiles that fills the height under the welcome from 900 px (one column
   below, the page scrolling rather than cutting content); the « Voir les… » links have no arrow; empty and unavailable
   states are centred.

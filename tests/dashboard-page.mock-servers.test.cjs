@@ -170,8 +170,8 @@ test('the first pass renders the loading state, the next one the data of GET /da
   assert.match(view.text(), /Bon(?:jour|soir) Alice/);
   assert.equal(view.find('AppShell').length, 1);
   assert.doesNotMatch(html, /<aside\b[^]*?<footer\b[^]*?<\/footer>[^]*?<\/aside>/);
-  // lib-components 2.x: one full-width footer after the main area, outside the navigation.
-  assert.match(html, /<\/main>[^]*<footer\b/);
+  // MAIR-1106: the page base of lib-components 2.3 has no footer.
+  assert.doesNotMatch(html, /<footer\b|role="contentinfo"/);
   assert.equal(view.props('AppShell').activeItem, 'dashboard');
   assert.equal(view.props('AppShell').user.first_name, 'Alice');
   assert.equal(view.props('AppShell').hrefs.profile, 'https://settings.test.example/');
@@ -276,6 +276,9 @@ test('the shared sidebar opens the configured Settings front without exposing an
   // MAIR-1106: Agent entries, « E-learning » instead of « Formation », no Workflows.
   assert.deepEqual(navigation.sidebarProps.items.map((item) => item.label), ['Tableau de bord', 'Projets', 'Messagerie', 'E-learning', 'Calendrier', 'Administration', 'Paramètres']);
   assert.doesNotMatch(html, />Formation<|Workflows/);
+  // lib 2.3 Header: no placeholder commune until the bootstrap gives one (MAIR-883).
+  assert.equal(view.props('AppShell').headerProps.showCommune, false);
+  assert.doesNotMatch(html, /Saint-André/);
   await view.click((_props, text, tag) => tag === 'button' && /Paramètres/.test(text));
   assert.deepEqual(assigned, ['https://settings.test.example/']);
 });

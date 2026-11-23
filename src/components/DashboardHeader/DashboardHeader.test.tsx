@@ -24,5 +24,7 @@ describe('DashboardHeader (MAIR-924)', () => {
     expect(screen.getByText(DASHBOARD_WELCOME_SUBTITLE)).toBeInTheDocument();
     expect(screen.queryByText(/Tableau de bord/i)).toBeNull();
     expect(document.querySelector('.page-current-date')).toBeNull();
+    // MAIR-1113: the lib PageHeader « Accueil » variant.
+    expect(document.querySelector('header')).toHaveAttribute('data-variant', 'welcome');
   });
 });
