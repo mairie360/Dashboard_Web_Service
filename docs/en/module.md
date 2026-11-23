@@ -72,3 +72,46 @@ Every initial, loaded or unavailable state retains one h1 page heading. Secondar
 ## Shared visual direction — MAIR-547
 
 Approved light option 1: shared tokens and font, accessible navigation, and preserved business layouts. See the [visual QA](../qa/design-qa.md) for evidence, checks, and RGAA limitations.
+
+## Dashboard V2 — MAIR-825
+
+Figma: [feature index](https://www.figma.com/design/U4LxYJ8TDpZxqB8BmpBuRh?node-id=34-861).
+
+- The navigation shows the « mairie / 360 » logo of lib-components; the front serves no logo of its own (MAIR-883, F4).
+- « Déconnexion » first opens the lib confirmation « Se déconnecter ? »; « Annuler », the cross or Escape close it
+  without leaving. « Se déconnecter » stays loading until Login's `/logout` page opens; when Login is not configured,
+  the alert « La déconnexion est temporairement indisponible. » is shown (MAIR-919, F6).
+- The top of the page is a welcome: h1 « Bonjour <first name> » (« Bonsoir » from 18:00 on the instance clock) and
+  « Bienvenue sur votre espace Mairie360. »; there is no « Tableau de bord » title nor date any more, the active
+  navigation entry marks the page. It is rendered while loading too (MAIR-924, F1). It uses the lib PageHeader
+  « Accueil » variant (`variant="welcome"`, MAIR-1113, lib-components 2.3).
+- Navigation entries: the lib defaults with « E-learning » instead of « Formation »; Administration only for
+  administrators, no Workflows (MAIR-1106). No footer: lib-components 2.3 removed it from the page base (MAIR-1092). The Header's commune block is hidden until
+  the bootstrap gives the commune.
+- Tiles (MAIR-1107, F1): a 2 × 2 grid of equal tiles that fills the height under the welcome from 900 px (one column
+  below, the page scrolling rather than cutting content); the « Voir les… » links have no arrow; empty and unavailable
+  states are centred.
+- Compact rows (MAIR-907, F1/F5): at most 3 per tile (first projects and tasks, soonest events), no background, a
+  `--mairie-border` rule between rows, 10 px inset, `--mairie-surface-raised` on hover, `--mairie-accent` focus ring.
+  Projects: name and status, then « Échéance : … », the progress track and its percentage; tasks: title and priority,
+  then the deadline (no coloured dot any more); events: date badge (bold day, short month, `--mairie-module-calendar`
+  top edge), title, « heure · lieu ».
+- Loading (MAIR-899, F1): the final page is drawn at once (welcome, tiles with their titles and links); each tile shows
+  3 skeleton rows the size of the real ones, « Chargement du tableau de bord… » is announced to screen readers only,
+  and the shimmer stops under `prefers-reduced-motion`.
+- Alerts and recovery (MAIR-915, F1/F2/F3): the notices are lib Alerts, size m, not dismissible (« Certaines données
+  sont temporairement indisponibles. » as a `status`, « Le tableau de bord est temporairement indisponible. » and « La
+  déconnexion est temporairement indisponible. » as `alert`); no service message nor HTTP status is shown. A first read
+  that fails shows a Panel with the error DataState « Le tableau de bord est indisponible. ». Each explicit recovery is
+  announced by a toast (success « Tableau de bord à jour » / « Tableau de bord chargé », error « Le calendrier est
+  toujours indisponible » / « Le service ne répond toujours pas »…).
+- Identity and commune (MAIR-889, MAIR-883, F4/F6): the user menu shows « Prénom Nom · Rôle » from the bootstrap
+  (no role label when it has none); « Commune de <nom> » in the expanded navigation and the Header's « Mairie de »
+  block use the commune of the instance (`MAIRIE_NAME` on BFF_Dashboard), and nothing is shown without it.
+- « Mes formations » (MAIR-1110, F1): 4th tile, the 3 trainings of the agent from BFF_Dashboard (unfinished first):
+  title, status pill, « Module x sur y », progress track in `--mairie-module-training` and its percentage. A row
+  opens the training in the E-learning front (`?course=<id>`), « Voir les formations » its catalogue (disabled
+  without `ELEARNING_FRONT_URL`). The contract has no training deadline, so « avant le <date> » is not shown.
+  Unavailable trainings (ELearning API down or not configured on BFF_Dashboard) show the tile's own state, without the
+  page banner. A bootstrap from an older BFF (without these fields) stays usable: no role, no commune, trainings
+  unavailable.

@@ -79,7 +79,7 @@ states:
     as: agent
     route: /
     steps:
-      - wait_for: { role: heading, name: Tableau de Bord }
+      - wait_for: { text: Bienvenue sur votre espace Mairie360. }
       - wait_for: { text: Rénovation de la salle des fêtes }
       - wait_for: { text: Conseil municipal }
   - id: dashboard-empty
@@ -87,7 +87,7 @@ states:
     as: empty
     route: /
     steps:
-      - wait_for: { role: heading, name: Tableau de Bord }
+      - wait_for: { text: Bienvenue sur votre espace Mairie360. }
       - wait_for: { text: Aucun projet récent. }
       - wait_for: { text: Aucune tâche en attente. }
   - id: user-menu
@@ -95,7 +95,7 @@ states:
     as: agent
     route: /
     steps:
-      - wait_for: { role: heading, name: Tableau de Bord }
+      - wait_for: { text: Bienvenue sur votre espace Mairie360. }
       - click: { role: button, name: Perf }
       - wait_for: { text: Déconnexion }
   # No anonymous state: since MAIR-404 the middleware sends a page without a session to Login (or

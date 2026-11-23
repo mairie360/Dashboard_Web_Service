@@ -32,7 +32,7 @@ test('the widgets show the agent’s own project and pending task', async ({ pag
   await signInAs(context, baseURL!, users.manager);
   await page.goto('/');
 
-  await expect(page.getByText(/Bienvenue Perf, voici un aperçu de vos activités/)).toBeVisible();
+  await expect(page.getByText(/Bon(?:jour|soir) Perf/)).toBeVisible();
   for (const title of ['Projets récents', 'Tâches en attente', 'Événements à venir']) {
     await expect(page.getByText(title, { exact: true }).first()).toBeVisible();
   }
@@ -45,7 +45,7 @@ test('an agent outside the project does not see it in their widgets', async ({ p
   await signInAs(context, baseURL!, users.member);
   await page.goto('/');
 
-  await expect(page.getByText(/Bienvenue Membre, voici un aperçu de vos activités/)).toBeVisible();
+  await expect(page.getByText(/Bon(?:jour|soir) Membre/)).toBeVisible();
   await expect(page.getByText('Projets récents', { exact: true }).first()).toBeVisible();
   // The widgets must have loaded the member's data (none of their own: the empty states), or the
   // negative checks below would also pass on a page whose sources failed or are still loading.

@@ -1,13 +1,17 @@
 "use client";
-import { Skeleton } from "@mairie360/lib-components/primitives";
+import { DataState, Panel } from "@mairie360/lib-components/primitives";
 
-import { DashboardHeader } from '@/components/DashboardHeader';
-
-/** The page before any confirmed data: title, status line and skeleton panels (Figma 02 « chargement »). */
+/**
+ * The page before any confirmed data. While loading (Figma F1, MAIR-899) the tiles show skeleton rows,
+ * so the status line is only read by screen readers. When the first read failed (MAIR-915, F3), a
+ * `Panel` holds the error `DataState`, with no technical message.
+ */
 export const DashboardLoading = ({ loading, failed }: { loading: boolean; failed: boolean }) => (
-  <>
-    <DashboardHeader showDate={false} />
-    <p role="status">{failed && !loading ? "Le tableau de bord est indisponible." : "Chargement du tableau de bord…"}</p>
-    {loading ? <div aria-hidden="true" className="dashboard-content-grid mt-6 grid gap-6 xl:grid-cols-2">{[0, 1, 2].map((index) => <Skeleton.Card key={index} className={index === 2 ? "xl:col-span-2" : undefined} />)}</div> : null}
-  </>
+  failed && !loading
+    ? (
+      <Panel title="Mes activités" className="dashboard-failure">
+        <DataState state="error" size="m" title="Le tableau de bord est indisponible." description="Vos projets, tâches et événements s'afficheront dès que le service répondra." />
+      </Panel>
+    )
+    : <p role="status" className="sr-only">Chargement du tableau de bord…</p>
 );

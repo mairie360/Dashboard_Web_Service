@@ -8,6 +8,7 @@ import { validatedFrontHref } from '@/lib/navigation';
 export const dashboardUrls = {
   get project() { return validatedFrontHref(frontUrl("PROJECT_FRONT_URL")); },
   get calendar() { return validatedFrontHref(frontUrl("CALENDAR_FRONT_URL")); },
+  get elearning() { return validatedFrontHref(frontUrl("ELEARNING_FRONT_URL")); },
 };
 
 export const navigateTo = (href: string | undefined) => { if (href) window.location.href = href; };
@@ -29,5 +30,16 @@ export function calendarEventHref(event: { id: string; startsAt: string }): stri
   const destination = new URL(calendarUrl);
   destination.searchParams.set("date", event.startsAt.slice(0, 10));
   destination.searchParams.set("event", event.id);
+  return destination.toString();
+}
+
+/** E-learning front opened on one training (`?course=<formation id>`, BFF_Elearning ids; MAIR-1110). */
+export function trainingHref(trainingId: string): string | undefined {
+  const elearningUrl = dashboardUrls.elearning;
+  // BFF_Dashboard sends `training-<formation id>`; a bare formation id is accepted too.
+  const course = /^(?:training-)?(\d+)$/.exec(trainingId)?.[1];
+  if (!elearningUrl || !course) return elearningUrl;
+  const destination = new URL(elearningUrl);
+  destination.searchParams.set("course", course);
   return destination.toString();
 }

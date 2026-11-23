@@ -24,13 +24,11 @@ The unchanged CI audit exposed the transitive tooling dependency
 [the upstream advisory](https://github.com/advisories/GHSA-qhr7-859c-m2p7).
 No audit threshold, workflow or security policy is relaxed.
 
-The package is pinned to published `@mairie360/lib-components@0.6.8` from
-[the successful 0.6.8 publication](https://github.com/mairie360/lib-components/actions/runs/36836970818), including the sidebar-footer correction #388.
-AppShell now places copyright in the dark sidebar, outside scrolling navigation.
-The mobile drawer retains focus management. No content-footer band reduces the
-main viewport; only supplied information is shown, with no invented version.
-Contracts, APIs/BFFs and deployment approvals are unchanged. Consumer adoption
-is tracked in [shared issue #387](https://github.com/mairie360/lib-components/issues/387).
+The package is pinned to published `@mairie360/lib-components@2.3.0` (MAIR-825, Dashboard V2). Its provenance
+(tarball, integrity, artifact hashes) is recorded in `tests/fixtures/shared-ui-releases.json` and checked by
+`tests/shared-sidebar-footer.test.cjs`. The 2.x shell carries the « mairie / 360 » logo (no local
+`public/mairie360-logo.png` any more), the light charte, no footer (MAIR-1092, 2.3), the « Accueil » PageHeader
+variant (MAIR-1113) and the logout confirmation of the Header (MAIR-834). Contracts, APIs/BFFs and deployment approvals are unchanged.
 
 [Module overview](module.md) · [Français](../fr/technical.md) · [README](../../README.md)
 

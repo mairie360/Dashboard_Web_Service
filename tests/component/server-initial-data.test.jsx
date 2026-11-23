@@ -10,12 +10,12 @@ beforeEach(() => { getDashboardBootstrap.mockReset().mockResolvedValue({ data: b
 
 it('renders confirmed cards immediately without repeating the initial bootstrap in StrictMode', async () => {
   render(<StrictMode><Home initialData={bootstrap()} /></StrictMode>);
-  expect(screen.getByText('Bienvenue Confirmed, voici un aperçu de vos activités')).toBeTruthy();
+  expect(screen.getByText(/^Bon(?:jour|soir) Confirmed$/)).toBeTruthy();
   expect(screen.getByText('Aucun projet récent.')).toBeTruthy();
   expect(getDashboardBootstrap).not.toHaveBeenCalled();
   getDashboardBootstrap.mockResolvedValueOnce({ data: bootstrap('Fresh') });
   await act(async () => fireEvent.focus(window));
-  await screen.findByText('Bienvenue Fresh, voici un aperçu de vos activités');
+  await screen.findByText(/^Bon(?:jour|soir) Fresh$/);
   expect(getDashboardBootstrap).toHaveBeenCalledOnce();
 });
 

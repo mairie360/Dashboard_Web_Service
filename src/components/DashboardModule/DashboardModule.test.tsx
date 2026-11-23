@@ -32,8 +32,8 @@ describe('DashboardModule', () => {
   it('renders the personalized overview and ATP sections', () => {
     render(<DashboardModule {...fixtureProps} userFirstName="Alice" />);
 
-    expect(screen.getByRole('heading', { name: 'Tableau de Bord' })).toBeInTheDocument();
-    expect(screen.getByText('Bienvenue Alice, voici un aperçu de vos activités')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /^Bon(?:jour|soir)/ })).toBeInTheDocument();
+    expect(screen.getByText(/^Bon(?:jour|soir) Alice$/)).toBeInTheDocument();
     expect(screen.getByText('Projets actifs')).toBeInTheDocument();
     expect(screen.getByText('Citoyens servis')).toBeInTheDocument();
     expect(screen.getByText('Documents traités')).toBeInTheDocument();
@@ -111,7 +111,7 @@ describe('DashboardModule', () => {
   it('does not invent business data when props are omitted', () => {
     render(<DashboardModule />);
 
-    expect(screen.getByText('Voici un aperçu de vos activités')).toBeInTheDocument();
+    expect(screen.getByText('Bienvenue sur votre espace Mairie360.')).toBeInTheDocument();
     expect(screen.getByText('Aucun projet récent.')).toBeInTheDocument();
     expect(screen.getByText('Aucune tâche en attente.')).toBeInTheDocument();
     expect(screen.getByText('Aucun événement à venir.')).toBeInTheDocument();
@@ -150,7 +150,8 @@ describe('DashboardModule', () => {
     expect(actions[0].className).toBe(actions[1].className);
     expect(actions[1].className).toBe(actions[2].className);
     // MAIR-608: the lib LinkButton (Figma Base/Button/Link, TextIcon) is the one action treatment of a panel.
-    for (const action of actions) { expect(action.tagName).toBe('BUTTON'); expect(action.querySelector('svg')).not.toBeNull(); expect(action).toHaveClass('underline'); }
+    // MAIR-1107: the lib LinkButton as a text link, without arrow.
+    for (const action of actions) { expect(action.tagName).toBe('BUTTON'); expect(action.querySelector('svg')).toBeNull(); expect(action).toHaveClass('underline'); }
 
     actions.forEach((action) => fireEvent.click(action));
     expect(onViewAllProjects).toHaveBeenCalledTimes(1);
