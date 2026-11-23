@@ -18,6 +18,11 @@ export function unreadBadge(unreadMessages: number | null | undefined): string |
   return unreadMessages > 99 ? "99+" : String(unreadMessages);
 }
 
+/** The unread count to show, only while Message API is available (MAIR-1106): never a stale or inconsistent number. */
+export function dashboardUnreadCount(data: DashboardBootstrap | null | undefined): number | null {
+  return data?.sources?.messages === "available" ? data.unreadMessages ?? null : null;
+}
+
 /**
  * Entries of the navigation (MAIR-1106): the lib defaults, « Formation » labelled « E-learning », and the unread
  * count on « Messagerie ». Administration stays admin-only (filtered by the shell from the trusted role); there is
@@ -56,7 +61,7 @@ export default function DashboardPage({ initialData }: { initialData?: Dashboard
       user={dashboardUser(data)}
       // MAIR-883: « Commune de <nom> » in the expanded navigation and the Header's « Mairie de » block, only when
       // the instance names its commune (lib 2.3 otherwise shows a placeholder name).
-      sidebarProps={{ items: dashboardSidebarItems(data?.unreadMessages), ...(communeName ? { brandLabel: communeName } : {}) }}
+      sidebarProps={{ items: dashboardSidebarItems(dashboardUnreadCount(data)), ...(communeName ? { brandLabel: communeName } : {}) }}
       headerProps={communeName ? { showCommune: true, commune: communeName } : { showCommune: false }}
       // MAIR-919: the lib Header confirms first; the returned promise keeps « Se déconnecter » loading.
       onLogout={() => logoutAndRedirect().catch(() => setLogoutError("La déconnexion est temporairement indisponible."))}
