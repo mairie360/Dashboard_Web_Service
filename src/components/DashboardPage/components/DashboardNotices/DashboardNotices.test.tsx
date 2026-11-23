@@ -57,5 +57,8 @@ describe('DashboardNotices (MAIR-915)', () => {
     // Event dates the page cannot display keep the recovery incomplete.
     const unreadable = { ...(ready as object), events: [{ id: 1, title: 'Date illisible', date: 'bientôt' }] } as never;
     expect(reloadToast({ ok: true, data: unreadable }, true)).toEqual({ tone: 'error', title: 'Certaines dates restent illisibles', message: 'Les autres données restent affichées.' });
+    // A source still unavailable and unreadable dates: the toast says both.
+    const both = { ...(unreadable as object), sources: { projects: 'available', tasks: 'available', calendar: 'unavailable', trainings: 'available' } } as never;
+    expect(reloadToast({ ok: true, data: both }, true)).toEqual({ tone: 'error', title: 'Le calendrier est toujours indisponible', message: 'Certaines dates restent illisibles ; les autres données restent affichées.' });
   });
 });

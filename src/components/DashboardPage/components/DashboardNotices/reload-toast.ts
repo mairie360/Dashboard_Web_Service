@@ -30,7 +30,8 @@ export function reloadToast(outcome: { ok: true; data: DashboardBootstrap } | { 
   }
   // Same rules as the page: the banner sources, then the event dates the page cannot display.
   const missing = BANNER_SOURCES.filter((source) => outcome.data.sources[source] === 'unavailable');
-  if (missing.length === 0 && toDashboardModuleData(outcome.data).unusableEventCount > 0) {
+  const unreadableDates = toDashboardModuleData(outcome.data).unusableEventCount > 0;
+  if (missing.length === 0 && unreadableDates) {
     return { tone: 'error', title: 'Certaines dates restent illisibles', message: 'Les autres données restent affichées.' };
   }
   if (missing.length === 0) {
@@ -39,5 +40,5 @@ export function reloadToast(outcome: { ok: true; data: DashboardBootstrap } | { 
       : { tone: 'success', title: 'Tableau de bord chargé', message: 'Toutes les données ont été récupérées.' };
   }
   const title = missing.length === 1 ? STILL_UNAVAILABLE[missing[0]] ?? 'Certaines données sont toujours indisponibles' : 'Certaines données sont toujours indisponibles';
-  return { tone: 'error', title, message: 'Les autres données restent affichées.' };
+  return { tone: 'error', title, message: unreadableDates ? 'Certaines dates restent illisibles ; les autres données restent affichées.' : 'Les autres données restent affichées.' };
 }
