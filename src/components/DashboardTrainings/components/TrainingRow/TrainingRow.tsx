@@ -12,8 +12,8 @@ export interface TrainingRowProps {
 
 /**
  * One training as a compact row (Figma Dashboard/TrainingRow, MAIR-1110): title and status pill, then
- * « Module x sur y », the progress track in the training module colour and its percentage. The contract
- * gives no deadline, so « avant le <date> » is not shown.
+ * « Module x sur y · avant le <date> » (the date only when the training has one), the progress track in the
+ * training module colour and its percentage.
  */
 export const TrainingRow = ({ training, onSelect }: TrainingRowProps) => {
   const progress = Math.min(100, Math.max(0, Number.isFinite(training.progress) ? training.progress : 0));

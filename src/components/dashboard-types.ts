@@ -65,4 +65,6 @@ export interface DashboardTraining {
   completedModules: number;
   totalModules: number;
   progress: number;
+  /** « 15 déc. 2026 »-style due date, absent when the training has none (MAIR-1110). */
+  dueLabel?: string;
 }

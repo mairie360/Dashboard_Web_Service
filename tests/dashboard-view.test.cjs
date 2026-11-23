@@ -42,6 +42,16 @@ describe('toDashboardModuleData', () => {
     });
   });
 
+  test('MAIR-1110: a training due date becomes the « avant le » label, none without a date', () => {
+    const base = { title: 'Formation', status: 'in-progress', completedModules: 1, totalModules: 4, progress: 25 };
+    const view = toDashboardModuleData(valid({ trainings: [
+      { id: 'training-1', ...base, dueDate: '2026-12-15' },
+      { id: 'training-2', ...base, dueDate: null },
+    ] }));
+    assert.equal(view.trainings[0].dueLabel, formatDueDate('2026-12-15'));
+    assert.equal('dueLabel' in view.trainings[1], false);
+  });
+
   test('MAIR-1110: unavailable trainings get their own state, not the page banner', () => {
     const view = toDashboardModuleData(valid({ trainings: [], sources: { projects: 'available', tasks: 'available', calendar: 'available', trainings: 'unavailable' } }));
     assert.equal(view.trainingsUnavailable, true);

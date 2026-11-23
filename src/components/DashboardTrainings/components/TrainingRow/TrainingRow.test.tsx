@@ -25,6 +25,9 @@ describe('TrainingRow (MAIR-1110)', () => {
     expect(trainingModuleLabel({ completedModules: 0, totalModules: 3 })).toBe('Module 1 sur 3');
     expect(trainingModuleLabel({ completedModules: 3, totalModules: 3 })).toBe('Module 3 sur 3');
     expect(trainingModuleLabel({ completedModules: 0, totalModules: 0 })).toBe('Aucun module');
+    // MAIR-1110: the due date follows the module when the training has one.
+    expect(trainingModuleLabel({ completedModules: 1, totalModules: 4, dueLabel: '15 déc. 2026' })).toBe('Module 2 sur 4 · avant le 15 déc. 2026');
+    expect(trainingModuleLabel({ completedModules: 0, totalModules: 0, dueLabel: '15 déc. 2026' })).toBe('Aucun module · avant le 15 déc. 2026');
     expect(trainingStatusBadge).toEqual({ todo: 'todo', 'in-progress': 'inprogress', done: 'done' });
     render(<TrainingRow training={{ ...training, status: 'done', progress: 140 }} />);
     expect(screen.getByRole('button')).toBeDisabled();
