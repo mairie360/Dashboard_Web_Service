@@ -107,18 +107,19 @@ describe('Dashboard styles on the actual page and published components', () => {
 
   it('applies reference position, shadow and row rhythm to the real six-entry sidebar', async () => {
     await openDashboard();
-    const sidebar = screen.getByRole('complementary', { name: 'Navigation principale' });
+    // lib-components 2.x: the desktop navigation is the DesktopNavigation aside (hidden until its media query matches in jsdom).
+    const sidebar = document.querySelector('aside.app-desktop-navigation[aria-label="Navigation principale"]');
+    expect(sidebar).not.toBeNull();
     const computed = getComputedStyle(sidebar);
     expect(computed.position).toBe('relative');
     expect(computed.zIndex).toBe('20');
-    expect(shadow(computed.boxShadow)).toEqual([
-      { lengths: [4, 0, 16, 0], color: 'rgba(12, 28, 48, 0.1)' },
-    ]);
-    const buttons = within(sidebar).getAllByRole('button');
+    // lib-components 2.x: the white navigation has no lateral shadow (--mairie-navigation-shadow: none).
+    expect(getComputedStyle(document.documentElement).getPropertyValue('--mairie-navigation-shadow').trim() || computed.boxShadow).toMatch(/none|var\(--mairie-navigation-shadow\)/);
+    const buttons = within(sidebar).getAllByRole('button', { hidden: true });
     expect(buttons.map((button) => button.textContent)).toEqual(defaultSidebarItems
       .filter(({ label }) => label !== 'Administration').map(({ label }) => label));
     for (const button of buttons) {
-      expect(getComputedStyle(button).minHeight).toBe('48px');
+      expect(getComputedStyle(button).minHeight).toBe('42px');
       expect(getComputedStyle(button).flexShrink).toBe('0');
     }
   });

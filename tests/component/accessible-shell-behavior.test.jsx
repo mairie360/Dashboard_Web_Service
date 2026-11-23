@@ -19,28 +19,14 @@ afterEach(() => {
   document.cookie = `${SIDEBAR_COOKIE}=; Path=/; Max-Age=0`;
 });
 
-it('measures the real footer after resize and disconnects its observer when the shell unmounts', () => {
-  let footerHeight = 78.2;
-  const observers = [];
-  vi.stubGlobal('ResizeObserver', class {
-    constructor(receive) { this.receive = receive; this.targets = []; this.disconnect = vi.fn(); observers.push(this); }
-    observe(target) { this.targets.push(target); }
-    unobserve() {}
-  });
-  const originalRect = HTMLElement.prototype.getBoundingClientRect;
-  // jsdom has no geometry; supply only the measured footer height to exercise the actual callback.
-  vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function () {
-    return this.matches('footer.app-accessible-footer') ? { ...originalRect.call(this), height: footerHeight } : originalRect.call(this);
-  });
-  const { container, unmount } = shell();
-  const footer = screen.getByRole('contentinfo'), frame = container.querySelector('.app-shell-frame');
-  const observer = observers.find(candidate => candidate.targets.includes(footer));
-  expect(observer).toBeTruthy();
-  expect(frame.style.getPropertyValue('--app-footer-height')).toBe('79px');
-  footerHeight = 100.01;
-  act(() => observer.receive([], observer));
-  expect(frame.style.getPropertyValue('--app-footer-height')).toBe('101px');
-  unmount(); expect(observer.disconnect).toHaveBeenCalledTimes(1);
+it('renders one full-width footer after the main area, outside the navigation (lib-components 2.x)', () => {
+  const { container } = shell();
+  const footer = screen.getByRole('contentinfo');
+  expect(footer.closest('aside')).toBeNull();
+  expect(footer.closest('main')).toBeNull();
+  const band = footer.closest('.app-shell-footer');
+  expect(band).not.toBeNull();
+  expect(band.previousElementSibling.contains(container.querySelector('main'))).toBe(true);
 });
 
 it('the skip link moves keyboard focus to the retained content target', async () => {
@@ -91,25 +77,20 @@ it('the sole shared skip link is inert during an external confirmation and resto
   expect(confirmed).not.toHaveBeenCalled();
 });
 
-it('the collapsed preference restores, exposes keyboard tooltips, persists an explicit toggle and synchronizes on focus', async () => {
+it('the desktop navigation rests collapsed and expands while keyboard focus is inside it (lib-components 2.x)', () => {
   // jsdom does not evaluate viewport media queries: activate the real desktop branch for its keyboard scenario.
   desktopViewportStyle = document.createElement('style');
   desktopViewportStyle.textContent = '.app-desktop-navigation { display:flex; }';
   document.head.append(desktopViewportStyle);
-  document.cookie = `${SIDEBAR_COOKIE}=v1:collapsed; Path=/`;
   const { container } = shell(), frame = container.querySelector('.app-shell-frame');
-  expect(frame.getAttribute('data-sidebar-collapsed')).toBe('true');
   const sidebar = container.querySelector('.app-desktop-navigation');
-  expect(getComputedStyle(sidebar).display).toBe('flex');
-  const projects = within(sidebar).getByRole('button', { name: 'Projets', exact: true });
-  act(() => projects.focus());
-  expect(screen.getByRole('tooltip').textContent).toBe('Projets');
-  fireEvent.keyDown(projects, { key: 'Escape' });
-  expect(screen.queryByRole('tooltip')).toBeNull();
-  await userEvent.setup().click(within(sidebar).getByRole('button', { name: 'Développer la navigation' }));
-  expect(frame.getAttribute('data-sidebar-collapsed')).toBe('false');
-  expect(document.cookie).toContain(`${SIDEBAR_COOKIE}=v1:expanded`);
-  document.cookie = `${SIDEBAR_COOKIE}=v1:collapsed; Path=/`;
-  act(() => window.dispatchEvent(new Event('focus')));
+  expect(sidebar.getAttribute('data-expanded')).toBe('false');
   expect(frame.getAttribute('data-sidebar-collapsed')).toBe('true');
+  const projects = within(sidebar).getByRole('button', { name: /Projets/ });
+  fireEvent.keyDown(projects, { key: 'Tab' });
+  act(() => projects.focus());
+  expect(sidebar.getAttribute('data-expanded')).toBe('true');
+  expect(frame.getAttribute('data-sidebar-collapsed')).toBe('false');
+  act(() => projects.blur());
+  expect(sidebar.getAttribute('data-expanded')).toBe('false');
 });

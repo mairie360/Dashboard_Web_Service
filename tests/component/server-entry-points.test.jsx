@@ -28,7 +28,8 @@ it('the server layout derives the initial display role and runtime URLs without 
   request.cookies.mairie360_appearance = encodeURIComponent(JSON.stringify({ v: 1, theme: 'dark', density: 'compact', font_family: 'Arial' }));
   html = renderToStaticMarkup(await RootLayout({ children: <InstanceContent /> }));
   expect(html).toContain('Admin Indian/Reunion');
-  expect(html).toContain('data-theme="dark"');
+  // lib-components 2.x is light only (MAIR-933): a saved dark theme is ignored.
+  expect(html).not.toContain('data-theme="dark"');
   expect(html).toContain('data-density="compact"');
   expect(html).not.toContain(request.cookies.accessToken);
   expect(fetch).not.toHaveBeenCalled();

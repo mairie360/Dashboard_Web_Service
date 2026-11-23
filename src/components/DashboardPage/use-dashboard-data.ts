@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { bffDashboard } from '../../lib/bff-client';
 import { isUsableBootstrap } from '../../lib/dashboard-bootstrap';
-import { subscribePageReturn } from '../../lib/page-return';
+import { subscribePageReturn } from '@mairie360/lib-components/shared';
 import { type DashboardBootstrap, toDashboardModuleData } from '../../lib/dashboard-view';
 
 export interface DashboardData {
