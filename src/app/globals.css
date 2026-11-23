@@ -87,6 +87,8 @@ button.dashboard-row:disabled { cursor: default; }
   background-color: var(--mairie-surface-raised);
   border-width: 3px 0 0 0; border-style: solid; border-color: var(--mairie-module-calendar);
 }
+/* MAIR-1110: the training progress track takes the training module colour (the lib meter fills with an inline style). */
+.dashboard-training-progress [role="progressbar"] > div { background: var(--mairie-module-training) !important; }
 @media (prefers-reduced-motion: reduce) { .mairie-skeleton-animated { animation: none; } }
 
 /* MAIR-1107: a 2 x 2 grid of equal tiles filling the height under the welcome; the page scrolls rather

@@ -105,3 +105,13 @@ Figma : [index des features](https://www.figma.com/design/U4LxYJ8TDpZxqB8BmpBuRh
   affiché. Un premier chargement en échec affiche un Panel avec le DataState d'erreur « Le tableau de bord est
   indisponible. ». Chaque relance explicite est annoncée par un toast (succès « Tableau de bord à jour » / « Tableau
   de bord chargé », erreur « Le calendrier est toujours indisponible » / « Le service ne répond toujours pas »…).
+- Identité et commune (MAIR-889, MAIR-883, F4/F6) : le menu utilisateur affiche « Prénom Nom · Rôle » du bootstrap
+  (pas de libellé de rôle vide) ; « Commune de <nom> » dans le bandeau déplié et le bloc « Mairie de » du Header
+  reprennent la commune de l'instance (`MAIRIE_NAME` sur BFF_Dashboard), rien ne s'affiche sans elle.
+- « Mes formations » (MAIR-1110, F1) : 4e tuile, les 3 formations de l'agent fournies par BFF_Dashboard (non
+  terminées d'abord) : titre, statut, « Module x sur y », piste de progression `--mairie-module-training` et
+  pourcentage. Une ligne ouvre la formation dans le front E-learning (`?course=<id>`), « Voir les formations » son
+  catalogue (désactivé sans `ELEARNING_FRONT_URL`). Le contrat ne donne pas d'échéance de formation : « avant le
+  <date> » n'est pas affiché. Des formations indisponibles (ELearning API en panne ou non configurée sur
+  BFF_Dashboard) affichent l'état propre à la tuile, sans le bandeau de page. Un bootstrap d'un BFF plus ancien (sans
+  ces champs) reste utilisable : pas de rôle, pas de commune, formations indisponibles.
