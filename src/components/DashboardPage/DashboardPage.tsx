@@ -46,12 +46,18 @@ export function dashboardUser(data: DashboardBootstrap | null) {
   return { first_name: first, ...(last ? { last_name: last, name: `${first} ${last}` } : {}), ...(role ? { role } : {}) };
 }
 
-/** The dashboard page: shell, notices, header and the panel grid, fed by `useDashboardData`. */
-export default function DashboardPage({ initialData }: { initialData?: DashboardBootstrap | null }) {
+/**
+ * The dashboard page: shell, notices, header and the panel grid, fed by `useDashboardData`.
+ * `renderedAt` is the server render instant: the greeting is computed from it on both sides, so the
+ * browser hydrates the same « Bonjour » / « Bonsoir » as the server even when its clock differs.
+ */
+export default function DashboardPage({ initialData, renderedAt }: { initialData?: DashboardBootstrap | null; renderedAt?: string }) {
   const { data, view, error, loading, reload } = useDashboardData(initialData);
   const [logoutError, setLogoutError] = useState("");
   const userFirstName = data?.userFirstName.trim() ?? "";
   const communeName = data?.communeName?.trim() || undefined;
+  const renderTime = renderedAt ? new Date(renderedAt) : undefined;
+  const now = renderTime && Number.isFinite(renderTime.getTime()) ? renderTime : undefined;
   return (
     <AccessibleShell
       className="dashboard-app-shell"
@@ -70,7 +76,7 @@ export default function DashboardPage({ initialData }: { initialData?: Dashboard
         <DashboardNotices error={error} logoutError={logoutError} loading={loading} hasUnavailableSource={Boolean(view?.hasUnavailableSource)} unusableEventCount={view?.unusableEventCount ?? 0} hasData={Boolean(data)} onReload={reload} />
         <section className="dashboard-page mx-auto max-w-[1520px]">
           {/* MAIR-899: the final page is drawn at once; only the rows wait for the data. */}
-          <DashboardHeader userFirstName={userFirstName} />
+          <DashboardHeader userFirstName={userFirstName} now={now} />
           {!data || !view ? <DashboardLoading loading={loading} failed={Boolean(error)} /> : null}
           {data || loading ? <DashboardGrid data={data} view={view} /> : null}
         </section>
