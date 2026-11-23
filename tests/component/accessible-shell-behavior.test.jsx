@@ -19,8 +19,11 @@ afterEach(() => {
   document.cookie = `${SIDEBAR_COOKIE}=; Path=/; Max-Age=0`;
 });
 
-it('renders one full-width footer after the main area, outside the navigation (lib-components 2.x)', () => {
-  const { container } = shell();
+it('renders no footer by default and one full-width footer after the main area when asked (lib-components 2.3, MAIR-1092)', () => {
+  const { unmount } = shell();
+  expect(screen.queryByRole('contentinfo')).toBeNull();
+  unmount();
+  const { container } = render(<AccessibleShell activeItem="dashboard" hrefs={hrefs} showFooter user={{ name: 'Agent du tableau' }}><h1>Contenu du tableau</h1></AccessibleShell>);
   const footer = screen.getByRole('contentinfo');
   expect(footer.closest('aside')).toBeNull();
   expect(footer.closest('main')).toBeNull();

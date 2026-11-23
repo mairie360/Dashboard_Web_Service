@@ -27,7 +27,8 @@ describe('useDashboardData (MAIR-608)', () => {
     await waitFor(() => expect(screen.getByTestId('state')).toHaveTextContent('idle||Alice|1'));
     getDashboardBootstrap.mockRejectedValueOnce(new Error('BFF injoignable'));
     await act(async () => { screen.getByRole('button', { name: 'reload' }).click(); });
-    await waitFor(() => expect(screen.getByTestId('state')).toHaveTextContent('idle|BFF injoignable|Alice|1'));
+    // MAIR-915: the service's message is never kept.
+    await waitFor(() => expect(screen.getByTestId('state')).toHaveTextContent('idle|Le tableau de bord est temporairement indisponible.|Alice|1'));
     expect(getDashboardBootstrap).toHaveBeenCalledTimes(2);
   });
   it('skips the initial read when a usable server bootstrap is given and rejects an unusable payload', async () => {

@@ -25,11 +25,11 @@ compatible `1.1.21`, avec l’intégrité vérifiée sur le registre, conformém
 [l’avis amont](https://github.com/advisories/GHSA-qhr7-859c-m2p7).
 Aucun seuil d’audit, workflow ou contrôle de sécurité n’est assoupli.
 
-Le paquet est épinglé à `@mairie360/lib-components@2.2.0` (MAIR-825, Dashboard V2). Sa provenance
+Le paquet est épinglé à `@mairie360/lib-components@2.3.0` (MAIR-825, Dashboard V2). Sa provenance
 (archive, intégrité, empreintes des fichiers) est enregistrée dans `tests/fixtures/shared-ui-releases.json` et
 vérifiée par `tests/shared-sidebar-footer.test.cjs`. Le cadre 2.x porte le logo « mairie / 360 » (plus de
-`public/mairie360-logo.png` local), la charte claire, un pied de page pleine largeur sous la zone de contenu et la
-confirmation de déconnexion du Header (MAIR-834). Les contrats, les API/BFF et les approbations de déploiement
+`public/mairie360-logo.png` local), la charte claire, plus de pied de page (MAIR-1092, 2.3), la variante « Accueil » du
+PageHeader (MAIR-1113) et la confirmation de déconnexion du Header (MAIR-834). Les contrats, les API/BFF et les approbations de déploiement
 sont inchangés.
 
 [Présentation du module](module.md) · [English](../en/technical.md) · [README](../../README.md)

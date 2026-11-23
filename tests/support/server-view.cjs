@@ -492,12 +492,16 @@ function ensureBrowserGlobals() {
       body: eventTarget({ style: {}, contains: () => false, classList: { add() {}, remove() {} } }),
       documentElement: { style: {}, clientWidth: 1280, clientHeight: 800 },
       activeElement: null,
+      // lib ToastProvider reads the window focus on mount (MAIR-915).
+      hasFocus: () => true,
       querySelector: () => null,
       querySelectorAll: () => [],
       getElementById: () => null,
       createElement: () => ({ style: {}, setAttribute() {}, appendChild() {}, remove() {} }),
     });
   }
+  // lib ToastProvider checks `document.activeElement instanceof HTMLElement` when a toast opens (MAIR-915).
+  globalThis.HTMLElement ??= class HTMLElement {};
   const window = globalThis.window;
   if (!window || typeof window !== 'object') return;
   if (!window.addEventListener) eventTarget(window);
