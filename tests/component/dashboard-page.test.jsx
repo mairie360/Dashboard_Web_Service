@@ -1,10 +1,11 @@
-import { act, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { StrictMode } from "react";
 import { axe } from "jest-axe";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import Home from '@/components/DashboardPage';
 import { frontUrl } from "@/lib/front-urls";
+import { findPageAlert, pageAlert, pageAlerts, pageStatus } from './page-roles';
 
 const getDashboardBootstrap = vi.hoisted(() => vi.fn());
 vi.mock('@/lib/bff-client', () => ({ bffDashboard: { getDashboardBootstrap: async (options) => ({ data: await getDashboardBootstrap(options) }) } }));
@@ -31,7 +32,8 @@ function bootstrap(overrides = {}) {
 async function openDashboard() {
   const user = userEvent.setup();
   render(<Home />);
-  await screen.findByRole("heading", { name: "Projets récents" });
+  // MAIR-899: the tiles are drawn while loading; wait for their skeleton rows to give way to the data.
+  await waitFor(() => expect(document.querySelector("[data-skeleton]")).toBeNull());
   return user;
 }
 
@@ -48,7 +50,7 @@ describe("Dashboard page", () => {
     payload.projects[0].dueDate = "3";
     vi.mocked(getDashboardBootstrap).mockResolvedValue(payload);
     await openDashboard();
-    expect(screen.getByRole("button", { name: /Projet test/ }).textContent).toContain("Échéance: 3");
+    expect(screen.getByRole("button", { name: /Projet test/ }).textContent).toContain("Échéance : 3");
     expect(screen.getByRole("button", { name: /Projet test/ }).textContent).not.toContain("2001");
     expect(screen.queryByRole("button", { name: /Impossible day/ })).toBeNull();
     expect(screen.getByRole("button", { name: /Valid leap day/ })).toBeTruthy();
@@ -81,9 +83,10 @@ describe("Dashboard page", () => {
       resolveBootstrap = resolve;
     }));
     render(<Home />);
-    expect(screen.getByRole("status").textContent).toContain("Chargement");
+    expect(pageStatus().textContent).toContain("Chargement");
     await act(async () => resolveBootstrap(bootstrap()));
-    await screen.findByRole("heading", { name: "Projets récents" });
+    // MAIR-899: the tiles are drawn while loading; wait for their skeleton rows to give way to the data.
+  await waitFor(() => expect(document.querySelector("[data-skeleton]")).toBeNull());
 
     expect(getDashboardBootstrap).toHaveBeenCalledTimes(1);
     expect(getDashboardBootstrap).toHaveBeenCalledWith(expect.objectContaining({ signal: expect.any(AbortSignal) }));
@@ -96,11 +99,11 @@ describe("Dashboard page", () => {
 
   it("preserves the heading, ordered cards and their existing controls", async () => {
     await openDashboard();
-    const heading = screen.getByRole("heading", { name: "Tableau de Bord" });
+    const heading = screen.getByRole("heading", { name: /^Bon(?:jour|soir)/ });
     const pageSection = heading.closest("section");
     const cardHeadings = within(pageSection).getAllByRole("heading", { level: 2 });
     expect(cardHeadings.map(node => node.textContent)).toEqual([
-      "Projets récents", "Tâches en attente", "Événements à venir",
+      "Projets récents", "Tâches en attente", "Événements à venir", "Mes formations",
     ]);
     const cardGrid = cardHeadings[0].closest("section").parentElement;
     expect(heading.closest("header").nextElementSibling).toBe(cardGrid);
@@ -120,12 +123,14 @@ describe("Dashboard page", () => {
     vi.mocked(getDashboardBootstrap).mockResolvedValue(payload);
     await openDashboard();
 
-    const grid = screen.getByRole("heading", { name: "Tableau de Bord" }).closest("section").querySelector(".dashboard-content-grid");
+    const grid = screen.getByRole("heading", { name: /^Bon(?:jour|soir)/ }).closest("section").querySelector(".dashboard-content-grid");
     expect(grid.querySelector(".dashboard-recent-projects")).toBeTruthy();
     expect(grid.querySelector(".dashboard-pending-tasks")).toBeTruthy();
-    expect(grid.querySelector(".dashboard-upcoming-events-grid")).toBeTruthy();
-    expect(within(grid).getAllByRole("button", { name: /Voir les projets|Voir les tâches|Ouvrir le calendrier/ })).toHaveLength(3);
-    expect(within(grid).getAllByText(longTitle)).toHaveLength(4);
+    expect(grid.querySelector(".dashboard-upcoming-events")).toBeTruthy();
+    expect(within(grid).queryAllByRole("link", { name: /Voir les projets|Voir les tâches|Ouvrir le calendrier/ }).length + within(grid).queryAllByRole("button", { name: /Voir les projets|Voir les tâches|Ouvrir le calendrier/ }).length).toBe(3);
+    // Titles keep their own line; the event location follows its time (« 09:00 · lieu », MAIR-907).
+    expect(within(grid).getAllByText(longTitle)).toHaveLength(3);
+    expect(within(grid).getByText(new RegExp(`· ${longTitle}$`))).toBeTruthy();
     expect(getDashboardBootstrap).toHaveBeenCalledTimes(1);
   });
 
@@ -150,7 +155,7 @@ describe("Dashboard page", () => {
     vi.mocked(getDashboardBootstrap).mockResolvedValue(bootstrap({ userFirstName }));
     await openDashboard();
 
-    expect(screen.getByText("Voici un aperçu de vos activités")).toBeTruthy();
+    expect(screen.getByText("Bienvenue sur votre espace Mairie360.")).toBeTruthy();
     expect(screen.queryByText(/Bienvenue\s*,/)).toBeNull();
     expect(screen.queryByRole("button", { name: "Utilisateur" })).toBeNull();
     expect(screen.getByRole("button", { name: /Projet test/ })).toBeTruthy();
@@ -160,7 +165,7 @@ describe("Dashboard page", () => {
     vi.mocked(getDashboardBootstrap).mockResolvedValue(bootstrap({ userFirstName: "  Alice  " }));
     await openDashboard();
 
-    expect(screen.getByText("Bienvenue Alice, voici un aperçu de vos activités")).toBeTruthy();
+    expect(screen.getByText(/^Bon(?:jour|soir) Alice$/)).toBeTruthy();
     expect(screen.getByRole("button", { name: /Alice/ })).toBeTruthy();
     expect(screen.queryByText(/Bienvenue\s{2}|Alice\s{2}/)).toBeNull();
   });
@@ -176,7 +181,8 @@ describe("Dashboard page", () => {
     await openDashboard();
 
     const events = screen.getByRole("heading", { name: "Événements à venir" }).closest("section");
-    expect(events.querySelector(".dashboard-upcoming-events-grid")).toBeTruthy();
+    // MAIR-907: one column of compact rows in the tile.
+    expect(events.querySelector(".dashboard-upcoming-events-grid")).toBeNull();
     expect(within(events).getAllByRole("button").slice(1).map((button) => button.textContent)).toEqual([
       expect.stringContaining("Premier rendez-vous"),
       expect.stringContaining("Deuxième rendez-vous"),
@@ -192,7 +198,7 @@ describe("Dashboard page", () => {
     }));
     await openDashboard();
 
-    expect(screen.getByRole("status").textContent).toContain("temporairement indisponibles");
+    expect(pageStatus().textContent).toContain("temporairement indisponibles");
     expect(screen.getByText("Les événements sont temporairement indisponibles.")).toBeTruthy();
     expect(screen.queryByText("Aucun événement à venir.")).toBeNull();
     expect(screen.queryByRole("button", { name: /Événement test/ })).toBeNull();
@@ -202,9 +208,12 @@ describe("Dashboard page", () => {
     vi.mocked(getDashboardBootstrap).mockRejectedValue(new Error("Service indisponible"));
     render(<Home />);
 
-    expect((await screen.findByRole("alert")).textContent).toBe("Service indisponible");
-    expect(screen.getByRole("status").textContent).toContain("indisponible");
-    expect(screen.getAllByRole("heading", { name: "Tableau de Bord", level: 1 })).toHaveLength(1);
+    // MAIR-915: a fixed message, never the service's; the error DataState below the welcome.
+    expect((await findPageAlert()).textContent).toBe("Le tableau de bord est temporairement indisponible.");
+    expect(screen.queryByText(/Service indisponible/)).toBeNull();
+    expect(screen.getByText("Le tableau de bord est indisponible.")).toBeTruthy();
+    expect(screen.getByText("Vos projets, tâches et événements s'afficheront dès que le service répondra.")).toBeTruthy();
+    expect(screen.getAllByRole("heading", { name: /^Bon(?:jour|soir)/, level: 1 })).toHaveLength(1);
   });
 
   it("recovers an initial failure through keyboard activation without automatically retrying", async () => {
@@ -216,9 +225,10 @@ describe("Dashboard page", () => {
     for (let index = 0; index < 20 && document.activeElement !== retry; index += 1) await user.tab();
     expect(document.activeElement).toBe(retry);
     await user.keyboard("{Enter}");
-    await screen.findByRole("heading", { name: "Projets récents" });
+    // MAIR-899: the tiles are drawn while loading; wait for their skeleton rows to give way to the data.
+  await waitFor(() => expect(document.querySelector("[data-skeleton]")).toBeNull());
     expect(getDashboardBootstrap).toHaveBeenCalledTimes(2);
-    expect(screen.queryByRole("alert")).toBeNull();
+    expect((pageAlerts()[0] ?? null)).toBeNull();
     expect(screen.queryByRole("button", { name: "Réessayer le chargement" })).toBeNull();
   });
 
@@ -234,12 +244,13 @@ describe("Dashboard page", () => {
     expect(retry.getAttribute("aria-busy")).toBe("true");
     expect(screen.getByRole("button", { name: /Projet test/ })).toBeTruthy();
     await act(async () => refuse(new Error("Actualisation refusée")));
-    expect((await screen.findByRole("alert")).textContent).toBe("Actualisation refusée");
+    expect((await findPageAlert()).textContent).toBe("Le tableau de bord est temporairement indisponible.");
+    expect(screen.queryByText(/Actualisation refusée/)).toBeNull();
     expect(screen.getByRole("button", { name: /Projet test/ })).toBeTruthy();
     expect(screen.getByText("Les dernières données reçues restent affichées.")).toBeTruthy();
     await user.click(screen.getByRole("button", { name: "Réessayer le chargement" }));
     await screen.findByRole("button", { name: /Événement test/ });
-    expect(screen.queryByRole("alert")).toBeNull();
+    expect((pageAlerts()[0] ?? null)).toBeNull();
     expect(getDashboardBootstrap).toHaveBeenCalledTimes(3);
   });
 
@@ -255,7 +266,7 @@ describe("Dashboard page", () => {
     expect(signal.aborted).toBe(true);
     await act(async () => finish(bootstrap()));
     expect(getDashboardBootstrap).toHaveBeenCalledTimes(1);
-    expect(screen.queryByRole("heading", { name: "Tableau de Bord" })).toBeNull();
+    expect(screen.queryByRole("heading", { name: /^Bon(?:jour|soir)/ })).toBeNull();
   });
 
   it("guards consecutive recovery events before the disabled state renders", async () => {
@@ -277,7 +288,7 @@ describe("Dashboard page", () => {
     await user.click(await screen.findByText("Déconnexion", { exact: true }));
     // MAIR-919: lib-components 2.x confirms the logout first (MAIR-834).
     await user.click(await screen.findByRole("button", { name: "Se déconnecter" }));
-    expect((await screen.findByRole("alert")).textContent).toBe("La déconnexion est temporairement indisponible.");
+    expect((await findPageAlert()).textContent).toBe("La déconnexion est temporairement indisponible.");
     expect(screen.getByRole("button", { name: /Projet test/ })).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Réessayer le chargement" })).toBeNull();
     expect(getDashboardBootstrap).toHaveBeenCalledTimes(1);
@@ -290,9 +301,9 @@ describe("Dashboard page", () => {
     expect(reads).toHaveLength(2);
     expect(reads[0].signal.aborted).toBe(true);
     await act(async () => reads[1].resolve(bootstrap({ userFirstName: "Réponse actuelle" })));
-    await screen.findByText("Bienvenue Réponse actuelle, voici un aperçu de vos activités");
+    await screen.findByText(/^Bon(?:jour|soir) Réponse actuelle$/);
     await act(async () => reads[0].resolve(bootstrap({ userFirstName: "Réponse obsolète" })));
-    expect(screen.getByText("Bienvenue Réponse actuelle, voici un aperçu de vos activités")).toBeTruthy();
+    expect(screen.getByText(/^Bon(?:jour|soir) Réponse actuelle$/)).toBeTruthy();
     expect(screen.queryByText(/Réponse obsolète/)).toBeNull();
   });
 
@@ -300,7 +311,7 @@ describe("Dashboard page", () => {
     const user = userEvent.setup();
     vi.mocked(getDashboardBootstrap).mockRejectedValueOnce(new Error("Lecture initiale refusée"));
     render(<Home />);
-    await screen.findByText("Lecture initiale refusée");
+    await findPageAlert();
     vi.mocked(getDashboardBootstrap).mockResolvedValueOnce(bootstrap({
       events: [], sources: { projects: "available", tasks: "available", calendar: "unavailable" },
     }));
@@ -314,7 +325,7 @@ describe("Dashboard page", () => {
     expect(getDashboardBootstrap).toHaveBeenCalledTimes(3);
     expect(refresh.disabled).toBe(true);
     await act(async () => refuse(new Error("Nouvelle lecture refusée")));
-    await screen.findByText("Nouvelle lecture refusée");
+    await waitFor(() => expect(screen.getByText("Les dernières données reçues restent affichées.")).toBeTruthy());
     expect(screen.getByRole("button", { name: /Projet test/ })).toBeTruthy();
     await user.click(screen.getByRole("button", { name: /Test/ }));
     await user.click(await screen.findByText("Déconnexion", { exact: true }));
@@ -327,14 +338,14 @@ describe("Dashboard page", () => {
       projects: [], tasks: [], events: [], userFirstName: "Confirmé", metrics: { totalProjects: 0 },
     }));
     await user.click(screen.getByRole("button", { name: "Réessayer le chargement" }));
-    await screen.findByText("Bienvenue Confirmé, voici un aperçu de vos activités");
+    await screen.findByText(/^Bon(?:jour|soir) Confirmé$/);
     expect(screen.getByText("Aucun projet récent.")).toBeTruthy();
     expect(screen.getByText("Aucune tâche en attente.")).toBeTruthy();
     expect(screen.getByText("Aucun événement à venir.")).toBeTruthy();
     expect(screen.queryByText("Nouvelle lecture refusée")).toBeNull();
     expect(screen.queryByRole("button", { name: "Réessayer le chargement" })).toBeNull();
     expect(screen.queryByRole("button", { name: /Projet test/ })).toBeNull();
-    expect(screen.getByRole("alert").textContent).toBe("La déconnexion est temporairement indisponible.");
+    expect(pageAlert().textContent).toBe("La déconnexion est temporairement indisponible.");
     expect(getDashboardBootstrap).toHaveBeenCalledTimes(4);
     expect(getDashboardBootstrap).toHaveBeenCalledTimes(4);
   });

@@ -14,6 +14,8 @@ test('the installed shared UI matches the reviewed published artifact', () => {
 
 test('sidebar information keeps copyright without creating a nested contentinfo landmark or fictitious version', () => {
   const html = renderToStaticMarkup(React.createElement(AppShell, {
+    // lib-components 2.3: the footer is no longer part of the page base (MAIR-1092); these cases ask for it.
+    showFooter: true,
     user: { name: '' },
     hrefs: { projects: 'https://projects.example/' },
     footerProps: { year: 2026 },
@@ -39,6 +41,8 @@ test('standalone Footer retains horizontal compatibility', () => {
 
 test('supplied product, year, real version and actionable links remain in sidebar information', () => {
   const html = renderToStaticMarkup(React.createElement(AppShell, {
+    // lib-components 2.3: the footer is no longer part of the page base (MAIR-1092); these cases ask for it.
+    showFooter: true,
     user: { name: '' },
     hrefs: { projects: 'https://projects.example/' },
     footerProps: {
@@ -62,6 +66,8 @@ test('supplied product, year, real version and actionable links remain in sideba
 
 test('an explicitly requested legacy content footer remains supported', () => {
   const html = renderToStaticMarkup(React.createElement(AppShell, {
+    // lib-components 2.3: the footer is no longer part of the page base (MAIR-1092); these cases ask for it.
+    showFooter: true,
     user: { name: '' },
     hrefs: { projects: 'https://projects.example/' },
     footerPlacement: 'content',
@@ -69,4 +75,9 @@ test('an explicitly requested legacy content footer remains supported', () => {
   }, React.createElement('p', null, 'Contenu du module')));
   assert.match(html, /<\/main>\s*<footer\b/);
   assert.doesNotMatch(html, /<aside\b[^]*?<footer\b[^]*?<\/aside>/);
+});
+
+test('MAIR-1092: AppShell renders no footer unless asked', () => {
+  const html = renderToStaticMarkup(React.createElement(AppShell, { user: { name: '' }, hrefs: { projects: 'https://projects.example/' }, footerProps: { year: 2026 } }, React.createElement('p', null, 'Contenu du module')));
+  assert.doesNotMatch(html, /<footer\b|© 2026 Mairie360/);
 });

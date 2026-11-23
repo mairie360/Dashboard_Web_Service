@@ -34,13 +34,24 @@ describe('toDashboardModuleData', () => {
         { id: '9', title: 'Conseil municipal', location: 'Mairie', startsAt: '2026-09-18T09:00:00' },
         { id: 'evt-2', title: 'Permanence', location: '', startsAt: '2026-09-20T00:00:00' },
       ],
+      trainingsUnavailable: false,
+      trainings: [
+        { id: 'training-4', title: 'Accueil du public', status: 'in-progress', completedModules: 2, totalModules: 5, progress: 40 },
+        { id: 'training-9', title: 'Protection des données', status: 'done', completedModules: 3, totalModules: 3, progress: 100 },
+      ],
     });
+  });
+
+  test('MAIR-1110: unavailable trainings get their own state, not the page banner', () => {
+    const view = toDashboardModuleData(valid({ trainings: [], sources: { projects: 'available', tasks: 'available', calendar: 'available', trainings: 'unavailable' } }));
+    assert.equal(view.trainingsUnavailable, true);
+    assert.equal(view.hasUnavailableSource, false);
   });
 
   test('every contract project status maps to a status supported by the component', () => {
     const statuses = contract.schema('DashboardBootstrapProjectsItemStatus').enum;
-    const projects = statuses.map((status, index) => ({ id: `p-${index}`, title: status, progress: 0, status, dueDate: '2026-01-01' }));
-    const mapped = toDashboardModuleData(valid({ projects })).projects.map((project) => project.status);
+    // One project per read: a tile shows 3 rows at most (MAIR-907).
+    const mapped = statuses.map((status) => toDashboardModuleData(valid({ projects: [{ id: 'p', title: status, progress: 0, status, dueDate: '2026-01-01' }] })).projects[0].status);
     assert.deepEqual(mapped, statuses.map((status) => (status === 'done' ? 'completed' : 'in-progress')));
   });
 
@@ -134,9 +145,10 @@ test('impossible event days and clock rollovers are excluded without discarding 
     { id: 'without-time', title: 'Existing midnight default', date: '2026-12-31' },
   ];
   const mapped = toDashboardModuleData(valid({ events }));
+  // Soonest first (MAIR-907).
   assert.deepEqual(mapped.events, [
-    { id: 'valid-leap', title: 'Valid leap day', location: 'Returned location', startsAt: '2028-02-29T23:59:00' },
     { id: 'without-time', title: 'Existing midnight default', location: '', startsAt: '2026-12-31T00:00:00' },
+    { id: 'valid-leap', title: 'Valid leap day', location: 'Returned location', startsAt: '2028-02-29T23:59:00' },
   ]);
   assert.equal(mapped.unusableEventCount, 3);
 });
@@ -153,4 +165,15 @@ test('unusable event values are distinguished from a confirmed empty event colle
     assert.deepEqual(view.events, []);
     assert.equal(view.hasUnavailableSource, false, 'Do not rewrite the returned source status');
   }
+});
+
+test('MAIR-907: a tile shows the first 3 projects and tasks and the 3 soonest events', () => {
+  const projects = Array.from({ length: 6 }, (_, index) => ({ id: `project-${index}`, title: `P${index}`, progress: 10, status: 'todo', dueDate: '2026-01-01' }));
+  const tasks = Array.from({ length: 8 }, (_, index) => ({ id: `task-${index}`, title: `T${index}`, dueDate: '', priority: 'low', completed: false, projectId: 'p' }));
+  const events = ['2026-10-09', '2026-10-05', '2026-10-07', '2026-10-06', '2026-10-08'].map((date, index) => ({ id: index, title: date, date, startTime: '09:00' }));
+  const view = toDashboardModuleData(valid({ projects, tasks, events }));
+  assert.deepEqual(view.projects.map((project) => project.name), ['P0', 'P1', 'P2']);
+  assert.deepEqual(view.tasks.map((task) => task.title), ['T0', 'T1', 'T2']);
+  assert.deepEqual(view.events.map((event) => event.title), ['2026-10-05', '2026-10-06', '2026-10-07']);
+  assert.equal(view.unusableEventCount, 0);
 });

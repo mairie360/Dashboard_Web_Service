@@ -16,7 +16,7 @@ describe('ProjectRow (MAIR-608)', () => {
     const row = screen.getByRole('button', { name: /Rénovation bibliothèque/ });
     expect(row).toHaveAttribute('data-project-status', 'in-progress');
     expect(screen.getByText('En cours')).toHaveAttribute('data-status', 'inprogress');
-    expect(screen.getByText('Échéance: 15 Nov 2024')).toBeInTheDocument();
+    expect(screen.getByText('Échéance : 15 Nov 2024')).toBeInTheDocument();
     expect(screen.getByRole('progressbar', { name: 'Progression' })).toHaveAttribute('aria-valuenow', '100');
     await user.click(row); expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ id: 'library' }));
     expect((await axe(container)).violations).toEqual([]);
