@@ -54,3 +54,15 @@ export interface DashboardPerformanceMetric {
   tone: 'green' | 'blue' | 'orange';
   icon: LucideIcon;
 }
+
+export type DashboardTrainingStatus = 'todo' | 'in-progress' | 'done';
+
+/** One training of the agent (MAIR-1110): « Module x sur y », progress in percent. */
+export interface DashboardTraining {
+  id: string;
+  title: string;
+  status: DashboardTrainingStatus;
+  completedModules: number;
+  totalModules: number;
+  progress: number;
+}

@@ -27,9 +27,8 @@ export const dashboardGreeting = (userFirstName?: string, date?: Date, timeZone?
 
 /**
  * Welcome header of the dashboard (Figma F1, MAIR-924): h1 « Bonjour <prénom> » and its
- * subtitle, no page title nor date. The 34 px size waits for the lib PageHeader « Accueil »
- * variant (MAIR-1113); until then `.dashboard-welcome` sets it.
+ * subtitle, no page title nor date, on the lib PageHeader « Accueil » variant (MAIR-1113).
  */
 export const DashboardHeader = ({ userFirstName, now }: { userFirstName?: string; now?: Date }) => (
-  <PageHeader title={dashboardGreeting(userFirstName, now)} subtitle={DASHBOARD_WELCOME_SUBTITLE} className="page-title-row dashboard-welcome" />
+  <PageHeader variant="welcome" title={dashboardGreeting(userFirstName, now)} subtitle={DASHBOARD_WELCOME_SUBTITLE} className="page-title-row dashboard-welcome" />
 );

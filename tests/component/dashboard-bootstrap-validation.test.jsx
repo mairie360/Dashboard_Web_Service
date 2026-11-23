@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { StrictMode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import Home from '@/components/DashboardPage';
+import { findPageAlert, pageAlert, pageAlerts, pageStatus } from './page-roles';
 
 const getDashboardBootstrap = vi.hoisted(() => vi.fn());
 vi.mock('@/lib/bff-client', () => ({ bffDashboard: { getDashboardBootstrap: async (options) => ({ data: await getDashboardBootstrap(options) }) } }));
@@ -26,13 +27,14 @@ describe('Dashboard unusable bootstrap recovery', () => {
     const user = userEvent.setup();
     vi.mocked(getDashboardBootstrap).mockResolvedValueOnce(body);
     render(<Home />);
-    expect((await screen.findByRole('alert')).textContent).toBe(readError);
+    // MAIR-915: fixed title, the front's own explanation below it.
+    expect((await findPageAlert()).textContent).toBe(`Le tableau de bord est temporairement indisponible.${readError}`);
     expect(screen.getByText('Le tableau de bord est indisponible.')).toBeTruthy();
     expect(screen.getAllByRole('heading', { name: /^Bon(?:jour|soir)/, level: 1 })).toHaveLength(1);
     expect(getDashboardBootstrap).toHaveBeenCalledTimes(1);
     await user.click(screen.getByRole('button', { name: 'Réessayer le chargement' }));
     await screen.findByRole('button', { name: /Projet confirmé/ });
-    expect(screen.queryByRole('alert')).toBeNull();
+    expect((pageAlerts()[0] ?? null)).toBeNull();
     expect(getDashboardBootstrap).toHaveBeenCalledTimes(2);
   });
 
@@ -59,7 +61,7 @@ describe('Dashboard unusable bootstrap recovery', () => {
     expect(screen.getByText('Aucune tâche en attente.')).toBeTruthy();
     expect(screen.getByText('Aucun événement à venir.')).toBeTruthy();
     expect(screen.queryByText(readError)).toBeNull();
-    expect(screen.getByRole('alert').textContent).toBe('La déconnexion est temporairement indisponible.');
+    expect(pageAlert().textContent).toBe('La déconnexion est temporairement indisponible.');
     expect(getDashboardBootstrap).toHaveBeenCalledTimes(3);
   });
 
@@ -89,7 +91,7 @@ describe('Dashboard unusable bootstrap recovery', () => {
     await act(async () => reads[1].resolve(bootstrap()));
     await screen.findByRole('button', { name: /Projet confirmé/ });
     await act(async () => reads[0].resolve(null));
-    expect(screen.queryByRole('alert')).toBeNull();
+    expect((pageAlerts()[0] ?? null)).toBeNull();
     expect(screen.getByRole('button', { name: /Projet confirmé/ })).toBeTruthy();
   });
 
@@ -100,8 +102,8 @@ describe('Dashboard unusable bootstrap recovery', () => {
     vi.mocked(getDashboardBootstrap).mockResolvedValue(value);
     render(<Home />);
     await screen.findByRole('button', { name: /Projet confirmé/ });
-    expect(screen.queryByRole('alert')).toBeNull();
-    expect(screen.getByRole('button', { name: /Projet confirmé/ }).textContent).toContain('Échéance: 3');
+    expect((pageAlerts()[0] ?? null)).toBeNull();
+    expect(screen.getByRole('button', { name: /Projet confirmé/ }).textContent).toContain('Échéance : 3');
     expect(screen.queryByRole('button', { name: /Date reçue illisible/ })).toBeNull();
     expect(screen.getByRole('button', { name: /Événement facultatif/ })).toBeTruthy();
     expect(screen.getByText(/Certains événements reçus/)).toBeTruthy();

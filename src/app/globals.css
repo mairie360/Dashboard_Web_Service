@@ -61,26 +61,45 @@ body {
 .dashboard-rows > button { min-width: 0; overflow-wrap: anywhere; }
 .dashboard-rows > button .truncate { white-space: normal; overflow: visible; text-overflow: clip; }
 
-.dashboard-project-row {
-  /* Longhands: JSDOM drops shorthands that contain var(). */
-  border-width: 1px;
-  border-style: solid;
-  border-color: var(--mairie-control-border);
+/* MAIR-907 compact rows (Figma Dashboard/ProjectRow, TaskRow, EventRow): no background, a rule between rows,
+   the rows share the tile height. Longhands: JSDOM drops shorthands that contain var(). */
+.dashboard-rows { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
+.dashboard-row {
+  display: flex; flex: 1 1 0; flex-direction: column; justify-content: center; gap: 4px;
+  width: 100%; min-width: 0; padding: 10px; text-align: left;
+  background-color: transparent;
+  border-width: 0 0 1px 0; border-style: solid; border-color: var(--mairie-border);
   border-radius: var(--mairie-radius-s);
-  background-color: var(--mairie-surface-raised);
-  padding: 12px;
-  transition: background-color 150ms, border-color 150ms;
+  transition: background-color 150ms;
 }
-.dashboard-project-row:hover { background-color: var(--mairie-surface); border-color: var(--mairie-accent); }
-.dashboard-project-row > span.flex { flex-wrap: wrap; }
-.dashboard-project-row > span.flex > span { min-width: 0; }
-.dashboard-project-row > span.flex > span:last-child, .dashboard-task-row > span:last-child { flex-shrink: 0; }
-@media (max-width: 40rem) { .dashboard-project-row > span.flex { gap: 6px; } }
+.dashboard-rows > .dashboard-row:last-child { border-bottom-width: 0; }
+button.dashboard-row:not(:disabled):hover { background-color: var(--mairie-surface-raised); }
+button.dashboard-row:focus-visible { outline: 2px solid var(--mairie-accent); outline-offset: 2px; }
+button.dashboard-row:disabled { cursor: default; }
+.dashboard-row-line { display: flex; align-items: center; justify-content: space-between; gap: 6px 12px; flex-wrap: wrap; min-width: 0; }
+.dashboard-row-line > :first-child { min-width: 0; }
+.dashboard-row-meta { display: inline-flex; align-items: center; gap: 6px; }
+.dashboard-row-progress { flex: 0 1 45%; min-width: 120px; }
+.dashboard-event-row { flex-direction: row; align-items: center; justify-content: flex-start; gap: 12px; }
+.dashboard-event-date {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; flex-shrink: 0;
+  width: 52px; min-height: 52px; border-radius: var(--mairie-radius-s);
+  background-color: var(--mairie-surface-raised);
+  border-width: 3px 0 0 0; border-style: solid; border-color: var(--mairie-module-calendar);
+}
+/* MAIR-1110: the training progress track takes the training module colour (the lib meter fills with an inline style). */
+.dashboard-training-progress [role="progressbar"] > div { background: var(--mairie-module-training) !important; }
+@media (prefers-reduced-motion: reduce) { .mairie-skeleton-animated { animation: none; } }
 
-.dashboard-upcoming-events-grid > .dashboard-events-rows { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.75rem; }
-.dashboard-upcoming-events-grid > .dashboard-events-rows > * { min-width: 0; margin: 0; }
-@media (min-width: 48rem) { .dashboard-upcoming-events-grid > .dashboard-events-rows { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (min-width: 96rem) { .dashboard-upcoming-events-grid > .dashboard-events-rows { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+/* MAIR-1107: a 2 x 2 grid of equal tiles filling the height under the welcome; the page scrolls rather
+   than cutting content when it does not fit, and stacks one column under 900 px. */
+.dashboard-tiles { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px 24px; }
+.dashboard-tiles > .dashboard-panel { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+.dashboard-tiles > .dashboard-panel > div:last-child, .dashboard-panel-content, .dashboard-panel-content > div { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
+.dashboard-tiles .dashboard-empty-state { margin: auto; }
+@media (min-width: 900px) {
+  .dashboard-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: minmax(0, 1fr); min-height: calc(100vh - 280px); }
+}
 
 /* Retained companion layout around the shared shell. */
 .app-skip-link { position: fixed; top: 8px; left: 8px; z-index: 100; transform: translateY(-180%); padding: 12px 18px; border-radius: 8px; background: var(--mairie-surface); color: var(--mairie-accent); font-weight: 650; }
@@ -90,17 +109,13 @@ body {
 
 /* The lib PageHeader owns the title typography; the page keeps its wrapping rhythm. */
 .page-title-row { gap: 12px 20px; }
-/* MAIR-924 welcome header (Figma F1): 34 px bold title, 14 px muted subtitle 2 px below, 28 px around.
-   To be replaced by the lib PageHeader « Accueil » variant (MAIR-1113). */
+/* MAIR-924: the lib PageHeader « welcome » variant draws the title and subtitle; the page keeps 28 px around it. */
 .dashboard-welcome { margin-top: 28px; margin-bottom: 28px; }
-.dashboard-welcome h1 { font-size: 34px; line-height: 1.15; font-weight: 700; letter-spacing: -0.02em; }
-.dashboard-welcome h1 + * { margin-top: 2px; font-size: 14px; color: var(--mairie-muted); }
 .page-current-date { min-height: 24px; max-width: 100%; }
 
 /* Companion of the selected Settings direction (MAIR-544/546). */
 .dashboard-app-shell { --dashboard-background: var(--mairie-background); --dashboard-surface: var(--mairie-surface); --dashboard-text: var(--mairie-text); --dashboard-muted: var(--mairie-muted); --dashboard-border: var(--mairie-border); --dashboard-accent: var(--mairie-accent); }
 .dashboard-app-shell main { padding-block: 32px; background: var(--dashboard-background); }
-.dashboard-content-grid { gap: 24px; }
 .dashboard-content-grid > .dashboard-panel { min-width: 0; box-shadow: 0 2px 12px rgb(23 32 51 / 5%); }
 .dashboard-panel-action { flex-shrink: 0; color: var(--mairie-accent); }
 .dashboard-panel-action:disabled { opacity: 0.6; cursor: not-allowed; }

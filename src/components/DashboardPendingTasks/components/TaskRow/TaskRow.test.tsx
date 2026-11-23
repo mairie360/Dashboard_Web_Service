@@ -13,7 +13,7 @@ describe('TaskRow', () => {
     render(<TaskRow task={defaultDashboardTasks[0]} onSelect={onSelect} />);
     const row = screen.getByRole('button', { name: /Validation budget formation/ });
     expect(row).toHaveAttribute('data-task-priority', 'high'); expect(screen.getByText('Haute')).toHaveAttribute('data-priority', 'high');
-    expect(screen.getByText("Échéance: Aujourd'hui")).toBeInTheDocument();
+    expect(screen.getByText("Échéance : Aujourd'hui")).toBeInTheDocument();
     await user.click(row); expect(onSelect).toHaveBeenCalledWith(defaultDashboardTasks[0]);
   });
 });

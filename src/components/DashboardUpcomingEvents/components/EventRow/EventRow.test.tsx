@@ -14,7 +14,7 @@ describe('EventRow', () => {
     const user = userEvent.setup(); const onSelect = vi.fn();
     render(<EventRow event={defaultDashboardEvents[0]} onSelect={onSelect} />);
     await user.click(screen.getByRole('button', { name: /Conseil Municipal/ }));
-    expect(onSelect).toHaveBeenCalledWith(defaultDashboardEvents[0]); expect(screen.getByText('Salle du conseil')).toBeInTheDocument();
+    expect(onSelect).toHaveBeenCalledWith(defaultDashboardEvents[0]); expect(screen.getByText(/\d{2}:\d{2} · Salle du conseil/)).toBeInTheDocument(); // MAIR-907: « heure · lieu »
   });
   it('sorts events by start and splits a start into its parts', () => {
     expect(byStart([{ startsAt: '2026-11-02T10:00:00' }, { startsAt: '2026-10-02T10:00:00' }]).map((event) => event.startsAt)).toEqual(['2026-10-02T10:00:00', '2026-11-02T10:00:00']);
