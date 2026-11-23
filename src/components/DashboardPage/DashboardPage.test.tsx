@@ -1,7 +1,9 @@
 import { describe, it, expect, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 import React from 'react';
-import { render } from '@testing-library/react';
+import { render, act } from '@testing-library/react';
+import { renderToString } from 'react-dom/server';
+import { hydrateRoot } from 'react-dom/client';
 
 import DashboardPage, { dashboardSidebarItems, dashboardUnreadCount, unreadBadge } from './DashboardPage';
 import { pageStatus } from '../../../tests/component/page-roles';
@@ -10,6 +12,33 @@ vi.mock('@/lib/front-urls', () => ({ frontUrl: vi.fn(() => undefined) }));
 vi.mock('@/lib/bff-client', () => ({ bffDashboard: { getDashboardBootstrap: vi.fn(() => new Promise(() => {})) } }));
 
 describe('DashboardPage', () => {
+  it('MAIR-924: the greeting follows the server render time, not the browser clock', () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    try {
+      vi.setSystemTime(new Date('2026-10-15T12:00:00Z'));
+      const { getByRole } = render(<DashboardPage renderedAt="2026-10-15T20:00:00Z" />);
+      expect(getByRole('heading', { level: 1 })).toHaveTextContent('Bonsoir');
+    } finally { vi.useRealTimers(); }
+  });
+
+  it('MAIR-924: a page rendered in the evening hydrates without a mismatch in a browser still at noon', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const recoverable = vi.fn();
+    try {
+      vi.setSystemTime(new Date('2026-10-15T20:00:00Z'));
+      const renderedAt = new Date().toISOString();
+      container.innerHTML = renderToString(<DashboardPage renderedAt={renderedAt} />);
+      vi.setSystemTime(new Date('2026-10-15T12:00:00Z'));
+      let root: ReturnType<typeof hydrateRoot> | undefined;
+      await act(async () => { root = hydrateRoot(container, <DashboardPage renderedAt={renderedAt} />, { onRecoverableError: recoverable }); });
+      expect(recoverable).not.toHaveBeenCalled();
+      expect(container.querySelector('h1')).toHaveTextContent('Bonsoir');
+      act(() => root?.unmount());
+    } finally { vi.useRealTimers(); container.remove(); }
+  });
+
   it('renders the loading page while the bootstrap is pending', () => {
     render(<DashboardPage />);
     expect(pageStatus()).toHaveTextContent('Chargement du tableau de bord…');
