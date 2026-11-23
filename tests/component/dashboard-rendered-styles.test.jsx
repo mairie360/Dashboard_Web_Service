@@ -117,7 +117,7 @@ describe('Dashboard styles on the actual page and published components', () => {
     expect(getComputedStyle(document.documentElement).getPropertyValue('--mairie-navigation-shadow').trim() || computed.boxShadow).toMatch(/none|var\(--mairie-navigation-shadow\)/);
     const buttons = within(sidebar).getAllByRole('button', { hidden: true });
     expect(buttons.map((button) => button.textContent)).toEqual(defaultSidebarItems
-      .filter(({ label }) => label !== 'Administration').map(({ label }) => label));
+      .filter(({ label }) => label !== 'Administration').map(({ label }) => label === 'Formation' ? 'E-learning' : label)); // MAIR-1106
     for (const button of buttons) {
       expect(getComputedStyle(button).minHeight).toBe('42px');
       expect(getComputedStyle(button).flexShrink).toBe('0');
