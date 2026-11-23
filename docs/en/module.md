@@ -98,3 +98,9 @@ Figma: [feature index](https://www.figma.com/design/U4LxYJ8TDpZxqB8BmpBuRh?node-
 - Loading (MAIR-899, F1): the final page is drawn at once (welcome, tiles with their titles and links); each tile shows
   3 skeleton rows the size of the real ones, « Chargement du tableau de bord… » is announced to screen readers only,
   and the shimmer stops under `prefers-reduced-motion`.
+- Alerts and recovery (MAIR-915, F1/F2/F3): the notices are lib Alerts, size m, not dismissible (« Certaines données
+  sont temporairement indisponibles. » as a `status`, « Le tableau de bord est temporairement indisponible. » and « La
+  déconnexion est temporairement indisponible. » as `alert`); no service message nor HTTP status is shown. A first read
+  that fails shows a Panel with the error DataState « Le tableau de bord est indisponible. ». Each explicit recovery is
+  announced by a toast (success « Tableau de bord à jour » / « Tableau de bord chargé », error « Le calendrier est
+  toujours indisponible » / « Le service ne répond toujours pas »…).

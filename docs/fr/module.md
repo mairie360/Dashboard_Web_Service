@@ -99,3 +99,9 @@ Figma : [index des features](https://www.figma.com/design/U4LxYJ8TDpZxqB8BmpBuRh
 - Chargement (MAIR-899, F1) : la page finale est dessinée d'emblée (accueil, tuiles avec titre et lien) ; chaque tuile
   montre 3 lignes squelettes à la taille des vraies, « Chargement du tableau de bord… » n'est annoncé qu'aux lecteurs
   d'écran, et l'animation s'arrête avec `prefers-reduced-motion`.
+- Alertes et reprise (MAIR-915, F1/F2/F3) : les messages sont des Alert de la lib, taille m, non fermables (« Certaines
+  données sont temporairement indisponibles. » en `status`, « Le tableau de bord est temporairement indisponible. » et
+  « La déconnexion est temporairement indisponible. » en `alert`) ; aucun message du service ni statut HTTP n'est
+  affiché. Un premier chargement en échec affiche un Panel avec le DataState d'erreur « Le tableau de bord est
+  indisponible. ». Chaque relance explicite est annoncée par un toast (succès « Tableau de bord à jour » / « Tableau
+  de bord chargé », erreur « Le calendrier est toujours indisponible » / « Le service ne répond toujours pas »…).

@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { ToastProvider } from "@mairie360/lib-components/primitives";
 import { AccessibleShell, defaultSidebarItems } from "@mairie360/lib-components/shell";
 
 import type { DashboardBootstrap } from '../../lib/dashboard-view';
@@ -32,13 +33,15 @@ export default function DashboardPage({ initialData }: { initialData?: Dashboard
       // MAIR-919: the lib Header confirms first; the returned promise keeps « Se déconnecter » loading.
       onLogout={() => logoutAndRedirect().catch(() => setLogoutError("La déconnexion est temporairement indisponible."))}
     >
-      <DashboardNotices error={error} logoutError={logoutError} loading={loading} hasUnavailableSource={Boolean(view?.hasUnavailableSource)} unusableEventCount={view?.unusableEventCount ?? 0} hasData={Boolean(data)} onReload={reload} />
-      <section className="dashboard-page mx-auto max-w-[1520px]">
-        {/* MAIR-899: the final page is drawn at once; only the rows wait for the data. */}
-        <DashboardHeader userFirstName={userFirstName} />
-        {!data || !view ? <DashboardLoading loading={loading} failed={Boolean(error)} /> : null}
-        {data || loading ? <DashboardGrid data={data} view={view} /> : null}
-      </section>
+      <ToastProvider regionLabel="Notifications du tableau de bord" placement="bottom-end">
+        <DashboardNotices error={error} logoutError={logoutError} loading={loading} hasUnavailableSource={Boolean(view?.hasUnavailableSource)} unusableEventCount={view?.unusableEventCount ?? 0} hasData={Boolean(data)} onReload={reload} />
+        <section className="dashboard-page mx-auto max-w-[1520px]">
+          {/* MAIR-899: the final page is drawn at once; only the rows wait for the data. */}
+          <DashboardHeader userFirstName={userFirstName} />
+          {!data || !view ? <DashboardLoading loading={loading} failed={Boolean(error)} /> : null}
+          {data || loading ? <DashboardGrid data={data} view={view} /> : null}
+        </section>
+      </ToastProvider>
     </AccessibleShell>
   );
 }

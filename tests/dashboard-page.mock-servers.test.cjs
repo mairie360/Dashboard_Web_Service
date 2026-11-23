@@ -94,7 +94,7 @@ for (const [label, body] of unusableBootstraps) {
   test(`unusable initial bootstrap (${label}) exposes controlled GET-only recovery`, async () => {
     dashboardBff.on('get', '/dashboard/bootstrap', { body: body(), outOfContract: true });
     view = mount(React.createElement(Home));
-    await view.waitFor(html => html.includes('role="alert"'));
+    await view.waitFor(html => html.includes('role="alert" data-tone="danger"'));
     assert.match(view.text(), /Les données reçues du tableau de bord sont incohérentes/);
     assert.match(view.text(), /Le tableau de bord est indisponible/);
     assert.match(view.text(), /Réessayer le chargement/);
@@ -103,7 +103,7 @@ for (const [label, body] of unusableBootstraps) {
     dashboardBff.on('get', '/dashboard/bootstrap', { body: bootstrapResponse() });
     await view.click((_props, text, tag) => tag === 'button' && text === 'Réessayer le chargement');
     await view.waitFor(html => html.includes('Budget participatif'));
-    assert.doesNotMatch(view.html, /role="alert"|incohérentes/);
+    assert.doesNotMatch(view.html, /role="alert" data-tone="danger"|incohérentes/);
     assert.deepEqual(upstreamCalls(), Array(2).fill('GET /dashboard/bootstrap'));
   });
   test(`unusable refreshed bootstrap (${label}) keeps confirmed cards and identity`, async () => {
@@ -139,7 +139,7 @@ test('optional event fields and unrecognized display text remain usable bootstra
   body.userFirstName = '';
   body.metrics.totalProjects = null;
   await renderLoadedPage(body);
-  assert.doesNotMatch(view.html, /role="alert"/);
+  assert.doesNotMatch(view.html, /role="alert" data-tone="danger"/);
   assert.match(view.text(), /Bienvenue sur votre espace Mairie360\./);
   assert.equal(view.props('DashboardRecentProjects').projects[0].dueDate, '3');
   assert.equal(view.props('DashboardPendingTasks').tasks[0].dueLabel, 'Sans échéance');
@@ -165,7 +165,7 @@ test('the first pass renders the loading state, the next one the data of GET /da
 
   assert.deepEqual(upstreamCalls(), ['GET /dashboard/bootstrap']);
   assert.equal(dashboardBff.requests[0].headers.authorization, `Bearer ${TOKEN}`);
-  assert.doesNotMatch(html, /role="alert"/);
+  assert.doesNotMatch(html, /role="alert" data-tone="danger"/);
   assert.doesNotMatch(html, /<main\b[^>]*>0(?:<|$)/, 'The zero unusable-event count is not rendered as text');
   assert.match(view.text(), /Bon(?:jour|soir) Alice/);
   assert.equal(view.find('AppShell').length, 1);
@@ -260,7 +260,8 @@ test('confirmed empty event dates keep the existing empty label without a date-r
 test('an unavailable source is announced above the real sections', async () => {
   const html = await renderLoadedPage(bootstrapResponse({ sources: { projects: 'available', tasks: 'unavailable', calendar: 'available' } }));
 
-  assert.match(html, /<p role="status"[^>]*>Certaines données sont temporairement indisponibles\.<\/p>/);
+  // MAIR-915: a lib WarningAlert (role status), size m, not dismissible.
+  assert.match(html, /role="status" data-tone="warning" data-size="m"[^]*?Certaines données sont temporairement indisponibles\./);
   assert.match(view.text(), /Budget participatif/);
 });
 
@@ -292,10 +293,12 @@ test('a BFF error is rendered as an alert and the dashboard stays unavailable', 
   dashboardBff.on('get', '/dashboard/bootstrap', { status: 502, body: { error: { message: 'BFF Project injoignable' } }, outOfContract: true });
   view = mount(React.createElement(Home));
 
-  const html = await view.waitFor((current) => current.includes('role="alert"'));
+  const html = await view.waitFor((current) => current.includes('role="alert" data-tone="danger"'));
 
-  assert.match(html, /<p role="alert"[^>]*>BFF Project injoignable<\/p>/);
-  assert.match(html, /<p role="status">Le tableau de bord est indisponible\.<\/p>/);
+  // MAIR-915: a fixed lib ErrorAlert and an error DataState; the service message never reaches the agent.
+  assert.match(html, /role="alert" data-tone="danger"[^]*?Le tableau de bord est temporairement indisponible\./);
+  assert.doesNotMatch(html, /BFF Project injoignable|502/);
+  assert.match(html, /data-state="error"[^]*?Le tableau de bord est indisponible\.[^]*?Vos projets, tâches et événements s’afficheront|data-state="error"[^]*?Le tableau de bord est indisponible\./);
   assert.equal((html.match(/<h1\b/g) || []).length, 1);
   assert.equal(view.find('DashboardRecentProjects').length, 0);
 });
@@ -306,8 +309,8 @@ test('an unreachable proxy target becomes the controlled error of the page', asy
   process.env.DASHBOARD_BFF_URL = closed;
   try {
     view = mount(React.createElement(Home));
-    const html = await view.waitFor((current) => current.includes('role="alert"'));
-    assert.match(html, /<p role="alert"[^>]*>[^<]+<\/p>/);
+    const html = await view.waitFor((current) => current.includes('role="alert" data-tone="danger"'));
+    assert.match(html, /role="alert" data-tone="danger"[^]*?Le tableau de bord est temporairement indisponible\./);
     assert.deepEqual(upstreamCalls(), []);
   } finally {
     process.env.DASHBOARD_BFF_URL = dashboardBff.url;
@@ -317,12 +320,12 @@ test('an unreachable proxy target becomes the controlled error of the page', asy
 test('an initial refusal offers explicit recovery using only the published bootstrap GET', async () => {
   dashboardBff.on('get', '/dashboard/bootstrap', { status: 503, body: { error: { message: 'Chargement refusé' } }, outOfContract: true });
   view = mount(React.createElement(Home));
-  await view.waitFor((html) => html.includes('role="alert"'));
+  await view.waitFor((html) => html.includes('role="alert" data-tone="danger"'));
   assert.equal(view.html.match(/>Réessayer le chargement<\/button>/g)?.length, 1);
   assert.equal(dashboardBff.requests.length, 1, 'there is no automatic retry');
   dashboardBff.on('get', '/dashboard/bootstrap', { body: bootstrapResponse() });
   await view.click((props, text, tag) => tag === 'button' && text === 'Réessayer le chargement');
-  await view.waitFor((html) => html.includes('Budget participatif') && !html.includes('role="alert"'));
+  await view.waitFor((html) => html.includes('Budget participatif') && !html.includes('role="alert" data-tone="danger"'));
   assert.deepEqual(upstreamCalls(), ['GET /dashboard/bootstrap', 'GET /dashboard/bootstrap']);
   assert.doesNotMatch(view.html, /Réessayer le chargement|Actualiser les données indisponibles|Actions rapides/);
 });
@@ -331,13 +334,18 @@ test('partial data stays visible through a refused recovery and a later complete
   await renderLoadedPage(bootstrapResponse({ events: [], sources: { projects: 'available', tasks: 'available', calendar: 'unavailable' } }));
   dashboardBff.on('get', '/dashboard/bootstrap', { status: 503, body: { error: { message: 'Actualisation refusée' } }, outOfContract: true });
   await view.click((props, text, tag) => tag === 'button' && text === 'Actualiser les données indisponibles');
-  await view.waitFor((html) => html.includes('Actualisation refusée'));
+  await view.waitFor((html) => html.includes('role="alert" data-tone="danger"'));
+  assert.doesNotMatch(view.html, /Actualisation refusée/, 'the service message never reaches the agent (MAIR-915)');
   assert.match(view.text(), /Budget participatif/);
   assert.match(view.text(), /Les dernières données reçues restent affichées/);
   assert.match(view.text(), /Certaines données sont temporairement indisponibles/);
+  // MAIR-915 (F2): the refused refresh is announced by an error toast.
+  assert.match(view.text(), /Le tableau de bord est toujours indisponible/);
   dashboardBff.on('get', '/dashboard/bootstrap', { body: bootstrapResponse({ projects: [] }) });
   await view.click((props, text, tag) => tag === 'button' && text === 'Réessayer le chargement');
-  await view.waitFor((html) => html.includes('Conseil municipal') && !html.includes('role="alert"'));
+  await view.waitFor((html) => html.includes('Conseil municipal') && !html.includes('role="alert" data-tone="danger"'));
+  assert.match(view.text(), /Tableau de bord à jour/);
+  assert.match(view.text(), /Toutes les données ont été récupérées\./);
   assert.match(view.text(), /Aucun projet récent/);
   assert.doesNotMatch(view.text(), /Budget participatif|indisponibles|Actualisation refusée/);
   assert.deepEqual(upstreamCalls(), ['GET /dashboard/bootstrap', 'GET /dashboard/bootstrap', 'GET /dashboard/bootstrap']);
@@ -346,21 +354,21 @@ test('partial data stays visible through a refused recovery and a later complete
 test('composed read recovery replaces retained cards only after confirmed empty bootstrap', async () => {
   dashboardBff.on('get', '/dashboard/bootstrap', { status: 503, body: { error: { message: 'Lecture initiale refusée' } }, outOfContract: true });
   view = mount(React.createElement(Home));
-  await view.waitFor((html) => html.includes('Lecture initiale refusée'));
+  await view.waitFor((html) => html.includes('role="alert" data-tone="danger"'));
   assert.equal(upstreamCalls().length, 1);
   dashboardBff.on('get', '/dashboard/bootstrap', { body: bootstrapResponse({ events: [], sources: { projects: 'available', tasks: 'available', calendar: 'unavailable' } }) });
   await view.click((props, text, tag) => tag === 'button' && text === 'Réessayer le chargement');
   await view.waitFor((html) => html.includes('Budget participatif'));
   dashboardBff.on('get', '/dashboard/bootstrap', { status: 503, body: { error: { message: 'Nouvelle lecture refusée' } }, outOfContract: true });
   await view.click((props, text, tag) => tag === 'button' && text === 'Actualiser les données indisponibles');
-  await view.waitFor((html) => html.includes('Nouvelle lecture refusée'));
+  await view.waitFor((html) => html.includes('role="alert" data-tone="danger"'));
   assert.match(view.text(), /Budget participatif|Les dernières données reçues restent affichées/);
   await view.act(() => view.props('DashboardPendingTasks').onSelect(view.props('DashboardPendingTasks').tasks[0]));
   assert.equal(window.location.href, 'https://project.test.example/?project=project-42&task=task-2');
   assert.equal(upstreamCalls().length, 3, 'retained card navigation is not a retry');
   dashboardBff.on('get', '/dashboard/bootstrap', { body: bootstrapResponse({ projects: [], tasks: [], events: [], userFirstName: 'Confirmé', metrics: { totalProjects: 0 } }) });
   await view.click((props, text, tag) => tag === 'button' && text === 'Réessayer le chargement');
-  await view.waitFor((html) => /Bon(?:jour|soir) Confirmé/.test(html) && !html.includes('role="alert"'));
+  await view.waitFor((html) => /Bon(?:jour|soir) Confirmé/.test(html) && !html.includes('role="alert" data-tone="danger"'));
   for (const text of ['Aucun projet récent', 'Aucune tâche en attente', 'Aucun événement à venir']) assert.ok(view.text().includes(text));
   assert.doesNotMatch(view.html, /Budget participatif|Nouvelle lecture refusée|Actualiser les données indisponibles|Réessayer le chargement/);
   assert.deepEqual(upstreamCalls(), Array(4).fill('GET /dashboard/bootstrap'));

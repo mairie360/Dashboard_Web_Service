@@ -5,6 +5,7 @@ import { axe } from "jest-axe";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import Home from '@/components/DashboardPage';
 import { frontUrl } from "@/lib/front-urls";
+import { findPageAlert, pageAlert, pageAlerts, pageStatus } from './page-roles';
 
 const getDashboardBootstrap = vi.hoisted(() => vi.fn());
 vi.mock('@/lib/bff-client', () => ({ bffDashboard: { getDashboardBootstrap: async (options) => ({ data: await getDashboardBootstrap(options) }) } }));
@@ -82,7 +83,7 @@ describe("Dashboard page", () => {
       resolveBootstrap = resolve;
     }));
     render(<Home />);
-    expect(screen.getByRole("status").textContent).toContain("Chargement");
+    expect(pageStatus().textContent).toContain("Chargement");
     await act(async () => resolveBootstrap(bootstrap()));
     // MAIR-899: the tiles are drawn while loading; wait for their skeleton rows to give way to the data.
   await waitFor(() => expect(document.querySelector("[data-skeleton]")).toBeNull());
@@ -197,7 +198,7 @@ describe("Dashboard page", () => {
     }));
     await openDashboard();
 
-    expect(screen.getByRole("status").textContent).toContain("temporairement indisponibles");
+    expect(pageStatus().textContent).toContain("temporairement indisponibles");
     expect(screen.getByText("Les événements sont temporairement indisponibles.")).toBeTruthy();
     expect(screen.queryByText("Aucun événement à venir.")).toBeNull();
     expect(screen.queryByRole("button", { name: /Événement test/ })).toBeNull();
@@ -207,8 +208,11 @@ describe("Dashboard page", () => {
     vi.mocked(getDashboardBootstrap).mockRejectedValue(new Error("Service indisponible"));
     render(<Home />);
 
-    expect((await screen.findByRole("alert")).textContent).toBe("Service indisponible");
-    expect(screen.getByRole("status").textContent).toContain("indisponible");
+    // MAIR-915: a fixed message, never the service's; the error DataState below the welcome.
+    expect((await findPageAlert()).textContent).toBe("Le tableau de bord est temporairement indisponible.");
+    expect(screen.queryByText(/Service indisponible/)).toBeNull();
+    expect(screen.getByText("Le tableau de bord est indisponible.")).toBeTruthy();
+    expect(screen.getByText("Vos projets, tâches et événements s'afficheront dès que le service répondra.")).toBeTruthy();
     expect(screen.getAllByRole("heading", { name: /^Bon(?:jour|soir)/, level: 1 })).toHaveLength(1);
   });
 
@@ -224,7 +228,7 @@ describe("Dashboard page", () => {
     // MAIR-899: the tiles are drawn while loading; wait for their skeleton rows to give way to the data.
   await waitFor(() => expect(document.querySelector("[data-skeleton]")).toBeNull());
     expect(getDashboardBootstrap).toHaveBeenCalledTimes(2);
-    expect(screen.queryByRole("alert")).toBeNull();
+    expect((pageAlerts()[0] ?? null)).toBeNull();
     expect(screen.queryByRole("button", { name: "Réessayer le chargement" })).toBeNull();
   });
 
@@ -240,12 +244,13 @@ describe("Dashboard page", () => {
     expect(retry.getAttribute("aria-busy")).toBe("true");
     expect(screen.getByRole("button", { name: /Projet test/ })).toBeTruthy();
     await act(async () => refuse(new Error("Actualisation refusée")));
-    expect((await screen.findByRole("alert")).textContent).toBe("Actualisation refusée");
+    expect((await findPageAlert()).textContent).toBe("Le tableau de bord est temporairement indisponible.");
+    expect(screen.queryByText(/Actualisation refusée/)).toBeNull();
     expect(screen.getByRole("button", { name: /Projet test/ })).toBeTruthy();
     expect(screen.getByText("Les dernières données reçues restent affichées.")).toBeTruthy();
     await user.click(screen.getByRole("button", { name: "Réessayer le chargement" }));
     await screen.findByRole("button", { name: /Événement test/ });
-    expect(screen.queryByRole("alert")).toBeNull();
+    expect((pageAlerts()[0] ?? null)).toBeNull();
     expect(getDashboardBootstrap).toHaveBeenCalledTimes(3);
   });
 
@@ -283,7 +288,7 @@ describe("Dashboard page", () => {
     await user.click(await screen.findByText("Déconnexion", { exact: true }));
     // MAIR-919: lib-components 2.x confirms the logout first (MAIR-834).
     await user.click(await screen.findByRole("button", { name: "Se déconnecter" }));
-    expect((await screen.findByRole("alert")).textContent).toBe("La déconnexion est temporairement indisponible.");
+    expect((await findPageAlert()).textContent).toBe("La déconnexion est temporairement indisponible.");
     expect(screen.getByRole("button", { name: /Projet test/ })).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Réessayer le chargement" })).toBeNull();
     expect(getDashboardBootstrap).toHaveBeenCalledTimes(1);
@@ -306,7 +311,7 @@ describe("Dashboard page", () => {
     const user = userEvent.setup();
     vi.mocked(getDashboardBootstrap).mockRejectedValueOnce(new Error("Lecture initiale refusée"));
     render(<Home />);
-    await screen.findByText("Lecture initiale refusée");
+    await findPageAlert();
     vi.mocked(getDashboardBootstrap).mockResolvedValueOnce(bootstrap({
       events: [], sources: { projects: "available", tasks: "available", calendar: "unavailable" },
     }));
@@ -320,7 +325,7 @@ describe("Dashboard page", () => {
     expect(getDashboardBootstrap).toHaveBeenCalledTimes(3);
     expect(refresh.disabled).toBe(true);
     await act(async () => refuse(new Error("Nouvelle lecture refusée")));
-    await screen.findByText("Nouvelle lecture refusée");
+    await waitFor(() => expect(screen.getByText("Les dernières données reçues restent affichées.")).toBeTruthy());
     expect(screen.getByRole("button", { name: /Projet test/ })).toBeTruthy();
     await user.click(screen.getByRole("button", { name: /Test/ }));
     await user.click(await screen.findByText("Déconnexion", { exact: true }));
@@ -340,7 +345,7 @@ describe("Dashboard page", () => {
     expect(screen.queryByText("Nouvelle lecture refusée")).toBeNull();
     expect(screen.queryByRole("button", { name: "Réessayer le chargement" })).toBeNull();
     expect(screen.queryByRole("button", { name: /Projet test/ })).toBeNull();
-    expect(screen.getByRole("alert").textContent).toBe("La déconnexion est temporairement indisponible.");
+    expect(pageAlert().textContent).toBe("La déconnexion est temporairement indisponible.");
     expect(getDashboardBootstrap).toHaveBeenCalledTimes(4);
     expect(getDashboardBootstrap).toHaveBeenCalledTimes(4);
   });
