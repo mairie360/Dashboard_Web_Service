@@ -529,3 +529,13 @@ test('MAIR-1110: unavailable trainings show their own state without the page ban
   assert.match(view.text(), /Les formations sont temporairement indisponibles\./);
   assert.doesNotMatch(view.text(), /Certaines données sont temporairement indisponibles/);
 });
+
+test('MAIR-1110: a bare formation id opens the training too, any other id the catalogue', () => {
+  setBrowserFrontUrls({ ELEARNING_FRONT_URL: 'https://elearning.test.example/' });
+  const { trainingHref } = require('../src/components/DashboardPage/components/DashboardGrid/dashboard-links.ts');
+  assert.equal(trainingHref('training-4'), 'https://elearning.test.example/?course=4');
+  assert.equal(trainingHref('42'), 'https://elearning.test.example/?course=42');
+  assert.equal(trainingHref('formation-x'), 'https://elearning.test.example/');
+  setBrowserFrontUrls({});
+  assert.equal(trainingHref('training-4'), undefined);
+});

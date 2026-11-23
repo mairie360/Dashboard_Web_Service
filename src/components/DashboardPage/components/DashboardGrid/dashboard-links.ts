@@ -36,7 +36,8 @@ export function calendarEventHref(event: { id: string; startsAt: string }): stri
 /** E-learning front opened on one training (`?course=<formation id>`, BFF_Elearning ids; MAIR-1110). */
 export function trainingHref(trainingId: string): string | undefined {
   const elearningUrl = dashboardUrls.elearning;
-  const course = /^training-(\d+)$/.exec(trainingId)?.[1];
+  // BFF_Dashboard sends `training-<formation id>`; a bare formation id is accepted too.
+  const course = /^(?:training-)?(\d+)$/.exec(trainingId)?.[1];
   if (!elearningUrl || !course) return elearningUrl;
   const destination = new URL(elearningUrl);
   destination.searchParams.set("course", course);

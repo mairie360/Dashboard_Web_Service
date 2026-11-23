@@ -1,4 +1,4 @@
-import type { DashboardBootstrap } from '@/lib/dashboard-view';
+import { type DashboardBootstrap, toDashboardModuleData } from '@/lib/dashboard-view';
 
 /** Toast announcing the result of « Réessayer le chargement » / « Actualiser les données indisponibles » (MAIR-915, F2/F3). */
 export interface ReloadToast {
@@ -11,8 +11,10 @@ const STILL_UNAVAILABLE: Record<string, string> = {
   projects: 'Les projets sont toujours indisponibles',
   tasks: 'Les tâches sont toujours indisponibles',
   calendar: 'Le calendrier est toujours indisponible',
-  trainings: 'Les formations sont toujours indisponibles',
 };
+
+/** The sources the page banner covers; « Mes formations » keeps its own tile state (ELearning API is optional). */
+const BANNER_SOURCES = ['projects', 'tasks', 'calendar'] as const;
 
 /**
  * The toast of one explicit recovery. `hadData`: confirmed cards were already shown before the read
@@ -26,7 +28,11 @@ export function reloadToast(outcome: { ok: true; data: DashboardBootstrap } | { 
       ? { tone: 'error', title: 'Le tableau de bord est toujours indisponible', message: 'Réessayez dans quelques instants.' }
       : { tone: 'error', title: 'Le service ne répond toujours pas', message: 'Réessayez dans quelques instants.' };
   }
-  const missing = Object.entries(outcome.data.sources as Record<string, string>).filter(([, state]) => state === 'unavailable').map(([source]) => source);
+  // Same rules as the page: the banner sources, then the event dates the page cannot display.
+  const missing = BANNER_SOURCES.filter((source) => outcome.data.sources[source] === 'unavailable');
+  if (missing.length === 0 && toDashboardModuleData(outcome.data).unusableEventCount > 0) {
+    return { tone: 'error', title: 'Certaines dates restent illisibles', message: 'Les autres données restent affichées.' };
+  }
   if (missing.length === 0) {
     return hadData
       ? { tone: 'success', title: 'Tableau de bord à jour', message: 'Toutes les données ont été récupérées.' }

@@ -52,5 +52,10 @@ describe('DashboardNotices (MAIR-915)', () => {
     expect(reloadToast({ ok: true, data: withSources({ projects: 'unavailable', tasks: 'unavailable', calendar: 'available' }) }, true)?.title).toBe('Certaines données sont toujours indisponibles');
     expect(reloadToast({ ok: false }, false)).toEqual({ tone: 'error', title: 'Le service ne répond toujours pas', message: 'Réessayez dans quelques instants.' });
     expect(reloadToast({ ok: false }, true)?.title).toBe('Le tableau de bord est toujours indisponible');
+    // Trainings have their own tile state: their unavailability alone is still a full recovery.
+    expect(reloadToast({ ok: true, data: withSources({ projects: 'available', tasks: 'available', calendar: 'available', trainings: 'unavailable' }) }, true)?.tone).toBe('success');
+    // Event dates the page cannot display keep the recovery incomplete.
+    const unreadable = { ...(ready as object), events: [{ id: 1, title: 'Date illisible', date: 'bientôt' }] } as never;
+    expect(reloadToast({ ok: true, data: unreadable }, true)).toEqual({ tone: 'error', title: 'Certaines dates restent illisibles', message: 'Les autres données restent affichées.' });
   });
 });
