@@ -42,6 +42,25 @@ beforeEach(() => {
 });
 
 describe("Dashboard page", () => {
+  it("MAIR-1177 shows the projects count and the events of the month in the tile headers", async () => {
+    vi.mocked(getDashboardBootstrap).mockResolvedValue(bootstrap({
+      metrics: { totalProjects: 12, eventsThisMonth: 7, eventsPeriod: { from: "2026-11-01", to: "2026-11-30" } },
+    }));
+    await openDashboard();
+    expect(screen.getByRole("region", { name: "Projets récents · 12 projets" })).toBeTruthy();
+    expect(screen.getByRole("region", { name: "Événements à venir · 7 en novembre" })).toBeTruthy();
+  });
+
+  it("MAIR-1177 keeps the titles alone when the BFF has no count", async () => {
+    vi.mocked(getDashboardBootstrap).mockResolvedValue(bootstrap({
+      metrics: { totalProjects: null, eventsThisMonth: null, eventsPeriod: { from: "2026-11-01", to: "2026-11-30" } },
+    }));
+    await openDashboard();
+    expect(screen.getByRole("heading", { name: "Projets récents" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Événements à venir" })).toBeTruthy();
+    expect(document.querySelector(".dashboard-panel-indicator")).toBeNull();
+  });
+
   it("keeps invalid deadline text and only selectable valid events from a partial bootstrap", async () => {
     const payload = bootstrap({ events: [
       { id: "bad", title: "Impossible day", date: "2026-02-31", startTime: "09:00" },
@@ -103,7 +122,7 @@ describe("Dashboard page", () => {
     const pageSection = heading.closest("section");
     const cardHeadings = within(pageSection).getAllByRole("heading", { level: 2 });
     expect(cardHeadings.map(node => node.textContent)).toEqual([
-      "Projets récents", "Tâches en attente", "Événements à venir", "Mes formations",
+      "Projets récents · 1 projet", "Tâches en attente", "Événements à venir", "Mes formations",
     ]);
     const cardGrid = cardHeadings[0].closest("section").parentElement;
     expect(heading.closest("header").nextElementSibling).toBe(cardGrid);
@@ -353,7 +372,7 @@ describe("Dashboard page", () => {
   it("keeps section controls keyboard-reachable and free of serious axe violations", async () => {
     vi.mocked(frontUrl).mockImplementation(key => `https://${key.toLowerCase()}.example/`);
     const user = await openDashboard();
-    const projects = screen.getByRole("heading", { name: "Projets récents" }).closest("section");
+    const projects = screen.getByRole("heading", { name: /^Projets récents/ }).closest("section");
     const viewAll = within(projects).getByRole("link", { name: "Voir les projets" });
     for (let index = 0; index < 20 && document.activeElement !== viewAll; index += 1) {
       await user.tab();

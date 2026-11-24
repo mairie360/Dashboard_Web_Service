@@ -21,6 +21,20 @@ describe('DashboardPanel (lib Panel, MAIR-608)', () => {
     rerender(<DashboardPanel title="Projets récents" action="Voir les projets" kind="projects" empty={false} unavailable><p>Lignes</p></DashboardPanel>);
     expect(screen.getByRole('status')).toHaveTextContent(panelMessages.projects.unavailable); expect(screen.getByText('Lignes')).toBeInTheDocument();
   });
+  it('MAIR-1177 shows the indicator after the title in a caption, and the title alone without it or while loading', async () => {
+    const { container, rerender } = render(<DashboardPanel title="Projets récents" indicator="12 projets" action="Voir les projets" kind="projects" empty={false} unavailable={false}><p>Lignes</p></DashboardPanel>);
+    const heading = screen.getByRole('heading', { name: 'Projets récents · 12 projets' });
+    expect(screen.getByRole('region', { name: 'Projets récents · 12 projets' })).toBeInTheDocument();
+    expect(within(heading).getByText('Projets récents', { exact: true })).toHaveClass('dashboard-panel-title');
+    expect(heading.querySelector('.dashboard-panel-indicator')).toHaveTextContent('· 12 projets');
+    expect((await axe(container)).violations).toEqual([]);
+    for (const indicator of [null, undefined, '']) {
+      rerender(<DashboardPanel title="Projets récents" indicator={indicator} action="Voir les projets" kind="projects" empty={false} unavailable={false}><p>Lignes</p></DashboardPanel>);
+      expect(screen.getByRole('heading').textContent).toBe('Projets récents');
+    }
+    rerender(<DashboardPanel title="Projets récents" indicator="12 projets" loading action="Voir les projets" kind="projects" empty={false} unavailable={false}><p>Lignes</p></DashboardPanel>);
+    expect(screen.getByRole('heading').textContent).toBe('Projets récents');
+  });
   it('renders the action as a disabled button with a reason when the destination is missing', () => {
     render(<DashboardPanelAction label="Ouvrir le calendrier" />);
     expect(screen.getByRole('button', { name: 'Ouvrir le calendrier' })).toHaveAttribute('title', 'Destination temporairement indisponible');

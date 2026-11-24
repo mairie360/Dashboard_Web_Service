@@ -91,6 +91,10 @@ Figma : [index des features](https://www.figma.com/design/U4LxYJ8TDpZxqB8BmpBuRh
 - Tuiles (MAIR-1107, F1) : grille 2 × 2 de tuiles identiques qui remplit la hauteur sous l'accueil dès 900 px (une
   colonne en dessous, la page défile plutôt que de couper le contenu) ; liens « Voir les… » sans flèche ; états vide
   et indisponible centrés.
+- Indicateurs d'en-tête : « Projets récents · 12 projets » (`metrics.totalProjects`, tous les projets visibles, comme
+  la liste Projets) et « Événements à venir · 7 en novembre » (`metrics.eventsThisMonth`, les occurrences du mois en
+  cours en Europe/Paris comme la vue mois du Calendrier, le mois nommé en français d'après `metrics.eventsPeriod.from`),
+  en `Caption` de la lib après le titre. Un compteur `null` (son API indisponible) ou le chargement laisse le titre seul.
 - Lignes compactes (MAIR-907, F1/F5) : 3 au plus par tuile (premiers projets et tâches, événements les plus proches),
   sans fond, filet `--mairie-border` entre les lignes, marge de 10 px, `--mairie-surface-raised` au survol, focus
   `--mairie-accent`. Projets : nom et statut, puis « Échéance : … », la piste de progression et son pourcentage ;
