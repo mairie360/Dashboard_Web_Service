@@ -42,6 +42,22 @@ test('the widgets show the agent’s own project and pending task', async ({ pag
   await expect(page.getByText('Certaines données sont temporairement indisponibles.')).toHaveCount(0);
 });
 
+test('MAIR-1177 the tile headers show the projects count and the events of the current month', async ({ page, context, baseURL }) => {
+  await signInAs(context, baseURL!, users.manager);
+  await page.goto('/');
+
+  // The month the BFF counts is the current one of the Europe/Paris calendar, named in French.
+  const month = new Intl.DateTimeFormat('fr-FR', { month: 'long', timeZone: 'Europe/Paris' }).format(new Date());
+  // beforeAll created a project the agent sees: at least one, so the count is shown.
+  const projects = page.getByRole('heading', { name: /^Projets récents\s*· \d+ projets?$/ });
+  await expect(projects).toBeVisible();
+  await expect(projects).toHaveText(/^Projets récents · \d+ projets?$/);
+  const events = page.getByRole('heading', { name: new RegExp(`^Événements à venir\\s*· \\d+ en ${month}$`) });
+  await expect(events).toBeVisible();
+  await expect(events).toHaveText(new RegExp(`^Événements à venir · \\d+ en ${month}$`));
+  await expect(page.getByRole('heading', { name: /^Tâches en attente$/ })).toBeVisible();
+});
+
 test('an agent outside the project does not see it in their widgets', async ({ page, context, baseURL }) => {
   await signInAs(context, baseURL!, users.member);
   await page.goto('/');

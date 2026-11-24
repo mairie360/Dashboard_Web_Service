@@ -4,7 +4,7 @@ const { test, describe } = require('node:test');
 const { ROOT } = require('./support/load-ts.cjs');
 const { bootstrapResponse } = require('./support/fixtures.cjs');
 const { OpenApiContract } = require('./support/openapi-contract.ts');
-const { toDashboardModuleData, formatDueDate } = require('../src/lib/dashboard-view.ts');
+const { toDashboardModuleData, formatDueDate, projectsIndicator, eventsIndicator } = require('../src/lib/dashboard-view.ts');
 
 // Mapping de la réponse /dashboard/bootstrap vers DashboardModule, alimenté par des charges valides
 // selon contracts/openapi.json (reconstruit du paquet publié @mairie360/bff-dashboard-openapi).
@@ -39,6 +39,7 @@ describe('toDashboardModuleData', () => {
         { id: 'training-4', title: 'Accueil du public', status: 'in-progress', completedModules: 2, totalModules: 5, progress: 40, dueLabel: '15/12/2026' },
         { id: 'training-9', title: 'Protection des données', status: 'done', completedModules: 3, totalModules: 3, progress: 100 },
       ],
+      indicators: { projects: '17 projets', events: '2 en septembre' },
     });
   });
 
@@ -68,11 +69,12 @@ describe('toDashboardModuleData', () => {
   test('flags unavailable sources without inventing records', () => {
     const view = toDashboardModuleData(valid({
       projects: [], tasks: [], events: [],
-      metrics: { totalProjects: null },
+      metrics: { totalProjects: null, eventsThisMonth: null, eventsPeriod: { from: '2026-09-01', to: '2026-09-30' } },
       sources: { projects: 'unavailable', tasks: 'available', calendar: 'available' },
     }));
     assert.equal(view.hasUnavailableSource, true);
     assert.deepEqual([view.projects, view.tasks, view.events], [[], [], []]);
+    assert.deepEqual(view.indicators, { projects: null, events: null });
   });
 
   test('normalizes DD-MM-YYYY event dates and skips events whose date cannot be displayed', () => {
@@ -86,6 +88,34 @@ describe('toDashboardModuleData', () => {
     ]);
   });
 
+});
+
+describe('MAIR-1177 tile indicators', () => {
+  test('MAIR-1177 the projects indicator counts every visible project, singular up to one', () => {
+    assert.equal(projectsIndicator({ totalProjects: 12 }), '12 projets');
+    assert.equal(projectsIndicator({ totalProjects: 1 }), '1 projet');
+    assert.equal(projectsIndicator({ totalProjects: 0 }), '0 projet');
+  });
+
+  test('MAIR-1177 the events indicator names the month of its period in French', () => {
+    const month = (from, to, count = 7) => eventsIndicator({ totalProjects: 1, eventsThisMonth: count, eventsPeriod: { from, to } });
+    assert.equal(month('2026-11-01', '2026-11-30'), '7 en novembre');
+    assert.equal(month('2027-01-01', '2027-01-31', 0), '0 en janvier');
+    assert.equal(month('2026-02-01', '2026-02-28', 1), '1 en février');
+    assert.equal(month('2026-08-01', '2026-08-31', 31), '31 en août');
+    assert.equal(month('2026-12-01', '2026-12-31'), '7 en décembre');
+  });
+
+  test('MAIR-1177 an unavailable or malformed count gives no indicator, so the title stays alone', () => {
+    for (const metrics of [undefined, {}, { totalProjects: null }, { totalProjects: -1 }, { totalProjects: 1.5 }, { totalProjects: Infinity }]) {
+      assert.equal(projectsIndicator(metrics), null);
+    }
+    for (const metrics of [undefined, { eventsThisMonth: null, eventsPeriod: { from: '2026-11-01', to: '2026-11-30' } },
+      { eventsThisMonth: 3 }, { eventsThisMonth: 3, eventsPeriod: { from: '', to: '' } }, { eventsThisMonth: 3, eventsPeriod: { from: '2026-13-01', to: '2026-13-31' } },
+      { eventsThisMonth: -2, eventsPeriod: { from: '2026-11-01', to: '2026-11-30' } }, { eventsThisMonth: 4, eventsPeriod: { from: '2026-11-01', to: '2026-11-99' } }]) {
+      assert.equal(eventsIndicator(metrics), null);
+    }
+  });
 });
 
 describe('formatDueDate', () => {

@@ -138,6 +138,7 @@ test('optional event fields and unrecognized display text remain usable bootstra
   body.tasks[0].dueDate = '';
   body.userFirstName = '';
   body.metrics.totalProjects = null;
+  body.metrics.eventsThisMonth = null;
   await renderLoadedPage(body);
   assert.doesNotMatch(view.html, /role="alert" data-tone="danger"/);
   assert.match(view.text(), /Bienvenue sur votre espace Mairie360\./);
@@ -145,6 +146,18 @@ test('optional event fields and unrecognized display text remain usable bootstra
   assert.equal(view.props('DashboardPendingTasks').tasks[0].dueLabel, 'Sans échéance');
   assert.deepEqual(view.props('DashboardUpcomingEvents').events.map(event => event.id), ['0']);
   assert.match(view.text(), /Certains événements reçus/);
+  // No count from the BFF: the tile titles stay alone.
+  assert.doesNotMatch(view.text(), /Projets récents ·|Événements à venir ·/);
+  assert.deepEqual(upstreamCalls(), ['GET /dashboard/bootstrap']);
+});
+
+test('MAIR-1177: the tile headers show the projects count and the events of the month from the contract', async () => {
+  const html = await renderLoadedPage();
+  assert.match(view.text(), /Projets récents · 17 projets/);
+  assert.match(view.text(), /Événements à venir · 2 en septembre/);
+  assert.match(html, /<span class="dashboard-panel-title">Projets récents<\/span>/);
+  assert.equal((html.match(/class="[^"]*dashboard-panel-indicator[^"]*"/g) || []).length, 2);
+  assert.doesNotMatch(view.text(), /Tâches en attente ·|Mes formations ·/);
   assert.deepEqual(upstreamCalls(), ['GET /dashboard/bootstrap']);
 });
 
@@ -285,7 +298,7 @@ test('the shared sidebar opens the configured Settings front without exposing an
 });
 
 test('empty BFF collections stay empty instead of showing library fixtures', async () => {
-  const html = await renderLoadedPage(bootstrapResponse({ projects: [], tasks: [], events: [], metrics: { totalProjects: 0 } }));
+  const html = await renderLoadedPage(bootstrapResponse({ projects: [], tasks: [], events: [], metrics: { totalProjects: 0, eventsThisMonth: 0, eventsPeriod: { from: '2026-09-01', to: '2026-09-30' } } }));
 
   assert.match(html, /Aucun projet récent\./);
   assert.match(html, /Aucune tâche en attente\./);
@@ -370,7 +383,7 @@ test('composed read recovery replaces retained cards only after confirmed empty 
   await view.act(() => view.props('DashboardPendingTasks').onSelect(view.props('DashboardPendingTasks').tasks[0]));
   assert.equal(window.location.href, 'https://project.test.example/?project=project-42&task=task-2');
   assert.equal(upstreamCalls().length, 3, 'retained card navigation is not a retry');
-  dashboardBff.on('get', '/dashboard/bootstrap', { body: bootstrapResponse({ projects: [], tasks: [], events: [], userFirstName: 'Confirmé', metrics: { totalProjects: 0 } }) });
+  dashboardBff.on('get', '/dashboard/bootstrap', { body: bootstrapResponse({ projects: [], tasks: [], events: [], userFirstName: 'Confirmé', metrics: { totalProjects: 0, eventsThisMonth: 0, eventsPeriod: { from: '2026-09-01', to: '2026-09-30' } } }) });
   await view.click((props, text, tag) => tag === 'button' && text === 'Réessayer le chargement');
   await view.waitFor((html) => /Bon(?:jour|soir) Confirmé/.test(html) && !html.includes('role="alert" data-tone="danger"'));
   for (const text of ['Aucun projet récent', 'Aucune tâche en attente', 'Aucun événement à venir']) assert.ok(view.text().includes(text));

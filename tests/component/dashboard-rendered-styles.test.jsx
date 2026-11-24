@@ -69,7 +69,7 @@ describe('Dashboard styles on the actual page and published components', () => {
   it('styles long DTO cards and preserves their heading actions and reference project rows', async () => {
     await openDashboard();
     const cards = ['Projets récents', 'Tâches en attente', 'Événements à venir']
-      .map((name) => screen.getByRole('heading', { name }).closest('section'));
+      .map((name) => screen.getByRole('heading', { name: new RegExp(`^${name}`) }).closest('section'));
     for (const card of cards) {
       expect(Number.parseFloat(getComputedStyle(card).minWidth)).toBe(0);
       expect(shadow(getComputedStyle(card).boxShadow)).toEqual([

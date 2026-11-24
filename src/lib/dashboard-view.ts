@@ -42,6 +42,28 @@ export function formatDueDate(value: string): string {
   return (dateOnly ? dateOnlyFormat : instantFormat()).format(timestamp);
 }
 
+const FRENCH_MONTHS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+const isIndicatorCount = (value: unknown): value is number => typeof value === 'number' && Number.isInteger(value) && value >= 0;
+
+/** Header indicator of the projects tile: every visible project (« 12 projets »), null when the count is unavailable. */
+export function projectsIndicator(metrics: Partial<DashboardBootstrap['metrics']> | undefined): string | null {
+  const total = metrics?.totalProjects;
+  if (!isIndicatorCount(total)) return null;
+  return `${total} ${total > 1 ? 'projets' : 'projet'}`;
+}
+
+/**
+ * Header indicator of the events tile: the occurrences of the month the BFF counted (« 7 en novembre »), the month
+ * named from `eventsPeriod.from`; null when the count or its period is unavailable.
+ */
+export function eventsIndicator(metrics: Partial<DashboardBootstrap['metrics']> | undefined): string | null {
+  const count = metrics?.eventsThisMonth;
+  const from = metrics?.eventsPeriod?.from;
+  const to = metrics?.eventsPeriod?.to;
+  if (!isIndicatorCount(count) || typeof from !== 'string' || typeof to !== 'string' || !isCivilDate(from) || !isCivilDate(to)) return null;
+  return `${count} en ${FRENCH_MONTHS[Number(from.slice(5, 7)) - 1]}`;
+}
+
 /** Rows shown per tile so the dashboard fits the screen without scrolling (MAIR-907). */
 export const DASHBOARD_TILE_ROWS = 3;
 
@@ -76,6 +98,8 @@ export function toDashboardModuleData(data: DashboardBootstrap) {
       priority: task.priority,
     })),
     events: upcoming,
+    // Shown next to the tile titles; the title stays alone when a count is unavailable.
+    indicators: { projects: projectsIndicator(data.metrics), events: eventsIndicator(data.metrics) },
     // MAIR-1110: the BFF orders them (unfinished first) and caps them at 3.
     trainings: (data.trainings ?? []).slice(0, DASHBOARD_TILE_ROWS).map((training) => ({
       id: training.id, title: training.title, status: training.status,

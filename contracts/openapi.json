@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "bff_dashboard",
-    "version": "0.0.0-dev.8a2e30901090c9b45a16129fca5fe61a057f682d"
+    "version": "0.0.0-dev.071dc1af28b117e619a2e15d48ad2f7cc74b0e32"
   },
   "paths": {
     "/health": {
@@ -215,10 +215,37 @@
               "number",
               "null"
             ]
+          },
+          "eventsThisMonth": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "eventsPeriod": {
+            "$ref": "#/components/schemas/DashboardBootstrapMetricsEventsPeriod"
           }
         },
         "required": [
-          "totalProjects"
+          "totalProjects",
+          "eventsThisMonth",
+          "eventsPeriod"
+        ]
+      },
+      "DashboardBootstrapMetricsEventsPeriod": {
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string"
+          },
+          "to": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "from",
+          "to"
         ]
       },
       "DashboardBootstrapProjectsItem": {

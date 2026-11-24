@@ -91,6 +91,10 @@ Figma: [feature index](https://www.figma.com/design/U4LxYJ8TDpZxqB8BmpBuRh?node-
 - Tiles (MAIR-1107, F1): a 2 × 2 grid of equal tiles that fills the height under the welcome from 900 px (one column
   below, the page scrolling rather than cutting content); the « Voir les… » links have no arrow; empty and unavailable
   states are centred.
+- Header indicators: « Projets récents · 12 projets » (`metrics.totalProjects`, every visible project, like the
+  Projects list) and « Événements à venir · 7 en novembre » (`metrics.eventsThisMonth`, the occurrences of the current
+  Europe/Paris month like the Calendar month view, the month named in French from `metrics.eventsPeriod.from`), as a lib
+  `Caption` after the title. A `null` count (its API unavailable) or the loading state leaves the title alone.
 - Compact rows (MAIR-907, F1/F5): at most 3 per tile (first projects and tasks, soonest events), no background, a
   `--mairie-border` rule between rows, 10 px inset, `--mairie-surface-raised` on hover, `--mairie-accent` focus ring.
   Projects: name and status, then « Échéance : … », the progress track and its percentage; tasks: title and priority,

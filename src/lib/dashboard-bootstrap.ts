@@ -6,6 +6,39 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 const isSourceState = (source: unknown) => source === "available" || source === "unavailable";
 const isOptionalText = (value: unknown) => value === undefined || value === null || typeof value === "string";
 const isCount = (value: unknown) => typeof value === "number" && Number.isInteger(value) && value >= 0;
+const DAY = /^\d{4}-\d{2}-\d{2}$/;
+/** A real calendar day (`YYYY-MM-DD`): `2026-11-99` or `2026-02-30` are not. */
+const isCalendarDay = (value: unknown): value is string => {
+  if (typeof value !== "string" || !DAY.test(value)) return false;
+  const date = new Date(`${value}T00:00:00Z`);
+  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
+};
+/** Both ends are calendar days, the first not after the last. */
+const isDatedPeriod = (value: unknown): value is { from: string; to: string } =>
+  isRecord(value) && isCalendarDay(value.from) && isCalendarDay(value.to) && value.from <= value.to;
+/** A dated period, or the neutral `{ from: "", to: "" }` this projection gives a BFF without one. */
+const isPeriod = (value: unknown): value is { from: string; to: string } =>
+  isDatedPeriod(value) || (isRecord(value) && value.from === "" && value.to === "");
+
+/**
+ * The events indicator of the month: a count or null, over a `{ from, to }` period. A BFF that does not send them
+ * yet stays usable (no indicator, neutral empty period, also accepted when the projection is read back); a malformed
+ * value is refused like a non-finite `totalProjects`.
+ */
+function hasUsableMonthMetrics(metrics: Record<string, unknown>): boolean {
+  if (metrics.eventsThisMonth !== undefined && metrics.eventsThisMonth !== null && !isCount(metrics.eventsThisMonth)) return false;
+  return metrics.eventsPeriod === undefined || isPeriod(metrics.eventsPeriod);
+}
+
+/** The month indicator of a usable bootstrap, null without a count or a period (older BFF). */
+function monthMetrics(metrics: unknown): Pick<DashboardBootstrap["metrics"], "eventsThisMonth" | "eventsPeriod"> {
+  const record = isRecord(metrics) ? metrics : {};
+  const period = isDatedPeriod(record.eventsPeriod) ? { from: record.eventsPeriod.from, to: record.eventsPeriod.to } : null;
+  return {
+    eventsThisMonth: period && isCount(record.eventsThisMonth) ? record.eventsThisMonth as number : null,
+    eventsPeriod: period ?? { from: "", to: "" },
+  };
+}
 
 /**
  * MAIR-825 fields (`userLastName`, `userRole`, `communeName`, `trainings`, `sources.trainings`) are checked
@@ -34,6 +67,7 @@ export function isUsableBootstrap(value: unknown): value is DashboardBootstrap {
       !Array.isArray(value.events) || !isRecord(value.sources)) return false;
   if (![value.sources.projects, value.sources.tasks, value.sources.calendar].every(isSourceState)) return false;
   if (!hasUsableV2Fields(value, value.sources)) return false;
+  if (isRecord(value.metrics) && !hasUsableMonthMetrics(value.metrics)) return false;
   return value.projects.every(project => isRecord(project) &&
     ["id", "title", "dueDate"].every(key => typeof project[key] === "string") &&
     typeof project.progress === "number" && Number.isFinite(project.progress) &&
@@ -50,7 +84,7 @@ export function isUsableBootstrap(value: unknown): value is DashboardBootstrap {
 
 /**
  * A usable bootstrap of an older BFF, completed with the neutral values: no role, no commune, no trainings
- * (MAIR-825), no training due date (MAIR-1110), no unread badge (MAIR-1106).
+ * (MAIR-825), no training due date (MAIR-1110), no unread badge (MAIR-1106), no events indicator of the month.
  */
 export function withDefaults(value: DashboardBootstrap): DashboardBootstrap {
   const partial = value as Partial<DashboardBootstrap> & DashboardBootstrap;
@@ -61,6 +95,7 @@ export function withDefaults(value: DashboardBootstrap): DashboardBootstrap {
     communeName: partial.communeName ?? null,
     trainings: (partial.trainings ?? []).map((training) => ({ ...training, dueDate: training.dueDate ?? null })),
     unreadMessages: partial.unreadMessages ?? null,
+    metrics: { ...partial.metrics, totalProjects: partial.metrics?.totalProjects ?? null, ...monthMetrics(partial.metrics) },
     sources: { ...value.sources, trainings: partial.sources.trainings ?? "unavailable", messages: partial.sources.messages ?? "unavailable" },
   };
 }
@@ -83,7 +118,7 @@ export function selectDashboardBootstrap(value: unknown): DashboardBootstrap | n
     tasks: value.tasks.map(({ id, projectId, title, dueDate, priority, completed }) => ({ id, projectId, title, dueDate, priority, completed })),
     events: value.events.map(({ id, title, date, startTime, location }) => ({ id, title, date,
       ...(startTime === undefined ? {} : { startTime }), ...(location === undefined ? {} : { location }) })),
-    metrics: { totalProjects: value.metrics.totalProjects },
+    metrics: { totalProjects: value.metrics.totalProjects, ...monthMetrics(value.metrics) },
     sources: { projects: value.sources.projects, tasks: value.sources.tasks, calendar: value.sources.calendar, trainings: complete.sources.trainings, messages: complete.sources.messages },
   };
 }

@@ -26,4 +26,16 @@ describe('DashboardGrid', () => {
     await user.click(screen.getByRole('button', { name: /^Projet/ })); expect(hrefs[1]).toBe('https://project.example/?project=p1');
     expect(screen.getByRole('status')).toHaveTextContent('Les événements sont temporairement indisponibles.');
   });
+  it('MAIR-1177 shows the projects count and the events of the month in the tile headers, the titles alone when null', async () => {
+    const { toDashboardModuleData } = await import('@/lib/dashboard-view');
+    const counted = { ...(data as object), metrics: { totalProjects: 12, eventsThisMonth: 7, eventsPeriod: { from: '2026-11-01', to: '2026-11-30' } } } as never;
+    const { rerender } = render(<DashboardGrid data={counted} view={toDashboardModuleData(counted)} />);
+    const headings = () => screen.getAllByRole('heading', { level: 2 }).map((heading) => heading.textContent);
+    expect(headings()).toEqual(['Projets récents · 12 projets', 'Tâches en attente', 'Événements à venir · 7 en novembre', 'Mes formations']);
+    const unavailable = { ...(data as object), metrics: { totalProjects: null, eventsThisMonth: null, eventsPeriod: { from: '2026-11-01', to: '2026-11-30' } } } as never;
+    rerender(<DashboardGrid data={unavailable} view={toDashboardModuleData(unavailable)} />);
+    expect(headings()).toEqual(['Projets récents', 'Tâches en attente', 'Événements à venir', 'Mes formations']);
+    rerender(<DashboardGrid data={null} view={null} />);
+    expect(headings()).toEqual(['Projets récents', 'Tâches en attente', 'Événements à venir', 'Mes formations']);
+  });
 });
