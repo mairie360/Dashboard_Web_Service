@@ -179,3 +179,28 @@ describe('requests outside the contract never leave the front', () => {
     assert.deepEqual(upstreamCalls(), []);
   });
 });
+
+describe('mair_1176 welcome tour: PUT /dashboard/onboarding through the contract-gated proxy', () => {
+  test('mair_1176 the generated operation reaches the declared PUT with the session token and resolves on 204', async () => {
+    const { bffDashboard } = require('../src/lib/bff-client.ts');
+    dashboardBff.on('put', '/dashboard/onboarding', { status: 204 });
+
+    await bffDashboard.putDashboardOnboarding();
+
+    assert.deepEqual(upstreamCalls(), ['DASHBOARD_BFF PUT /dashboard/onboarding']);
+    const [call] = dashboardBff.requests;
+    assert.equal(call.headers.authorization, `Bearer ${TOKEN}`);
+    assert.equal(call.headers.cookie, undefined);
+    assert.deepEqual(front.calls.map(({ side, method, url }) => `${side} ${method} ${url.origin === front.origin ? '' : 'bff'}${url.pathname}`), [
+      'browser PUT /dashboard/onboarding',
+      'server PUT bff/dashboard/onboarding',
+    ]);
+  });
+
+  test('mair_1176 a BFF failure surfaces its message to the caller', async () => {
+    const { bffDashboard } = require('../src/lib/bff-client.ts');
+    dashboardBff.on('put', '/dashboard/onboarding', { status: 502, body: { error: { message: 'The CORE_API service is unavailable.' } }, outOfContract: true });
+
+    assert.equal(await rejection(bffDashboard.putDashboardOnboarding()), 'The CORE_API service is unavailable.');
+  });
+});

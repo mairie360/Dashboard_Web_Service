@@ -50,6 +50,8 @@ function hasUsableV2Fields(value: Record<string, unknown>, sources: Record<strin
   // MAIR-1106: the unread total of the Messagerie badge, a count or null.
   if (sources.messages !== undefined && !isSourceState(sources.messages)) return false;
   if (value.unreadMessages !== undefined && value.unreadMessages !== null && !isCount(value.unreadMessages)) return false;
+  // The welcome tour state: a boolean, or null when the BFF could not tell.
+  if (value.onboardingCompleted !== undefined && value.onboardingCompleted !== null && typeof value.onboardingCompleted !== "boolean") return false;
   if (value.trainings === undefined) return true;
   return Array.isArray(value.trainings) && value.trainings.every(training => isRecord(training) &&
     typeof training.id === "string" && typeof training.title === "string" &&
@@ -84,7 +86,7 @@ export function isUsableBootstrap(value: unknown): value is DashboardBootstrap {
 
 /**
  * A usable bootstrap of an older BFF, completed with the neutral values: no role, no commune, no trainings
- * (MAIR-825), no training due date (MAIR-1110), no unread badge (MAIR-1106), no events indicator of the month.
+ * (MAIR-825), no training due date (MAIR-1110), no unread badge (MAIR-1106), no events indicator of the month, no welcome tour (unknown state).
  */
 export function withDefaults(value: DashboardBootstrap): DashboardBootstrap {
   const partial = value as Partial<DashboardBootstrap> & DashboardBootstrap;
@@ -95,6 +97,7 @@ export function withDefaults(value: DashboardBootstrap): DashboardBootstrap {
     communeName: partial.communeName ?? null,
     trainings: (partial.trainings ?? []).map((training) => ({ ...training, dueDate: training.dueDate ?? null })),
     unreadMessages: partial.unreadMessages ?? null,
+    onboardingCompleted: partial.onboardingCompleted ?? null,
     metrics: { ...partial.metrics, totalProjects: partial.metrics?.totalProjects ?? null, ...monthMetrics(partial.metrics) },
     sources: { ...value.sources, trainings: partial.sources.trainings ?? "unavailable", messages: partial.sources.messages ?? "unavailable" },
   };
@@ -114,6 +117,7 @@ export function selectDashboardBootstrap(value: unknown): DashboardBootstrap | n
     communeName: complete.communeName,
     trainings: complete.trainings.map(({ id, title, status, completedModules, totalModules, progress, dueDate }) => ({ id, title, status, completedModules, totalModules, progress, dueDate })),
     unreadMessages: complete.unreadMessages,
+    onboardingCompleted: complete.onboardingCompleted,
     projects: value.projects.map(({ id, title, progress, status, dueDate }) => ({ id, title, progress, status, dueDate })),
     tasks: value.tasks.map(({ id, projectId, title, dueDate, priority, completed }) => ({ id, projectId, title, dueDate, priority, completed })),
     events: value.events.map(({ id, title, date, startTime, location }) => ({ id, title, date,

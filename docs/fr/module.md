@@ -13,6 +13,7 @@ Domaine fonctionnel: Tableau de bord.
 ## Fonctions disponibles
 
 - Affichage des données agrégées de `/dashboard/bootstrap`.
+- Visite de bienvenue : à la première visite (`onboardingCompleted === false`), le composant `Onboarding` de la lib s'ouvre en modale avec ses cinq slides (« Bienvenue dans Mairie360 » … « Formez-vous à votre rythme », compteur « 1 sur 5 »). « Commencer », « Passer » ou Échap l'enregistre via `PUT /dashboard/onboarding` et la ferme ; elle ne réapparaît plus une fois enregistrée, ni quand le BFF ne peut pas répondre (`null`).
 - Reprise explicite d'une lecture refusée sans remplacer les cartes confirmées par un vide inventé. Seule une réponse vide confirmée remplace les cartes ; la reprise ne masque pas une erreur de déconnexion indépendante et ne déclenche aucune mutation.
 - Refus d'un bootstrap réussi mais inexploitable avant remplacement des cartes ou de l'identité confirmées. La page vérifie le prénom, les collections, les champs affichés et les sources ; forme invalide : erreur française contrôlée et reprise GET volontaire (MAIR-455 / issue #84). Gardes d'attente, d'annulation et de réponse obsolète inchangées.
 - Heure/lieu facultatifs et identifiants d'événement string/number conservés. Les dates textuelles non reconnues gardent leur traitement d'affichage distinct ; statistiques et champs non consommés ne sont pas réinterprétés. Aucune unicité d'identifiant, permission de date ou rôle utilisateur inventé.

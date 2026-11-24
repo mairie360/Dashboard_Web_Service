@@ -13,6 +13,7 @@ Business domain: Dashboard.
 ## Available capabilities
 
 - Display aggregated `/dashboard/bootstrap` data.
+- Welcome tour: on the first visit (`onboardingCompleted === false`) the lib `Onboarding` opens as a modal with its five slides (« Bienvenue dans Mairie360 » … « Formez-vous à votre rythme », step counter « 1 sur 5 »). « Commencer », « Passer » or Escape records it with `PUT /dashboard/onboarding` and closes it; it never shows again once recorded, nor when the BFF cannot tell (`null`).
 - Display project and task deadlines as zero-padded DD/MM/YYYY, matching the local reference. Date-only values retain their UTC day; ISO instants retain the existing Europe/Paris day independently of the host timezone. Missing task deadlines and unrecognized values keep their existing fallbacks; event formatting is unchanged.
 - Impossible civil dates and ambiguous free-text deadlines remain verbatim rather than being guessed or rolled into another day. Event dates and HH:mm clocks are validated before display; valid returned events remain selectable. Unusable events are announced separately from confirmed empty collections, with an explicit bootstrap GET recovery. The existing UTC/Paris deadline and local event-clock policies are unchanged.
 - Use the reference's default 17px root scale and system font, including the shared rem-based header (68px by default). Standard small-text tokens remain unchanged; this does not simulate saved appearance preferences.

@@ -35,6 +35,8 @@ function bootstrapResponse(overrides = {}) {
       { id: 'training-9', title: 'Protection des données', status: 'done', completedModules: 3, totalModules: 3, progress: 100, dueDate: null },
     ],
     unreadMessages: 3,
+    // The welcome tour is done: the rendered page shows the dashboard alone.
+    onboardingCompleted: true,
     metrics: { totalProjects: 17, eventsThisMonth: 2, eventsPeriod: { from: '2026-09-01', to: '2026-09-30' } },
     sources: { projects: 'available', tasks: 'available', calendar: 'available', trainings: 'available', messages: 'available' },
     ...overrides,

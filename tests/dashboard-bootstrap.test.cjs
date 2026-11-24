@@ -6,7 +6,7 @@ const bootstrap = () => ({ userFirstName:'Confirmed',projects:[{id:'p',title:'Pr
 test('the server projection preserves contracted scalar values and excludes nested unknown transport fields',()=>{
  const body=bootstrap();body.secret='never-serialize';for(const row of [...body.projects,...body.tasks,...body.events,body.metrics,body.sources])row.secret='never-serialize';
  // A BFF without the MAIR-825 / MAIR-1106 fields gets their neutral values: no last name, role, commune, trainings nor unread badge.
- const legacy=(value)=>({...value,userLastName:'',userRole:null,communeName:null,trainings:[],unreadMessages:null,metrics:{...value.metrics,eventsThisMonth:null,eventsPeriod:{from:'',to:''}},sources:{...value.sources,trainings:'unavailable',messages:'unavailable'}});
+ const legacy=(value)=>({...value,userLastName:'',userRole:null,communeName:null,trainings:[],unreadMessages:null,onboardingCompleted:null,metrics:{...value.metrics,eventsThisMonth:null,eventsPeriod:{from:'',to:''}},sources:{...value.sources,trainings:'unavailable',messages:'unavailable'}});
  const result=selectDashboardBootstrap(body);assert.deepEqual(result,legacy(bootstrap()));assert.doesNotMatch(JSON.stringify(result),/never-serialize/);
  const minimal=bootstrap();minimal.events=[{id:'event',title:'Untimed',date:'2026-10-16'}];minimal.metrics.totalProjects=null;assert.deepEqual(selectDashboardBootstrap(minimal),legacy(minimal));
 });
@@ -17,7 +17,7 @@ for(const[name,modify]of[
  ['null event',v=>v.events=[null]],['nonfinite event id',v=>v.events[0].id=NaN],['unconfirmed event date',v=>v.events[0].date=null],['nonstring time',v=>v.events[0].startTime=12],['nonstring location',v=>v.events[0].location=12],
 ])test(`refuses ${name} without claiming an empty confirmed dashboard`,()=>{const body=bootstrap();modify(body);assert.equal(isUsableBootstrap(body),false);assert.equal(selectDashboardBootstrap(body),null);});
 for(const[name,modify]of[['unconfirmed completed flag',v=>v.tasks[0].completed='false'],['absent metrics',v=>delete v.metrics],['nonfinite metric',v=>v.metrics.totalProjects=Infinity]])test(`server refuses ${name} before serialization`,()=>{const body=bootstrap();modify(body);assert.equal(selectDashboardBootstrap(body),null);});
-const v2=()=>({...bootstrap(),metrics:{totalProjects:1,eventsThisMonth:4,eventsPeriod:{from:'2026-10-01',to:'2026-10-31'}},userLastName:'Martin',userRole:'Agent',communeName:'Saint-Pierre',trainings:[{id:'training-4',title:'Accueil',status:'in-progress',completedModules:1,totalModules:4,progress:25,dueDate:'2026-12-15'}],unreadMessages:7,sources:{projects:'available',tasks:'available',calendar:'unavailable',trainings:'available',messages:'available'}});
+const v2=()=>({...bootstrap(),metrics:{totalProjects:1,eventsThisMonth:4,eventsPeriod:{from:'2026-10-01',to:'2026-10-31'}},userLastName:'Martin',userRole:'Agent',communeName:'Saint-Pierre',trainings:[{id:'training-4',title:'Accueil',status:'in-progress',completedModules:1,totalModules:4,progress:25,dueDate:'2026-12-15'}],unreadMessages:7,onboardingCompleted:true,sources:{projects:'available',tasks:'available',calendar:'unavailable',trainings:'available',messages:'available'}});
 test('MAIR-825/MAIR-1106/MAIR-1110: the server projection keeps the last name, role, commune, trainings with their due date and the unread count',()=>{
  const body=v2();body.trainings[0].secret='never-serialize';const result=selectDashboardBootstrap(body);assert.deepEqual(result,v2());assert.doesNotMatch(JSON.stringify(result),/never-serialize/);
 });
@@ -52,4 +52,10 @@ test('MAIR-1177: the projection of a BFF without the month metrics is accepted a
   assert.equal(isUsableBootstrap(projected),true);assert.deepEqual(selectDashboardBootstrap(projected),projected);}
  const dated=selectDashboardBootstrap(v2());assert.equal(isUsableBootstrap(dated),true);
 });
+test('mair_1176: the server projection keeps the welcome tour state, and an older BFF without it shows no tour',()=>{
+ for(const state of [false,true,null]){const body=v2();body.onboardingCompleted=state;assert.deepEqual(selectDashboardBootstrap(body),body);}
+ const body=v2();delete body.onboardingCompleted;const expected=v2();expected.onboardingCompleted=null;assert.deepEqual(selectDashboardBootstrap(body),expected);
+});
+for(const[name,modify]of[['textual tour state',v=>v.onboardingCompleted='false'],['numeric tour state',v=>v.onboardingCompleted=0]])
+ test(`mair_1176: refuses a ${name}`,()=>{const body=v2();modify(body);assert.equal(isUsableBootstrap(body),false);assert.equal(selectDashboardBootstrap(body),null);});
 test('null, primitive and array bodies remain unavailable',()=>{for(const value of[null,{},[],false])assert.equal(selectDashboardBootstrap(value),null);});

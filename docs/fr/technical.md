@@ -122,6 +122,7 @@ Ces chemins de données sont exposés à la même origine par le proxy; les page
 | GET | `/health` | — | 2XX, sans corps typé |
 | GET | `/check_apis` | — | 2XX, sans corps typé |
 | GET | `/dashboard/bootstrap` | — | 2XX `DashboardBootstrap` |
+| PUT | `/dashboard/onboarding` | — | 2XX (204) |
 
 ### Pages et adaptateurs locaux
 

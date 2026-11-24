@@ -147,7 +147,7 @@ describe('the proxy exposes exactly the contract', () => {
 
   test('the contract snapshot is the BFF_Dashboard contract', () => {
     assert.equal(dashboardContract.title, 'bff_dashboard');
-    assert.deepEqual(Object.keys(dashboardContract.document.paths).sort(), ['/check_apis', '/dashboard/bootstrap', '/health']);
+    assert.deepEqual(Object.keys(dashboardContract.document.paths).sort(), ['/check_apis', '/dashboard/bootstrap', '/dashboard/onboarding', '/health']);
   });
 });
 

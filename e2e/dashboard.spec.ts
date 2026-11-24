@@ -3,9 +3,9 @@ import { expect, test } from '@playwright/test';
 import { cookieHeader, mintAccessToken, signInAs, users } from './support/session';
 
 // Critical journeys of the Dashboard front (MAIR-603), on the real stack of docker-compose-e2e.yml
-// (BFF Dashboard, Core, Project and Calendar APIs, seeded database): the widgets of an agent show
-// their own project and task, an agent outside that project does not see them, and a forged
-// session is refused. The texts asserted are the French ones displayed on screen.
+// (BFF Dashboard, Core, Project and Calendar APIs, seeded database): a fresh agent goes through the
+// welcome tour once, the widgets of an agent show their own project and task, an agent outside that
+// project does not see them, and a forged session is refused. The texts asserted are the French ones displayed on screen.
 
 const PROJECT_API = process.env.E2E_PROJECT_API_URL ?? 'http://localhost:3001';
 const stamp = Date.now().toString(36);
@@ -27,6 +27,33 @@ test.beforeAll(async ({ playwright }) => {
   });
   expect(task.ok(), await task.text()).toBeTruthy();
   await api.dispose();
+});
+
+test('mair_1176 the first visit shows the welcome tour once, then never again', async ({ page, context, baseURL }) => {
+  await signInAs(context, baseURL!, users.manager);
+  await page.goto('/');
+
+  // A fresh account has not done the tour: the five slides open over the dashboard.
+  const tour = page.getByRole('dialog');
+  await expect(tour.getByRole('heading', { name: 'Bienvenue dans Mairie360' })).toBeVisible();
+  await expect(tour).toContainText('1 sur 5');
+  for (const title of ['Tableau de bord', 'Projets et calendrier', 'Restez informé', 'Formez-vous à votre rythme']) {
+    await tour.getByRole('button', { name: 'Suivant' }).click();
+    await expect(tour.getByRole('heading', { name: title })).toBeVisible();
+  }
+  await expect(tour).toContainText('5 sur 5');
+  const recorded = page.waitForResponse((response) => response.url().endsWith('/dashboard/onboarding') && response.request().method() === 'PUT');
+  await tour.getByRole('button', { name: 'Commencer' }).click();
+  expect((await recorded).status()).toBe(204);
+
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(page.getByText(/Bon(?:jour|soir) Perf/)).toBeVisible();
+
+  // Done is remembered by the server: the next visit opens the dashboard alone.
+  await page.reload();
+  await expect(page.getByText(/Bon(?:jour|soir) Perf/)).toBeVisible();
+  await expect(page.getByText('Projets récents', { exact: true }).first()).toBeVisible();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
 });
 
 test('the widgets show the agent’s own project and pending task', async ({ page, context, baseURL }) => {
