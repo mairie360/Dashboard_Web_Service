@@ -24,3 +24,14 @@ for (const file of ['docker-compose.yml', 'docker-compose-security.yml', 'docker
     assert.deepEqual(Object.keys(services).filter((name) => /^bff-/.test(name) && !name.startsWith('bff-dashboard')), []);
   });
 }
+
+// MAIR-1101: the APIs rate-limit each account per second unless RATE_LIMIT_PER_SECOND is 0 (RATE_LIMIT_ENABLED only
+// turns the per-route limiter off). k6 runs every virtual user as the same account, so Core and Project API answered
+// 429 under load and /dashboard/bootstrap, then the page, took about one second each (k6 page threshold crossed).
+test('MAIR-1101: the performance stack lifts the per-second rate limit of every API the BFF reads', () => {
+  const { services } = yaml.load(readFileSync(join(__dirname, '..', 'docker-compose-performance.yml'), 'utf8'));
+  for (const api of Object.values(REQUIRED)) {
+    assert.equal(services[api].environment.RATE_LIMIT_ENABLED, 'false', `${api} RATE_LIMIT_ENABLED`);
+    assert.equal(services[api].environment.RATE_LIMIT_PER_SECOND, '0', `${api} RATE_LIMIT_PER_SECOND`);
+  }
+});
