@@ -132,6 +132,7 @@ services:
       # and rate-limits each account (MAIR-425): the scan / load test hammer it as one user.
       JWT_ALLOW_WEAK_SECRET: "true"
       RATE_LIMIT_ENABLED: "false"
+      RATE_LIMIT_PER_SECOND: "0"
     expose:
       - "3000"
     networks:
@@ -168,6 +169,7 @@ services:
       # and rate-limits each account (MAIR-425): the scan / load test hammer it as one user.
       JWT_ALLOW_WEAK_SECRET: "true"
       RATE_LIMIT_ENABLED: "false"
+      RATE_LIMIT_PER_SECOND: "0"
     expose:
       - "3001"
     networks:
