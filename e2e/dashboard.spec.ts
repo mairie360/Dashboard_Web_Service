@@ -57,7 +57,7 @@ test('an agent outside the project does not see it in their widgets', async ({ p
 });
 
 test('a forged session is refused by the BFF', async ({ request }) => {
-  // Signed with another secret: the front relays it, BFF Dashboard must refuse it.
+  // Signed with another key: the front relays it, BFF Dashboard must refuse it.
   const [header, payload] = mintAccessToken(users.manager).split('.');
   const response = await request.get('/dashboard/bootstrap', {
     headers: { Cookie: `accessToken=${header}.${payload}.c2lnbmF0dXJlLWZvcmdlZQ`, Accept: 'application/json' },
