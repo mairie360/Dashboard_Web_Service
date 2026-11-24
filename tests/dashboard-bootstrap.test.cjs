@@ -43,5 +43,13 @@ test('MAIR-1177: the server projection keeps the events of the month and their p
 for(const[name,modify]of[
  ['negative count of the month',v=>v.metrics.eventsThisMonth=-1],['fractional count of the month',v=>v.metrics.eventsThisMonth=1.5],['textual count of the month',v=>v.metrics.eventsThisMonth='4'],
  ['null period',v=>v.metrics.eventsPeriod=null],['period without its last day',v=>delete v.metrics.eventsPeriod.to],['period in another format',v=>v.metrics.eventsPeriod.from='01/10/2026'],
+ ['period end that is not a calendar day',v=>v.metrics.eventsPeriod.to='2026-11-99'],['impossible period start',v=>v.metrics.eventsPeriod.from='2026-02-30'],['period ending before it starts',v=>v.metrics.eventsPeriod.to='2026-09-30'],
+ ['half-empty period',v=>v.metrics.eventsPeriod.to=''],
 ])test(`MAIR-1177: refuses a ${name}`,()=>{const body=v2();modify(body);assert.equal(isUsableBootstrap(body),false);assert.equal(selectDashboardBootstrap(body),null);});
+test('MAIR-1177: the projection of a BFF without the month metrics is accepted again by the client check (no second read)',()=>{
+ for(const body of [bootstrap(),v2()]){if(body.metrics.eventsPeriod)delete body.metrics.eventsPeriod;delete body.metrics.eventsThisMonth;
+  const projected=selectDashboardBootstrap(body);assert.deepEqual(projected.metrics.eventsPeriod,{from:'',to:''});assert.equal(projected.metrics.eventsThisMonth,null);
+  assert.equal(isUsableBootstrap(projected),true);assert.deepEqual(selectDashboardBootstrap(projected),projected);}
+ const dated=selectDashboardBootstrap(v2());assert.equal(isUsableBootstrap(dated),true);
+});
 test('null, primitive and array bodies remain unavailable',()=>{for(const value of[null,{},[],false])assert.equal(selectDashboardBootstrap(value),null);});

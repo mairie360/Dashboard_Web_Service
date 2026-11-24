@@ -112,7 +112,7 @@ describe('MAIR-1177 tile indicators', () => {
     }
     for (const metrics of [undefined, { eventsThisMonth: null, eventsPeriod: { from: '2026-11-01', to: '2026-11-30' } },
       { eventsThisMonth: 3 }, { eventsThisMonth: 3, eventsPeriod: { from: '', to: '' } }, { eventsThisMonth: 3, eventsPeriod: { from: '2026-13-01', to: '2026-13-31' } },
-      { eventsThisMonth: -2, eventsPeriod: { from: '2026-11-01', to: '2026-11-30' } }]) {
+      { eventsThisMonth: -2, eventsPeriod: { from: '2026-11-01', to: '2026-11-30' } }, { eventsThisMonth: 4, eventsPeriod: { from: '2026-11-01', to: '2026-11-99' } }]) {
       assert.equal(eventsIndicator(metrics), null);
     }
   });

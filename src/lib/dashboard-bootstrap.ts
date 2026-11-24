@@ -7,12 +7,23 @@ const isSourceState = (source: unknown) => source === "available" || source === 
 const isOptionalText = (value: unknown) => value === undefined || value === null || typeof value === "string";
 const isCount = (value: unknown) => typeof value === "number" && Number.isInteger(value) && value >= 0;
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
+/** A real calendar day (`YYYY-MM-DD`): `2026-11-99` or `2026-02-30` are not. */
+const isCalendarDay = (value: unknown): value is string => {
+  if (typeof value !== "string" || !DAY.test(value)) return false;
+  const date = new Date(`${value}T00:00:00Z`);
+  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
+};
+/** Both ends are calendar days, the first not after the last. */
+const isDatedPeriod = (value: unknown): value is { from: string; to: string } =>
+  isRecord(value) && isCalendarDay(value.from) && isCalendarDay(value.to) && value.from <= value.to;
+/** A dated period, or the neutral `{ from: "", to: "" }` this projection gives a BFF without one. */
 const isPeriod = (value: unknown): value is { from: string; to: string } =>
-  isRecord(value) && typeof value.from === "string" && DAY.test(value.from) && typeof value.to === "string" && DAY.test(value.to);
+  isDatedPeriod(value) || (isRecord(value) && value.from === "" && value.to === "");
 
 /**
  * The events indicator of the month: a count or null, over a `{ from, to }` period. A BFF that does not send them
- * yet stays usable (no indicator); a malformed value is refused like a non-finite `totalProjects`.
+ * yet stays usable (no indicator, neutral empty period, also accepted when the projection is read back); a malformed
+ * value is refused like a non-finite `totalProjects`.
  */
 function hasUsableMonthMetrics(metrics: Record<string, unknown>): boolean {
   if (metrics.eventsThisMonth !== undefined && metrics.eventsThisMonth !== null && !isCount(metrics.eventsThisMonth)) return false;
@@ -22,7 +33,7 @@ function hasUsableMonthMetrics(metrics: Record<string, unknown>): boolean {
 /** The month indicator of a usable bootstrap, null without a count or a period (older BFF). */
 function monthMetrics(metrics: unknown): Pick<DashboardBootstrap["metrics"], "eventsThisMonth" | "eventsPeriod"> {
   const record = isRecord(metrics) ? metrics : {};
-  const period = isPeriod(record.eventsPeriod) ? { from: record.eventsPeriod.from, to: record.eventsPeriod.to } : null;
+  const period = isDatedPeriod(record.eventsPeriod) ? { from: record.eventsPeriod.from, to: record.eventsPeriod.to } : null;
   return {
     eventsThisMonth: period && isCount(record.eventsThisMonth) ? record.eventsThisMonth as number : null,
     eventsPeriod: period ?? { from: "", to: "" },

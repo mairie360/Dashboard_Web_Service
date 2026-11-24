@@ -59,7 +59,8 @@ export function projectsIndicator(metrics: Partial<DashboardBootstrap['metrics']
 export function eventsIndicator(metrics: Partial<DashboardBootstrap['metrics']> | undefined): string | null {
   const count = metrics?.eventsThisMonth;
   const from = metrics?.eventsPeriod?.from;
-  if (!isIndicatorCount(count) || typeof from !== 'string' || !isCivilDate(from)) return null;
+  const to = metrics?.eventsPeriod?.to;
+  if (!isIndicatorCount(count) || typeof from !== 'string' || typeof to !== 'string' || !isCivilDate(from) || !isCivilDate(to)) return null;
   return `${count} en ${FRENCH_MONTHS[Number(from.slice(5, 7)) - 1]}`;
 }
 
