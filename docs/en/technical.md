@@ -119,6 +119,7 @@ These data paths are exposed at the same origin through the proxy; Next.js pages
 | GET | `/health` | — | 2XX, no typed body |
 | GET | `/check_apis` | — | 2XX, no typed body |
 | GET | `/dashboard/bootstrap` | — | 2XX `DashboardBootstrap` |
+| PUT | `/dashboard/onboarding` | — | 2XX (204) |
 
 ### Pages and local adapters
 

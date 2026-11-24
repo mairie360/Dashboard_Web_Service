@@ -10,6 +10,7 @@ import { DashboardGrid } from './components/DashboardGrid';
 import { DashboardHeader } from '../DashboardHeader';
 import { DashboardLoading } from './components/DashboardLoading';
 import { DashboardNotices } from './components/DashboardNotices';
+import { DashboardOnboarding } from './components/DashboardOnboarding';
 import { useDashboardData } from './use-dashboard-data';
 
 /** The Messagerie badge (MAIR-1106): the unread count, « 99+ » beyond, nothing at 0 or when Message API is unavailable. */
@@ -80,6 +81,8 @@ export default function DashboardPage({ initialData, renderedAt }: { initialData
           {!data || !view ? <DashboardLoading loading={loading} failed={Boolean(error)} /> : null}
           {data || loading ? <DashboardGrid data={data} view={view} /> : null}
         </section>
+        {/* The welcome tour, until the user finished or skipped it. */}
+        <DashboardOnboarding onboardingCompleted={data?.onboardingCompleted} />
       </ToastProvider>
     </AccessibleShell>
   );

@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "bff_dashboard",
-    "version": "0.0.0-dev.071dc1af28b117e619a2e15d48ad2f7cc74b0e32"
+    "version": "0.0.0-dev.e08ec9aff5dc40b181ef3d3a703c69400e4d2e5f"
   },
   "paths": {
     "/health": {
@@ -48,6 +48,17 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/dashboard/onboarding": {
+      "put": {
+        "operationId": "putDashboardOnboarding",
+        "parameters": [],
+        "responses": {
+          "2XX": {
+            "description": "Succès (seul statut typé par orval)"
           }
         }
       }
@@ -163,6 +174,12 @@
               "null"
             ],
             "minimum": 0
+          },
+          "onboardingCompleted": {
+            "type": [
+              "boolean",
+              "null"
+            ]
           }
         },
         "required": [
@@ -176,7 +193,8 @@
           "userRole",
           "communeName",
           "trainings",
-          "unreadMessages"
+          "unreadMessages",
+          "onboardingCompleted"
         ]
       },
       "DashboardBootstrapEventsItem": {

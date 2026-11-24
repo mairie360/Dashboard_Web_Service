@@ -7,8 +7,9 @@ import { check, sleep, group } from 'k6';
 // the /dashboard/bootstrap aggregation the page fetches, relayed by the same-origin proxy
 // to BFF Dashboard (fan-out User / Project / Calendar). Authentication goes through the accessToken
 // cookie, like in the browser: the proxy turns it into Authorization: Bearer for the BFF.
-// The pinned BFF Dashboard contract only declares GET operations, so there is no write scenario
-// here (MAIR-516); the other fronts exercise their write routes.
+// Besides its reads, the pinned BFF Dashboard contract declares one idempotent write, PUT
+// /dashboard/onboarding (the welcome tour is done), sent once per account by the page: there is no
+// write scenario here (MAIR-516); the other fronts exercise their write routes.
 // ---------------------------------------------------------------------------
 
 const BASE_URL = __ENV.BASE_URL || 'http://localhost:5000';
