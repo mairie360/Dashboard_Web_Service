@@ -1,3 +1,4 @@
+import { generateKeyPairSync, sign } from 'node:crypto';
 import { expect, test } from '@playwright/test';
 import { cookieHeader, mintAccessToken, signInAs, users } from './support/session';
 
@@ -57,10 +58,13 @@ test('an agent outside the project does not see it in their widgets', async ({ p
 });
 
 test('a forged session is refused by the BFF', async ({ request }) => {
-  // Signed with another key: the front relays it, BFF Dashboard must refuse it.
+  // Core's `kid` and claims, but signed with another Ed25519 key: the front relays it, BFF Dashboard
+  // must refuse it.
   const [header, payload] = mintAccessToken(users.manager).split('.');
+  const { privateKey } = generateKeyPairSync('ed25519');
+  const signature = sign(null, Buffer.from(`${header}.${payload}`), privateKey).toString('base64url');
   const response = await request.get('/dashboard/bootstrap', {
-    headers: { Cookie: `accessToken=${header}.${payload}.c2lnbmF0dXJlLWZvcmdlZQ`, Accept: 'application/json' },
+    headers: { Cookie: `accessToken=${header}.${payload}.${signature}`, Accept: 'application/json' },
     maxRedirects: 0,
   });
   expect(response.status()).toBe(401);
