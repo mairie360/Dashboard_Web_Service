@@ -47,8 +47,9 @@ describe("Dashboard page", () => {
       metrics: { totalProjects: 12, eventsThisMonth: 7, eventsPeriod: { from: "2026-11-01", to: "2026-11-30" } },
     }));
     await openDashboard();
-    expect(screen.getByRole("region", { name: "Projets récents · 12 projets" })).toBeTruthy();
-    expect(screen.getByRole("region", { name: "Événements à venir · 7 en novembre" })).toBeTruthy();
+    // jsdom has no layout: its accessible name joins the title and the caption without the space a browser keeps.
+    expect(screen.getByRole("region", { name: /^Projets récents ?· 12 projets$/ }).querySelector("h2").textContent).toBe("Projets récents · 12 projets");
+    expect(screen.getByRole("region", { name: /^Événements à venir ?· 7 en novembre$/ }).querySelector("h2").textContent).toBe("Événements à venir · 7 en novembre");
   });
 
   it("MAIR-1177 keeps the titles alone when the BFF has no count", async () => {

@@ -23,8 +23,10 @@ describe('DashboardPanel (lib Panel, MAIR-608)', () => {
   });
   it('MAIR-1177 shows the indicator after the title in a caption, and the title alone without it or while loading', async () => {
     const { container, rerender } = render(<DashboardPanel title="Projets récents" indicator="12 projets" action="Voir les projets" kind="projects" empty={false} unavailable={false}><p>Lignes</p></DashboardPanel>);
-    const heading = screen.getByRole('heading', { name: 'Projets récents · 12 projets' });
-    expect(screen.getByRole('region', { name: 'Projets récents · 12 projets' })).toBeInTheDocument();
+    // jsdom has no layout: its accessible name joins the title and the caption without the space a browser keeps.
+    const heading = screen.getByRole('heading', { name: /^Projets récents ?· 12 projets$/ });
+    expect(heading.textContent).toBe('Projets récents · 12 projets');
+    expect(screen.getByRole('region', { name: /^Projets récents ?· 12 projets$/ })).toBeInTheDocument();
     expect(within(heading).getByText('Projets récents', { exact: true })).toHaveClass('dashboard-panel-title');
     expect(heading.querySelector('.dashboard-panel-indicator')).toHaveTextContent('· 12 projets');
     expect((await axe(container)).violations).toEqual([]);
