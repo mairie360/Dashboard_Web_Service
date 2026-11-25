@@ -22,6 +22,13 @@ ON CONFLICT (id) DO NOTHING;
 INSERT INTO user_roles (user_id, role_id)
 SELECT 3, r.id FROM roles r WHERE lower(r.name) = 'user'
 ON CONFLICT DO NOTHING;
+-- Every project needs a group since Projects V2: the end-to-end journeys create theirs in group 1,
+-- of which user 2 is the owner and only member.
+INSERT INTO groups (id, owner_id, name, description)
+VALUES (1, 2, 'End-to-end journeys', 'Projects created by the end-to-end journeys')
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO group_members (group_id, user_id) VALUES (1, 2) ON CONFLICT DO NOTHING;
+SELECT setval(pg_get_serial_sequence('groups', 'id'), GREATEST((SELECT MAX(id) FROM groups), 1));
 -- The users above carry explicit ids: move the id sequence past them, or the first account a
 -- journey creates (Administrator) collides with user 2 (MAIR-603).
 SELECT setval(pg_get_serial_sequence('users', 'id'), (SELECT MAX(id) FROM users));

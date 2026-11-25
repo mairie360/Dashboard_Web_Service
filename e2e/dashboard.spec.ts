@@ -18,7 +18,7 @@ test.beforeAll(async ({ playwright }) => {
     baseURL: PROJECT_API,
     extraHTTPHeaders: { Authorization: `Bearer ${mintAccessToken(users.manager)}`, Accept: 'application/json' },
   });
-  const project = await api.post('/api/v1/projects/', { data: { name: projectName, description: 'Projet du parcours de bout en bout.' } });
+  const project = await api.post('/api/v1/projects/', { data: { name: projectName, description: 'Projet du parcours de bout en bout.', group_id: 1 } });
   expect(project.ok(), await project.text()).toBeTruthy();
   const { project_id: projectId } = await project.json();
   const due = new Date(Date.now() + 2 * 24 * 3600 * 1000).toISOString();
