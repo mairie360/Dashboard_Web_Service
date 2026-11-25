@@ -96,6 +96,8 @@ states:
     route: /
     steps:
       - wait_for: { text: Bienvenue sur votre espace Mairie360. }
+      # The welcome tour (MAIR-1176) opens over the page for an account that has not done it.
+      - click: { role: button, name: Passer }
       - click: { role: button, name: Perf }
       - wait_for: { text: Déconnexion }
   # No anonymous state: since MAIR-404 the middleware sends a page without a session to Login (or
