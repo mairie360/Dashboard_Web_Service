@@ -89,6 +89,9 @@ Figma : [index des features](https://www.figma.com/design/U4LxYJ8TDpZxqB8BmpBuRh
 - Entrées du bandeau : celles de la lib, « E-learning » à la place de « Formation » ; Administration pour les seuls
   administrateurs, pas de Workflows (MAIR-1106). Plus de pied de page : lib-components 2.3 l'a retiré de la base de
   page (MAIR-1092). Le bloc commune du Header est masqué tant que le bootstrap ne donne pas la commune.
+- Bandeau commun (lib-components 2.5.1) : même en-tête et même navigation que les autres fronts ; le shell reçoit la
+  commune par sa seule prop `commune`. Le contenu est à 24 px des bords et à 16 px du bas, la marge de 28 px de
+  l'accueil servant d'écart sous l'en-tête, comme dans la maquette.
 - Tuiles (MAIR-1107, F1) : grille 2 × 2 de tuiles identiques qui remplit la hauteur sous l'accueil dès 900 px (une
   colonne en dessous, la page défile plutôt que de couper le contenu) ; liens « Voir les… » sans flèche ; états vide
   et indisponible centrés.

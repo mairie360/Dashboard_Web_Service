@@ -89,6 +89,9 @@ Figma: [feature index](https://www.figma.com/design/U4LxYJ8TDpZxqB8BmpBuRh?node-
 - Navigation entries: the lib defaults with « E-learning » instead of « Formation »; Administration only for
   administrators, no Workflows (MAIR-1106). No footer: lib-components 2.3 removed it from the page base (MAIR-1092). The Header's commune block is hidden until
   the bootstrap gives the commune.
+- Shared header (lib-components 2.5.1): the same header and navigation as every other front; the shell gets the
+  commune through its single `commune` prop. The content sits 24 px from the sides and 16 px above the bottom, the
+  welcome's 28 px margin being the gap under the header, as in the mockup.
 - Tiles (MAIR-1107, F1): a 2 × 2 grid of equal tiles that fills the height under the welcome from 900 px (one column
   below, the page scrolling rather than cutting content); the « Voir les… » links have no arrow; empty and unavailable
   states are centred.

@@ -32,9 +32,10 @@ body {
   font-family: var(--font-geist-sans), system-ui, sans-serif;
 }
 
-/* Keep the reference's py-6 on desktop too; do not alter other shell consumers. */
+/* Mockup `F1 · Chargement du tableau de bord`: the content sits 24 px from the sides and 16 px above the bottom (the
+   collapsible shell of lib 2.5 gives `main` no padding of its own); the welcome's 28 px margin is the top gap. */
 .dashboard-app-shell main {
-  padding-block: 1.5rem;
+  padding: 0 24px 16px;
   /* Match the opaque reference content, including its header-shadow painting. */
   background-color: var(--mairie-background);
 }
@@ -115,7 +116,7 @@ button.dashboard-row:disabled { cursor: default; }
 
 /* Companion of the selected Settings direction (MAIR-544/546). */
 .dashboard-app-shell { --dashboard-background: var(--mairie-background); --dashboard-surface: var(--mairie-surface); --dashboard-text: var(--mairie-text); --dashboard-muted: var(--mairie-muted); --dashboard-border: var(--mairie-border); --dashboard-accent: var(--mairie-accent); }
-.dashboard-app-shell main { padding-block: 32px; background: var(--dashboard-background); }
+.dashboard-app-shell main { background: var(--dashboard-background); }
 .dashboard-content-grid > .dashboard-panel { min-width: 0; box-shadow: 0 2px 12px rgb(23 32 51 / 5%); }
 .dashboard-panel-action { flex-shrink: 0; color: var(--mairie-accent); }
 .dashboard-panel-action:disabled { opacity: 0.6; cursor: not-allowed; }

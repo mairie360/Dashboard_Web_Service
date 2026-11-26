@@ -289,8 +289,10 @@ test('the shared sidebar opens the configured Settings front without exposing an
   // MAIR-1106: Agent entries, « E-learning » instead of « Formation », no Workflows.
   assert.deepEqual(navigation.sidebarProps.items.map((item) => item.label), ['Tableau de bord', 'Projets', 'Messagerie', 'E-learning', 'Calendrier', 'Administration', 'Paramètres']);
   assert.doesNotMatch(html, />Formation<|Workflows/);
-  // MAIR-883: the commune of the bootstrap, never the lib's placeholder name.
-  assert.deepEqual(view.props('AppShell').headerProps, { showCommune: true, commune: 'Saint-Pierre' });
+  // MAIR-883 / MAIR-1223: the commune of the bootstrap through the shell's single `commune` prop, shown by the shared
+  // header and navigation, never the lib's placeholder name.
+  assert.equal(view.props('AppShell').commune, 'Saint-Pierre');
+  assert.equal(view.props('Header').commune, 'Saint-Pierre');
   assert.equal(navigation.sidebarProps.brandLabel, 'Saint-Pierre');
   assert.doesNotMatch(html, /Saint-André/);
   await view.click((_props, text, tag) => tag === 'button' && /Paramètres/.test(text));
@@ -520,7 +522,8 @@ test('MAIR-889: the user menu gets the full name and the role of the bootstrap',
 test('MAIR-889 / MAIR-883: without role nor commune, no empty label and no placeholder commune', async () => {
   await renderLoadedPage(bootstrapResponse({ userLastName: '', userRole: null, communeName: null }));
   assert.deepEqual(view.props('AppShell').user, { first_name: 'Alice' });
-  assert.deepEqual(view.props('AppShell').headerProps, { showCommune: false });
+  assert.equal(view.props('AppShell').commune, undefined);
+  assert.equal(view.props('Header').showCommune, false);
   assert.equal(view.props('DesktopNavigation').sidebarProps.brandLabel, undefined);
   assert.doesNotMatch(view.html, /Saint-André|Commune de/);
 });

@@ -66,10 +66,9 @@ export default function DashboardPage({ initialData, renderedAt }: { initialData
       hrefs={getActiveFrontHrefs()}
       // MAIR-889: « Prénom Nom · Rôle » in the user menu; no empty role label.
       user={dashboardUser(data)}
-      // MAIR-883: « Commune de <nom> » in the expanded navigation and the Header's « Mairie de » block, only when
-      // the instance names its commune (lib 2.3 otherwise shows a placeholder name).
-      sidebarProps={{ items: dashboardSidebarItems(dashboardUnreadCount(data)), ...(communeName ? { brandLabel: communeName } : {}) }}
-      headerProps={communeName ? { showCommune: true, commune: communeName } : { showCommune: false }}
+      // The shared header and navigation name the commune of the instance; without one, neither shows a commune.
+      commune={communeName}
+      sidebarProps={{ items: dashboardSidebarItems(dashboardUnreadCount(data)) }}
       // MAIR-919: the lib Header confirms first; the returned promise keeps « Se déconnecter » loading.
       onLogout={() => logoutAndRedirect().catch(() => setLogoutError("La déconnexion est temporairement indisponible."))}
     >

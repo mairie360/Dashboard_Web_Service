@@ -98,12 +98,13 @@ describe('Dashboard styles on the actual page and published components', () => {
     expect(getDashboardBootstrap).toHaveBeenCalledTimes(1);
   });
 
-  it('applies the reference inset and opaque main surface to the page actually mounted in the shell', async () => {
+  it('MAIR-1223 applies the mockup inset and opaque main surface to the page actually mounted in the shell', async () => {
     const heading = await openDashboard();
     const main = heading.closest('main');
     expect(main).not.toBeNull();
     const computed = getComputedStyle(main);
-    expect(computed.paddingBlock).toBe('32px');
+    // 24 px from the sides, 16 px above the bottom; the welcome's 28 px margin is the gap under the header.
+    expect([computed.paddingTop, computed.paddingRight, computed.paddingBottom, computed.paddingLeft]).toEqual(['0px', '24px', '16px', '24px']);
     // MAIR-1106: no footer on the lib 2.3 page base.
     expect(screen.queryByRole('contentinfo')).toBeNull();
   });
