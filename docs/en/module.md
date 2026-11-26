@@ -17,7 +17,7 @@ Business domain: Dashboard.
 - Display project and task deadlines as zero-padded DD/MM/YYYY, matching the local reference. Date-only values retain their UTC day; ISO instants retain the existing Europe/Paris day independently of the host timezone. Missing task deadlines and unrecognized values keep their existing fallbacks; event formatting is unchanged.
 - Impossible civil dates and ambiguous free-text deadlines remain verbatim rather than being guessed or rolled into another day. Event dates and HH:mm clocks are validated before display; valid returned events remain selectable. Unusable events are announced separately from confirmed empty collections, with an explicit bootstrap GET recovery. The existing UTC/Paris deadline and local event-clock policies are unchanged.
 - Use the reference's default 17px root scale and system font, including the shared rem-based header (68px by default). Standard small-text tokens remain unchanged; this does not simulate saved appearance preferences.
-- Keep the reference's 1.5rem vertical content inset at desktop and mobile widths. This Dashboard-only shell class does not change shared library defaults or other frontends.
+- Keep the mockup's content spacing at desktop and mobile widths: 24 px on the sides, 16 px at the bottom and the welcome's 28 px margin as the gap under the header. This Dashboard-only shell class does not change shared library defaults or other frontends.
 - Retain the reference sidebar's 44px minimum navigation rows and lateral shadow through Dashboard-only CSS. The mobile sidebar remains below the published Close button; this does not copy prototype navigation or invent roles, notifications or version data (MAIR-182 / issue #32).
 - Keep the reference's opaque `#f5f3f0` content background so the header boundary paints consistently. Do not alter the shared header's shadow token or stacking to compensate for transparent content (MAIR-182 / issue #32).
 - Report temporarily unavailable sources.
@@ -89,6 +89,9 @@ Figma: [feature index](https://www.figma.com/design/U4LxYJ8TDpZxqB8BmpBuRh?node-
 - Navigation entries: the lib defaults with « E-learning » instead of « Formation »; Administration only for
   administrators, no Workflows (MAIR-1106). No footer: lib-components 2.3 removed it from the page base (MAIR-1092). The Header's commune block is hidden until
   the bootstrap gives the commune.
+- Shared header (lib-components 2.5.1): the same header and navigation as every other front; the shell gets the
+  commune through its single `commune` prop. The content sits 24 px from the sides and 16 px above the bottom, the
+  welcome's 28 px margin being the gap under the header, as in the mockup.
 - Tiles (MAIR-1107, F1): a 2 × 2 grid of equal tiles that fills the height under the welcome from 900 px (one column
   below, the page scrolling rather than cutting content); the « Voir les… » links have no arrow; empty and unavailable
   states are centred.

@@ -63,3 +63,20 @@ describe('DashboardPage', () => {
     expect(dashboardUnreadCount(null)).toBeNull();
   });
 });
+
+describe('MAIR-1223 shared header', () => {
+  const bootstrap = (communeName: string | null) => ({ userFirstName: 'Alice', userLastName: 'Martin', userRole: 'Agent', communeName, projects: [], tasks: [], events: [], trainings: [], metrics: { totalProjects: 0, eventsThisMonth: 0, eventsPeriod: { from: '2026-11-01', to: '2026-11-30' } }, sources: { projects: 'available', tasks: 'available', calendar: 'available', trainings: 'available', messages: 'available' }, unreadMessages: 0, onboardingCompleted: true });
+
+  it('names the commune of the bootstrap in the header and the navigation, never the library sample', () => {
+    const { container } = render(<DashboardPage initialData={bootstrap('Saint-Pierre') as never} />);
+    expect(container.querySelector('header')?.textContent).toContain('Saint-Pierre');
+    expect(container.querySelector('aside')?.textContent).toContain('Saint-Pierre');
+    expect(container.textContent).not.toContain('Saint-André');
+  });
+
+  it('shows no commune at all when the instance names none', () => {
+    const { container } = render(<DashboardPage initialData={bootstrap(null) as never} />);
+    expect(container.querySelector('header')?.textContent).not.toMatch(/Mairie de|Saint-/);
+    expect(container.querySelector('aside')?.textContent).not.toMatch(/Commune de|Saint-/);
+  });
+});

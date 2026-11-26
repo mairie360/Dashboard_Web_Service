@@ -20,7 +20,7 @@ Domaine fonctionnel: Tableau de bord.
 - Échéances projet et tâche en JJ/MM/AAAA avec zéros initiaux, comme la référence locale. Les dates seules gardent leur jour UTC ; les instants ISO gardent le jour Europe/Paris existant, indépendamment du fuseau machine. Les tâches sans échéance et les valeurs non reconnues conservent leurs traitements existants ; le format des événements est inchangé.
 - Les dates civiles impossibles et les échéances ambiguës restent telles que reçues, sans jour deviné ni report automatique. Dates d’événement et heures HH:mm sont validées avant affichage ; les événements valides restent sélectionnables. Les événements illisibles sont signalés distinctement des collections vides confirmées, avec reprise explicite par GET bootstrap. Règles UTC/Paris des échéances et heure locale des événements inchangées.
 - Reprise de l’échelle racine de 17px et de la police système par défaut de la référence, y compris le header partagé en rem (68px par défaut). Les tailles standard des petits textes restent inchangées ; aucune préférence d’apparence sauvegardée n’est simulée.
-- Marge intérieure verticale de 1,5rem conservée sur desktop et mobile, comme la référence. La classe de shell propre à Dashboard ne change ni les valeurs par défaut de la bibliothèque ni les autres fronts.
+- Espacement du contenu de la maquette sur desktop et mobile : 24 px sur les côtés, 16 px en bas et la marge de 28 px de l'accueil comme écart sous le header. La classe de shell propre à Dashboard ne change ni les valeurs par défaut de la bibliothèque ni les autres fronts.
 - Lignes de navigation de 44px minimum et ombre latérale de la sidebar de référence, avec du CSS propre à Dashboard. La sidebar mobile reste sous le bouton Fermer publié ; aucune navigation du prototype, rôle, notification ou donnée de version fictive n'est recopié (MAIR-182 / issue #32).
 - Fond opaque du contenu `#f5f3f0` conservé pour retrouver la peinture de la frontière du header de référence. Ni l'ombre partagée du header ni son empilement ne sont modifiés pour compenser un contenu transparent (MAIR-182 / issue #32).
 - Signalement des sources temporairement indisponibles.
@@ -89,6 +89,9 @@ Figma : [index des features](https://www.figma.com/design/U4LxYJ8TDpZxqB8BmpBuRh
 - Entrées du bandeau : celles de la lib, « E-learning » à la place de « Formation » ; Administration pour les seuls
   administrateurs, pas de Workflows (MAIR-1106). Plus de pied de page : lib-components 2.3 l'a retiré de la base de
   page (MAIR-1092). Le bloc commune du Header est masqué tant que le bootstrap ne donne pas la commune.
+- Bandeau commun (lib-components 2.5.1) : même en-tête et même navigation que les autres fronts ; le shell reçoit la
+  commune par sa seule prop `commune`. Le contenu est à 24 px des bords et à 16 px du bas, la marge de 28 px de
+  l'accueil servant d'écart sous l'en-tête, comme dans la maquette.
 - Tuiles (MAIR-1107, F1) : grille 2 × 2 de tuiles identiques qui remplit la hauteur sous l'accueil dès 900 px (une
   colonne en dessous, la page défile plutôt que de couper le contenu) ; liens « Voir les… » sans flèche ; états vide
   et indisponible centrés.
