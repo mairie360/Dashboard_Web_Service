@@ -14,7 +14,7 @@ Business domain: Dashboard.
 
 - Display aggregated `/dashboard/bootstrap` data.
 - Welcome tour: on the first visit (`onboardingCompleted === false`) the lib `Onboarding` opens as a modal with its five slides (« Bienvenue dans Mairie360 » … « Formez-vous à votre rythme », step counter « 1 sur 5 »). « Commencer », « Passer » or Escape records it with `PUT /dashboard/onboarding` and closes it; it never shows again once recorded, nor when the BFF cannot tell (`null`).
-- Display project and task deadlines as zero-padded DD/MM/YYYY, matching the local reference. Date-only values retain their UTC day; ISO instants retain the existing Europe/Paris day independently of the host timezone. Missing task deadlines and unrecognized values keep their existing fallbacks; event formatting is unchanged.
+- Display project, task and training deadlines as « 15 déc. 2026 » (day, abbreviated month, year), matching the reference screen. Date-only values retain their UTC day; ISO instants retain the existing Europe/Paris day independently of the host timezone. Missing task deadlines and unrecognized values keep their existing fallbacks; event formatting is unchanged.
 - Impossible civil dates and ambiguous free-text deadlines remain verbatim rather than being guessed or rolled into another day. Event dates and HH:mm clocks are validated before display; valid returned events remain selectable. Unusable events are announced separately from confirmed empty collections, with an explicit bootstrap GET recovery. The existing UTC/Paris deadline and local event-clock policies are unchanged.
 - Use the reference's default 17px root scale and system font, including the shared rem-based header (68px by default). Standard small-text tokens remain unchanged; this does not simulate saved appearance preferences.
 - Keep the mockup's content spacing at desktop and mobile widths: 24 px on the sides, 16 px at the bottom and the welcome's 28 px margin as the gap under the header. This Dashboard-only shell class does not change shared library defaults or other frontends.
@@ -92,7 +92,7 @@ Figma: [feature index](https://www.figma.com/design/U4LxYJ8TDpZxqB8BmpBuRh?node-
 - Shared header (lib-components 2.5.1): the same header and navigation as every other front; the shell gets the
   commune through its single `commune` prop. The content sits 24 px from the sides and 16 px above the bottom, the
   welcome's 28 px margin being the gap under the header, as in the mockup.
-- Global search (lib-components 2.7.0): the header search field searches every module. After a short pause on 2
+- Global search (lib-components 2.7.0, now 2.8.0): the header search field searches every module. After a short pause on 2
   characters or more it calls the same-origin `GET /search`, which the proxy forwards to BFF_Dashboard, and lists the
   results by module (Agents, Projets, Calendrier, Messagerie, E-learning) with a link into the module that opens the
   target (`?project=7&task=9`, `?date=…&event=4`, `?conversation=…&message=…`, `?course=…`); Administration results
@@ -100,15 +100,15 @@ Figma: [feature index](https://www.figma.com/design/U4LxYJ8TDpZxqB8BmpBuRh?node-
 - Tiles (MAIR-1107, F1): a 2 × 2 grid of equal tiles that fills the height under the welcome from 900 px (one column
   below, the page scrolling rather than cutting content); the « Voir les… » links have no arrow; empty and unavailable
   states are centred.
-- Header indicators: « Projets récents · 12 projets » (`metrics.totalProjects`, every visible project, like the
-  Projects list) and « Événements à venir · 7 en novembre » (`metrics.eventsThisMonth`, the occurrences of the current
-  Europe/Paris month like the Calendar month view, the month named in French from `metrics.eventsPeriod.from`), as a lib
-  `Caption` after the title. A `null` count (its API unavailable) or the loading state leaves the title alone.
+- Tile titles stand alone (« Projets récents », « Événements à venir »): no count after them, although the bootstrap
+  still carries `metrics.totalProjects` and `metrics.eventsThisMonth`. The « Voir les… » header links are underlined
+  text links (3 px offset, the underline thickens on hover). The content takes the full width of the shell.
 - Compact rows (MAIR-907, F1/F5): at most 3 per tile (first projects and tasks, soonest events), no background, a
   `--mairie-border` rule between rows, 10 px inset, `--mairie-surface-raised` on hover, `--mairie-accent` focus ring.
-  Projects: name and status, then « Échéance : … », the progress track and its percentage; tasks: title and priority,
-  then the deadline (no coloured dot any more); events: date badge (bold day, short month, `--mairie-module-calendar`
-  top edge), title, « heure · lieu ».
+  Projects: name and status, then a calendar icon with the deadline (« 15 déc. 2026 »), the progress track over the
+  rest of the line and its percentage on the right (trainings use the same line); tasks: title and priority, then the
+  deadline (no coloured dot any more); events: date badge (bold day without leading zero, lowercase abbreviated month
+  « déc. », `--mairie-module-calendar` top edge), title, « heure · lieu ».
 - Loading (MAIR-899, F1): the final page is drawn at once (welcome, tiles with their titles and links); each tile shows
   3 skeleton rows the size of the real ones, « Chargement du tableau de bord… » is announced to screen readers only,
   and the shimmer stops under `prefers-reduced-motion`.

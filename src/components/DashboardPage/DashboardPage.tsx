@@ -82,7 +82,8 @@ export default function DashboardPage({ initialData, renderedAt }: { initialData
     >
       <ToastProvider regionLabel="Notifications du tableau de bord" placement="bottom-end">
         <DashboardNotices error={error} logoutError={logoutError} loading={loading} hasUnavailableSource={Boolean(view?.hasUnavailableSource)} unusableEventCount={view?.unusableEventCount ?? 0} hasData={Boolean(data)} onReload={reload} />
-        <section className="dashboard-page mx-auto max-w-[1520px]">
+        {/* The content takes the full width of the shell, as in the reference screen. */}
+        <section className="dashboard-page">
           {/* MAIR-899: the final page is drawn at once; only the rows wait for the data. */}
           <DashboardHeader userFirstName={userFirstName} now={now} />
           {!data || !view ? <DashboardLoading loading={loading} failed={Boolean(error)} /> : null}

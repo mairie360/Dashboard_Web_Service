@@ -1,12 +1,11 @@
 "use client";
 import type { ReactNode } from "react";
-import { Caption, DataState, LinkButton, Panel, WarningAlert } from "@mairie360/lib-components/primitives";
+import { DataState, LinkButton, Panel, WarningAlert } from "@mairie360/lib-components/primitives";
 
 export type DashboardPanelKind = "projects" | "tasks" | "events" | "trainings";
 export interface DashboardPanelProps {
+  /** The tile title alone: no count after it, as in the reference screen. */
   title: string;
-  /** Count shown after the title (« 12 projets »); the title stays alone without it. */
-  indicator?: string | null;
   /** Label of the destination link (« Voir les projets »). */
   action: string;
   /** Destination; without it the action renders disabled. */
@@ -36,14 +35,11 @@ export const DashboardPanelAction = ({ label, href }: { label: string; href?: st
  * One dashboard tile on the lib `Panel` (Figma Base/Panel): header with title and module link,
  * then the compact rows, or the centred empty / unavailable `DataState` (MAIR-1107).
  */
-export default function DashboardPanel({ title, indicator, action, href, kind, empty, unavailable, loading = false, children, className = "" }: DashboardPanelProps) {
+export default function DashboardPanel({ title, action, href, kind, empty, unavailable, loading = false, children, className = "" }: DashboardPanelProps) {
   const messages = panelMessages[kind];
   const showState = !loading && empty;
-  const heading = !loading && indicator
-    ? <><span className="dashboard-panel-title">{title}</span><Caption as="span" className="dashboard-panel-indicator"> · {indicator}</Caption></>
-    : title;
   return (
-    <Panel title={heading} action={<DashboardPanelAction label={action} href={href} />} data-loading={loading || undefined} className={`dashboard-panel ${className}`.trim()} data-kind={kind} data-empty={showState || undefined} data-unavailable={(!loading && unavailable) || undefined}>
+    <Panel title={title} action={<DashboardPanelAction label={action} href={href} />} data-loading={loading || undefined} className={`dashboard-panel ${className}`.trim()} data-kind={kind} data-empty={showState || undefined} data-unavailable={(!loading && unavailable) || undefined}>
       {!loading && unavailable && !empty ? <WarningAlert size="s" title={messages.unavailable} className="dashboard-source-notice mb-4" /> : null}
       {showState
         ? <DataState state={unavailable ? "unavailable" : "empty"} size="s" title={unavailable ? messages.unavailable : messages.empty} description={null} className="dashboard-empty-state" />

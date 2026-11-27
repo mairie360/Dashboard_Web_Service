@@ -1,5 +1,5 @@
 "use client";
-import { CalendarDays } from "lucide-react";
+import { CalendarClock } from "lucide-react";
 import { BodySmall, Icon, ProgressMeter, StatusBadge, Text } from "@mairie360/lib-components/primitives";
 
 import type { DashboardProject } from '@/components/dashboard-types';
@@ -11,8 +11,9 @@ export interface ProjectRowProps {
 }
 
 /**
- * One recent project as a compact row (Figma Dashboard/ProjectRow, MAIR-907): name and status pill,
- * then the deadline, the progress track and its percentage on the same line.
+ * One recent project as a compact row (Figma Dashboard/ProjectRow): name and status pill, then the
+ * deadline (« 15 déc. 2026 » after a calendar icon), the progress track over the rest of the line and its
+ * percentage on the right.
  */
 export const ProjectRow = ({ project, onSelect }: ProjectRowProps) => {
   const progress = clampProgress(project.progress);
@@ -22,8 +23,8 @@ export const ProjectRow = ({ project, onSelect }: ProjectRowProps) => {
         <Text weight="semibold" truncate>{project.name}</Text>
         <StatusBadge status={projectStatusBadge[project.status]} label={projectStatusLabels[project.status]} size="s" />
       </span>
-      <span className="dashboard-row-line">
-        <BodySmall as="span" tone="muted" className="dashboard-row-meta"><Icon icon={CalendarDays} size="xs" />Échéance : {project.dueDate}</BodySmall>
+      <span className="dashboard-row-line dashboard-row-progress-line">
+        <BodySmall as="span" tone="muted" className="dashboard-row-meta"><Icon icon={CalendarClock} size="xs" /><span className="sr-only">Échéance : </span>{project.dueDate}</BodySmall>
         <ProgressMeter label="Progression" value={progress} size="s" tone={progress >= 100 ? "success" : "primary"} className="dashboard-row-progress" />
       </span>
     </button>

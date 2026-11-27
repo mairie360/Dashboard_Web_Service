@@ -151,13 +151,38 @@ test('optional event fields and unrecognized display text remain usable bootstra
   assert.deepEqual(upstreamCalls(), ['GET /dashboard/bootstrap']);
 });
 
-test('MAIR-1177: the tile headers show the projects count and the events of the month from the contract', async () => {
+test('MAIR-1255 business journey: the dashboard opens, each panel shows its items under a bare title and links to its module', async () => {
+  setBrowserFrontUrls({
+    LOGIN_FRONT_URL: 'https://login.test.example/', CALENDAR_FRONT_URL: 'https://calendar.test.example/',
+    PROJECT_FRONT_URL: 'https://project.test.example/', ELEARNING_FRONT_URL: 'https://elearning.test.example/',
+  });
   const html = await renderLoadedPage();
-  assert.match(view.text(), /Projets récents · 17 projets/);
-  assert.match(view.text(), /Événements à venir · 2 en septembre/);
-  assert.match(html, /<span class="dashboard-panel-title">Projets récents<\/span>/);
-  assert.equal((html.match(/class="[^"]*dashboard-panel-indicator[^"]*"/g) || []).length, 2);
-  assert.doesNotMatch(view.text(), /Tâches en attente ·|Mes formations ·/);
+  const text = view.text();
+  // The four panel titles stand alone: no « · 17 projets » nor « · 2 en septembre » although the BFF sent both counts.
+  for (const title of ['Projets récents', 'Tâches en attente', 'Événements à venir', 'Mes formations']) {
+    assert.match(html, new RegExp(`>${title}</h2>`), `${title} is a bare heading`);
+  }
+  assert.doesNotMatch(text, /Projets récents ·|Événements à venir ·|17 projets|en septembre/);
+  assert.doesNotMatch(html, /dashboard-panel-indicator/);
+  // Each panel shows what the BFF returned, dates written « 1 déc. 2026 », never « 01/12/2026 ».
+  for (const expected of ['Budget participatif', '1 déc. 2026', 'Rénovation de la médiathèque', '30 juin 2026',
+    'Validation', 'Échéance : 1 nov. 2026', 'Conseil municipal', 'Permanence', 'Accueil du public', 'Protection des données']) {
+    assert.ok(text.includes(expected), `${expected} is rendered`);
+  }
+  assert.doesNotMatch(text, /\d{2}\/\d{2}\/\d{4}/);
+  // Event date block: day without a leading zero, then the lowercase abbreviated month.
+  assert.match(html, /class="dashboard-event-date"><span[^>]*>18<\/span><span[^>]*dashboard-event-month[^>]*>sept\.<\/span>/);
+  // Each panel links to its module.
+  const actions = [...html.matchAll(/<a\b[^>]*class="[^"]*dashboard-panel-action[^"]*"[^>]*>([^<]*)<\/a>/g)]
+    .map(([tag, label]) => [label, /href="([^"]*)"/.exec(tag)[1]]);
+  assert.deepEqual(actions, [
+    ['Voir les projets', 'https://project.test.example/'],
+    ['Voir les tâches', 'https://project.test.example/'],
+    ['Ouvrir le calendrier', 'https://calendar.test.example/'],
+    ['Voir les formations', 'https://elearning.test.example/'],
+  ]);
+  // The content is not capped to a centred column any more.
+  assert.doesNotMatch(html, /max-w-\[1520px\]/);
   assert.deepEqual(upstreamCalls(), ['GET /dashboard/bootstrap']);
 });
 
@@ -198,9 +223,9 @@ test('the first pass renders the loading state, the next one the data of GET /da
   }
   assert.deepEqual(view.props('DashboardRecentProjects').projects.map((project) => project.status), ['in-progress', 'completed']);
   assert.equal(view.find('DashboardQuickActions').length, 0);
-  assert.match(view.text(), /01\/12\/2026/);
-  assert.match(view.text(), /30\/06\/2026/);
-  assert.match(view.text(), /01\/11\/2026/);
+  assert.match(view.text(), /1 déc\. 2026/);
+  assert.match(view.text(), /30 juin 2026/);
+  assert.match(view.text(), /1 nov\. 2026/);
   assert.match(view.text(), /Sans échéance/);
 });
 
@@ -230,7 +255,7 @@ test('unrecognized project/task deadlines stay verbatim rather than becoming inv
   await renderLoadedPage(body);
   assert.equal(view.props('DashboardRecentProjects').projects[0].dueDate, '3');
   assert.equal(view.props('DashboardPendingTasks').tasks[0].dueLabel, '2026-02-31');
-  assert.doesNotMatch(view.text(), /2001|03\/03\/2026/);
+  assert.doesNotMatch(view.text(), /2001|3 mars 2026/);
   assert.deepEqual(upstreamCalls(), ['GET /dashboard/bootstrap']);
 });
 

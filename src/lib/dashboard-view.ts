@@ -24,13 +24,14 @@ const isCivilDate = (value: string) => {
   const monthDays = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
   return day <= monthDays[month - 1];
 };
-const frenchDate = (timeZone: string) => new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone });
-// Une date seule est lue en UTC par Date : elle est formatée en UTC pour ne pas changer de jour.
+// Day, abbreviated month and year, as in the reference screen (« 15 déc. 2026 », « 1 sept. 2026 »).
+const frenchDate = (timeZone: string) => new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short', year: 'numeric', timeZone });
+// A date alone is read as UTC by Date: it is formatted in UTC so the day does not shift.
 const dateOnlyFormat = frenchDate('UTC');
-// Les échéances BFF Project sont des instants ISO 8601 (toISOString) : jour affiché dans le fuseau de l’instance.
+// BFF Project deadlines are ISO 8601 instants (toISOString): the day is shown in the instance time zone.
 const instantFormat = () => frenchDate(getInstanceTimeZone());
 
-/** Échéance numérique de la référence (« 01/12/2026 ») ; une valeur non reconnue est affichée telle quelle. */
+/** Deadline as « 15 déc. 2026 »; an unrecognised value is shown as is. */
 export function formatDueDate(value: string): string {
   const normalized = isoDate(value.trim());
   const dateOnly = DATE_ONLY.test(normalized);
@@ -40,28 +41,6 @@ export function formatDueDate(value: string): string {
   const timestamp = Date.parse(normalized);
   if (Number.isNaN(timestamp)) return value;
   return (dateOnly ? dateOnlyFormat : instantFormat()).format(timestamp);
-}
-
-const FRENCH_MONTHS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
-const isIndicatorCount = (value: unknown): value is number => typeof value === 'number' && Number.isInteger(value) && value >= 0;
-
-/** Header indicator of the projects tile: every visible project (« 12 projets »), null when the count is unavailable. */
-export function projectsIndicator(metrics: Partial<DashboardBootstrap['metrics']> | undefined): string | null {
-  const total = metrics?.totalProjects;
-  if (!isIndicatorCount(total)) return null;
-  return `${total} ${total > 1 ? 'projets' : 'projet'}`;
-}
-
-/**
- * Header indicator of the events tile: the occurrences of the month the BFF counted (« 7 en novembre »), the month
- * named from `eventsPeriod.from`; null when the count or its period is unavailable.
- */
-export function eventsIndicator(metrics: Partial<DashboardBootstrap['metrics']> | undefined): string | null {
-  const count = metrics?.eventsThisMonth;
-  const from = metrics?.eventsPeriod?.from;
-  const to = metrics?.eventsPeriod?.to;
-  if (!isIndicatorCount(count) || typeof from !== 'string' || typeof to !== 'string' || !isCivilDate(from) || !isCivilDate(to)) return null;
-  return `${count} en ${FRENCH_MONTHS[Number(from.slice(5, 7)) - 1]}`;
 }
 
 /** Rows shown per tile so the dashboard fits the screen without scrolling (MAIR-907). */
@@ -98,8 +77,6 @@ export function toDashboardModuleData(data: DashboardBootstrap) {
       priority: task.priority,
     })),
     events: upcoming,
-    // Shown next to the tile titles; the title stays alone when a count is unavailable.
-    indicators: { projects: projectsIndicator(data.metrics), events: eventsIndicator(data.metrics) },
     // MAIR-1110: the BFF orders them (unfinished first) and caps them at 3.
     trainings: (data.trainings ?? []).slice(0, DASHBOARD_TILE_ROWS).map((training) => ({
       id: training.id, title: training.title, status: training.status,

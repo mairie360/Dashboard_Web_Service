@@ -80,7 +80,18 @@ button.dashboard-row:disabled { cursor: default; }
 .dashboard-row-line { display: flex; align-items: center; justify-content: space-between; gap: 6px 12px; flex-wrap: wrap; min-width: 0; }
 .dashboard-row-line > :first-child { min-width: 0; }
 .dashboard-row-meta { display: inline-flex; align-items: center; gap: 6px; }
-.dashboard-row-progress { flex: 0 1 45%; min-width: 120px; }
+/* Project and training rows: the meta keeps its width, the progress track takes the rest of the line and its
+   percentage sits on its right (reference screen). The lib ProgressMeter draws « label + % » above the track:
+   the row puts that header after the track and keeps its label for screen readers only (aria-labelledby). */
+.dashboard-row-progress-line { flex-wrap: nowrap; justify-content: flex-start; }
+.dashboard-row-progress-line > .dashboard-row-meta { flex-shrink: 0; }
+.dashboard-row-progress { display: flex; flex-direction: row-reverse; align-items: center; gap: 8px; flex: 1 1 0; min-width: 60px; }
+.dashboard-row-progress > [role="progressbar"] { flex: 1 1 auto; width: auto; min-width: 0; }
+.dashboard-row-progress > div:first-child { flex-shrink: 0; min-width: 36px; justify-content: flex-end; color: var(--mairie-muted); font-variant-numeric: tabular-nums; }
+.dashboard-row-progress > div:first-child > span:first-child {
+  position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+}
+@media (max-width: 480px) { .dashboard-row-progress-line { flex-wrap: wrap; } }
 .dashboard-event-row { flex-direction: row; align-items: center; justify-content: flex-start; gap: 12px; }
 .dashboard-event-date {
   display: flex; flex-direction: column; align-items: center; justify-content: center; flex-shrink: 0;
@@ -88,6 +99,8 @@ button.dashboard-row:disabled { cursor: default; }
   background-color: var(--mairie-surface-raised);
   border-width: 3px 0 0 0; border-style: solid; border-color: var(--mairie-module-calendar);
 }
+/* The month reads in lowercase (« déc. »), as in the reference screen. */
+.dashboard-event-month { text-transform: lowercase; }
 /* MAIR-1110: the training progress track takes the training module colour (the lib meter fills with an inline style). */
 .dashboard-training-progress [role="progressbar"] > div { background: var(--mairie-module-training) !important; }
 @media (prefers-reduced-motion: reduce) { .mairie-skeleton-animated { animation: none; } }
@@ -119,4 +132,8 @@ button.dashboard-row:disabled { cursor: default; }
 .dashboard-app-shell main { background: var(--dashboard-background); }
 .dashboard-content-grid > .dashboard-panel { min-width: 0; box-shadow: 0 2px 12px rgb(23 32 51 / 5%); }
 .dashboard-panel-action { flex-shrink: 0; color: var(--mairie-accent); }
+/* Panel header link of the reference screen: underlined 3 px below the text, the underline thickens on hover
+   (the lib link variant removes it on hover). */
+.dashboard-panel-action:not(:disabled) { text-decoration-line: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; }
+.dashboard-panel-action:not(:disabled):hover { text-decoration-line: underline; text-decoration-thickness: 2px; }
 .dashboard-panel-action:disabled { opacity: 0.6; cursor: not-allowed; }

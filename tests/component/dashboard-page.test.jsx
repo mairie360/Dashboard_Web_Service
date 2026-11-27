@@ -42,23 +42,14 @@ beforeEach(() => {
 });
 
 describe("Dashboard page", () => {
-  it("MAIR-1177 shows the projects count and the events of the month in the tile headers", async () => {
+  it("MAIR-1255 shows the tile titles alone, whether or not the BFF sends counts", async () => {
     vi.mocked(getDashboardBootstrap).mockResolvedValue(bootstrap({
       metrics: { totalProjects: 12, eventsThisMonth: 7, eventsPeriod: { from: "2026-11-01", to: "2026-11-30" } },
     }));
     await openDashboard();
-    // jsdom has no layout: its accessible name joins the title and the caption without the space a browser keeps.
-    expect(screen.getByRole("region", { name: /^Projets récents ?· 12 projets$/ }).querySelector("h2").textContent).toBe("Projets récents · 12 projets");
-    expect(screen.getByRole("region", { name: /^Événements à venir ?· 7 en novembre$/ }).querySelector("h2").textContent).toBe("Événements à venir · 7 en novembre");
-  });
-
-  it("MAIR-1177 keeps the titles alone when the BFF has no count", async () => {
-    vi.mocked(getDashboardBootstrap).mockResolvedValue(bootstrap({
-      metrics: { totalProjects: null, eventsThisMonth: null, eventsPeriod: { from: "2026-11-01", to: "2026-11-30" } },
-    }));
-    await openDashboard();
-    expect(screen.getByRole("heading", { name: "Projets récents" })).toBeTruthy();
-    expect(screen.getByRole("heading", { name: "Événements à venir" })).toBeTruthy();
+    expect(screen.getByRole("region", { name: "Projets récents" }).querySelector("h2").textContent).toBe("Projets récents");
+    expect(screen.getByRole("region", { name: "Événements à venir" }).querySelector("h2").textContent).toBe("Événements à venir");
+    expect(document.body.textContent).not.toMatch(/12 projets|7 en novembre/);
     expect(document.querySelector(".dashboard-panel-indicator")).toBeNull();
   });
 
@@ -123,7 +114,7 @@ describe("Dashboard page", () => {
     const pageSection = heading.closest("section");
     const cardHeadings = within(pageSection).getAllByRole("heading", { level: 2 });
     expect(cardHeadings.map(node => node.textContent)).toEqual([
-      "Projets récents · 1 projet", "Tâches en attente", "Événements à venir", "Mes formations",
+      "Projets récents", "Tâches en attente", "Événements à venir", "Mes formations",
     ]);
     const cardGrid = cardHeadings[0].closest("section").parentElement;
     expect(heading.closest("header").nextElementSibling).toBe(cardGrid);

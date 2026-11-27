@@ -23,7 +23,7 @@ export const TrainingRow = ({ training, onSelect }: TrainingRowProps) => {
         <Text weight="semibold" truncate>{training.title}</Text>
         <StatusBadge status={trainingStatusBadge[training.status]} size="s" />
       </span>
-      <span className="dashboard-row-line">
+      <span className="dashboard-row-line dashboard-row-progress-line">
         <BodySmall as="span" tone="muted" className="dashboard-row-meta"><Icon icon={BookOpen} size="xs" />{trainingModuleLabel(training)}</BodySmall>
         <ProgressMeter label="Progression" value={progress} size="s" className="dashboard-row-progress dashboard-training-progress" />
       </span>
