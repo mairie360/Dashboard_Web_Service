@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { ToastProvider } from "@mairie360/lib-components/primitives";
-import { AccessibleShell, defaultSidebarItems } from "@mairie360/lib-components/shell";
+import { AccessibleShell, createBffSearchSource, defaultSidebarItems } from "@mairie360/lib-components/shell";
 
 import type { DashboardBootstrap } from '../../lib/dashboard-view';
 import { getActiveFrontHrefs } from '../../lib/navigation';
@@ -12,6 +12,12 @@ import { DashboardLoading } from './components/DashboardLoading';
 import { DashboardNotices } from './components/DashboardNotices';
 import { DashboardOnboarding } from './components/DashboardOnboarding';
 import { useDashboardData } from './use-dashboard-data';
+
+/**
+ * Global search of the shared header: the lib source calls the same-origin `GET /search`, which the
+ * contract proxy forwards to BFF_Dashboard with the session. One instance, so the field keeps a stable source.
+ */
+export const dashboardSearchSource = createBffSearchSource();
 
 /** The Messagerie badge (MAIR-1106): the unread count, « 99+ » beyond, nothing at 0 or when Message API is unavailable. */
 export function unreadBadge(unreadMessages: number | null | undefined): string | undefined {
@@ -69,6 +75,8 @@ export default function DashboardPage({ initialData, renderedAt }: { initialData
       // The shared header and navigation name the commune of the instance; without one, neither shows a commune.
       commune={communeName}
       sidebarProps={{ items: dashboardSidebarItems(dashboardUnreadCount(data)) }}
+      // Results open in their module (`projects?project=7`, `calendar?date=…&event=4`), built by the lib from `hrefs`.
+      searchSource={dashboardSearchSource}
       // MAIR-919: the lib Header confirms first; the returned promise keeps « Se déconnecter » loading.
       onLogout={() => logoutAndRedirect().catch(() => setLogoutError("La déconnexion est temporairement indisponible."))}
     >

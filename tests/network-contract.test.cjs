@@ -147,7 +147,26 @@ describe('the proxy exposes exactly the contract', () => {
 
   test('the contract snapshot is the BFF_Dashboard contract', () => {
     assert.equal(dashboardContract.title, 'bff_dashboard');
-    assert.deepEqual(Object.keys(dashboardContract.document.paths).sort(), ['/check_apis', '/dashboard/bootstrap', '/dashboard/onboarding', '/health']);
+    assert.deepEqual(Object.keys(dashboardContract.document.paths).sort(), ['/check_apis', '/dashboard/bootstrap', '/dashboard/onboarding', '/health', '/search']);
+  });
+});
+
+describe('MAIR-1230 global search of the shared header', () => {
+  test('MAIR-1230 the contract declares GET /search with the query the lib source sends', () => {
+    const operation = dashboardContract.document.paths['/search'];
+    assert.deepEqual(Object.keys(operation), ['get']);
+    assert.deepEqual(operation.get.parameters.map(({ name, in: where, required }) => `${where} ${name}${required ? '' : '?'}`), ['query q', 'query limit?']);
+  });
+
+  test('MAIR-1230 the page hands the lib BFF source to the shell, on its default same-origin /search path', () => {
+    const page = sources.find(({ file }) => file === 'components/DashboardPage/DashboardPage.tsx');
+    const created = calls(page.ast, 'createBffSearchSource');
+    assert.equal(created.length, 1);
+    assert.equal(created[0].arguments.length, 0, 'the default source calls the proxied /search of this front');
+    assert.match(page.ast.text, /searchSource=\{dashboardSearchSource\}/);
+    // The lib owns the request: no front file writes the /search path by hand.
+    const literals = sources.filter(({ file }) => !/\.test\.tsx?$/.test(file)).flatMap(({ file, ast }) => policy.nodes(ast, (node) => ts.isStringLiteralLike(node) && /^\/search\b/.test(node.text)).map(() => file));
+    assert.deepEqual(literals, []);
   });
 });
 

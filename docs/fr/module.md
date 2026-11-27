@@ -92,6 +92,12 @@ Figma : [index des features](https://www.figma.com/design/U4LxYJ8TDpZxqB8BmpBuRh
 - Bandeau commun (lib-components 2.5.1) : même en-tête et même navigation que les autres fronts ; le shell reçoit la
   commune par sa seule prop `commune`. Le contenu est à 24 px des bords et à 16 px du bas, la marge de 28 px de
   l'accueil servant d'écart sous l'en-tête, comme dans la maquette.
+- Recherche globale (lib-components 2.7.0) : le champ de recherche de l'en-tête cherche dans tous les modules. Après
+  une courte pause sur 2 caractères ou plus, il appelle `GET /search` à la même origine, que le proxy relaie à
+  BFF_Dashboard, et liste les résultats par module (Agents, Projets, Calendrier, Messagerie, E-learning) avec un lien
+  vers le module qui ouvre la cible (`?project=7&task=9`, `?date=…&event=4`, `?conversation=…&message=…`,
+  `?course=…`) ; les résultats d'Administration sont listés sans lien pour un non-administrateur. Le tableau de bord
+  lui-même n'est la cible d'aucun résultat.
 - Tuiles (MAIR-1107, F1) : grille 2 × 2 de tuiles identiques qui remplit la hauteur sous l'accueil dès 900 px (une
   colonne en dessous, la page défile plutôt que de couper le contenu) ; liens « Voir les… » sans flèche ; états vide
   et indisponible centrés.

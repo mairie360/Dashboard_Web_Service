@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "bff_dashboard",
-    "version": "0.0.0-dev.e08ec9aff5dc40b181ef3d3a703c69400e4d2e5f"
+    "version": "0.0.0-dev.5e50903e9aa72f00d5bb670df9b50020127220f4"
   },
   "paths": {
     "/health": {
@@ -27,6 +27,45 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/CheckApisResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/search": {
+      "get": {
+        "operationId": "getSearch",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 2,
+              "maxLength": 100
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 20
+            }
+          }
+        ],
+        "responses": {
+          "2XX": {
+            "description": "Succès (seul statut typé par orval)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GlobalSearchResponse"
                 }
               }
             }
@@ -511,6 +550,132 @@
         },
         "required": [
           "message"
+        ]
+      },
+      "GetSearchParams": {
+        "type": "object",
+        "properties": {
+          "q": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 100
+          },
+          "limit": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 20
+          }
+        },
+        "required": [
+          "q"
+        ]
+      },
+      "GlobalSearchResponse": {
+        "type": "object",
+        "properties": {
+          "groups": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GlobalSearchResponseGroupsItem"
+            }
+          },
+          "unavailable": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GlobalSearchResponseUnavailableItem"
+            }
+          }
+        },
+        "required": [
+          "groups",
+          "unavailable"
+        ]
+      },
+      "GlobalSearchResponseGroupsItem": {
+        "type": "object",
+        "properties": {
+          "module": {
+            "$ref": "#/components/schemas/GlobalSearchResponseGroupsItemModule"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GlobalSearchResponseGroupsItemItemsItem"
+            }
+          }
+        },
+        "required": [
+          "module",
+          "items"
+        ]
+      },
+      "GlobalSearchResponseGroupsItemItemsItem": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/GlobalSearchResponseGroupsItemItemsItemKind"
+          },
+          "id": {
+            "type": "number"
+          },
+          "title": {
+            "type": "string"
+          },
+          "excerpt": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "parent_id": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "updated_at": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "id",
+          "title",
+          "excerpt",
+          "parent_id",
+          "updated_at"
+        ]
+      },
+      "GlobalSearchResponseGroupsItemItemsItemKind": {
+        "type": "string",
+        "enum": [
+          "agent",
+          "project",
+          "task",
+          "event",
+          "conversation",
+          "message",
+          "course"
+        ]
+      },
+      "GlobalSearchResponseGroupsItemModule": {
+        "type": "string",
+        "enum": [
+          "agents",
+          "projects",
+          "calendar",
+          "messages",
+          "elearning"
+        ]
+      },
+      "GlobalSearchResponseUnavailableItem": {
+        "type": "string",
+        "enum": [
+          "agents",
+          "projects",
+          "calendar",
+          "messages",
+          "elearning"
         ]
       }
     }
