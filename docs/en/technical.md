@@ -120,6 +120,7 @@ These data paths are exposed at the same origin through the proxy; Next.js pages
 | GET | `/check_apis` | — | 2XX, no typed body |
 | GET | `/dashboard/bootstrap` | — | 2XX `DashboardBootstrap` |
 | PUT | `/dashboard/onboarding` | — | 2XX (204) |
+| GET | `/search?q=…&limit=…` | — | 2XX `GlobalSearchResponse` (header global search, called by the lib `createBffSearchSource`) |
 
 ### Pages and local adapters
 

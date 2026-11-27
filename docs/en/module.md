@@ -92,6 +92,11 @@ Figma: [feature index](https://www.figma.com/design/U4LxYJ8TDpZxqB8BmpBuRh?node-
 - Shared header (lib-components 2.5.1): the same header and navigation as every other front; the shell gets the
   commune through its single `commune` prop. The content sits 24 px from the sides and 16 px above the bottom, the
   welcome's 28 px margin being the gap under the header, as in the mockup.
+- Global search (lib-components 2.7.0): the header search field searches every module. After a short pause on 2
+  characters or more it calls the same-origin `GET /search`, which the proxy forwards to BFF_Dashboard, and lists the
+  results by module (Agents, Projets, Calendrier, Messagerie, E-learning) with a link into the module that opens the
+  target (`?project=7&task=9`, `?date=…&event=4`, `?conversation=…&message=…`, `?course=…`); Administration results
+  are listed without a link for a non-administrator. The dashboard itself has no search target.
 - Tiles (MAIR-1107, F1): a 2 × 2 grid of equal tiles that fills the height under the welcome from 900 px (one column
   below, the page scrolling rather than cutting content); the « Voir les… » links have no arrow; empty and unavailable
   states are centred.

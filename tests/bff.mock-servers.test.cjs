@@ -204,3 +204,40 @@ describe('mair_1176 welcome tour: PUT /dashboard/onboarding through the contract
     assert.equal(await rejection(bffDashboard.putDashboardOnboarding()), 'The CORE_API service is unavailable.');
   });
 });
+
+describe('MAIR-1230 global search: GET /search through the contract-gated proxy', () => {
+  const searchAnswer = {
+    groups: [{ module: 'projects', items: [{ kind: 'task', id: 9, title: 'Voter le budget', excerpt: null, parent_id: 7, updated_at: '2026-11-20T09:00:00Z' }] }],
+    unavailable: ['calendar'],
+  };
+  const searchSource = () => require('../src/components/DashboardPage/DashboardPage.tsx').dashboardSearchSource;
+
+  test('MAIR-1230 the header search source reaches the declared GET /search with the session and parses the answer', async () => {
+    dashboardBff.on('get', '/search', { body: searchAnswer });
+
+    const result = await searchSource()('  budget ', new AbortController().signal);
+
+    assert.deepEqual(result, searchAnswer);
+    assert.deepEqual(upstreamCalls(), ['DASHBOARD_BFF GET /search']);
+    const [call] = dashboardBff.requests;
+    assert.equal(call.headers.authorization, `Bearer ${TOKEN}`);
+    assert.equal(call.headers.cookie, undefined);
+    assert.deepEqual(front.calls.map(({ side, method, url }) => `${side} ${method} ${url.origin === front.origin ? '' : 'bff'}${url.pathname}${url.search}`), [
+      'browser GET /search?q=budget',
+      'server GET bff/search?q=budget',
+    ]);
+  });
+
+  test('MAIR-1230 a BFF error rejects the search, so the header shows it as unavailable', async () => {
+    dashboardBff.on('get', '/search', { status: 502, body: { error: { message: 'The PROJECT_API service is unavailable.' } }, outOfContract: true });
+
+    await assert.rejects(searchSource()('budget', new AbortController().signal), /Search failed with status 502/);
+  });
+
+  test('MAIR-1230 the proxy only forwards the declared GET: other methods are refused before the BFF', async () => {
+    const response = await front.browserFetch('/search?q=budget', { method: 'POST', body: '{}' });
+    assert.equal(response.status, 405);
+    assert.match(response.headers.get('allow') ?? '', /GET/);
+    assert.deepEqual(upstreamCalls(), []);
+  });
+});

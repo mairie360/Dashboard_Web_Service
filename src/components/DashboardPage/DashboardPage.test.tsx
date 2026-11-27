@@ -1,12 +1,13 @@
 import { describe, it, expect, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 import React from 'react';
-import { render, act } from '@testing-library/react';
+import { render, act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { renderToString } from 'react-dom/server';
 import { hydrateRoot } from 'react-dom/client';
 
 import DashboardPage, { dashboardSidebarItems, dashboardUnreadCount, unreadBadge } from './DashboardPage';
 import { pageStatus } from '../../../tests/component/page-roles';
+import { frontUrl } from '@/lib/front-urls';
 
 vi.mock('@/lib/front-urls', () => ({ frontUrl: vi.fn(() => undefined) }));
 vi.mock('@/lib/bff-client', () => ({ bffDashboard: { getDashboardBootstrap: vi.fn(() => new Promise(() => {})) } }));
@@ -78,5 +79,60 @@ describe('MAIR-1223 shared header', () => {
     const { container } = render(<DashboardPage initialData={bootstrap(null) as never} />);
     expect(container.querySelector('header')?.textContent).not.toMatch(/Mairie de|Saint-/);
     expect(container.querySelector('aside')?.textContent).not.toMatch(/Commune de|Saint-/);
+  });
+});
+
+describe('MAIR-1230 global search in the shared header', () => {
+  const bootstrap = { userFirstName: 'Alice', userLastName: 'Martin', userRole: 'Agent', communeName: 'Saint-Pierre', projects: [], tasks: [], events: [], trainings: [], metrics: { totalProjects: 0, eventsThisMonth: 0, eventsPeriod: { from: '2026-11-01', to: '2026-11-30' } }, sources: { projects: 'available', tasks: 'available', calendar: 'available', trainings: 'available', messages: 'available' }, unreadMessages: 0, onboardingCompleted: true };
+  const fronts: Record<string, string> = { PROJECT_FRONT_URL: 'https://projects.test/', CALENDAR_FRONT_URL: 'https://calendar.test/', MESSAGE_FRONT_URL: 'https://messages.test/', ELEARNING_FRONT_URL: 'https://elearning.test/', ADMINISTRATION_FRONT_URL: 'https://admin.test/' };
+  const answer = {
+    groups: [
+      { module: 'agents', items: [{ kind: 'agent', id: 3, title: 'Budget Bernard', excerpt: null, parent_id: null, updated_at: '2026-11-20T09:00:00Z' }] },
+      { module: 'projects', items: [{ kind: 'task', id: 9, title: 'Voter le budget', excerpt: null, parent_id: 7, updated_at: '2026-11-20T09:00:00Z' }] },
+      { module: 'messages', items: [{ kind: 'message', id: 12, title: 'Réunion budget', excerpt: 'Ordre du jour', parent_id: 4, updated_at: '2026-11-20T09:00:00Z' }] },
+      { module: 'elearning', items: [{ kind: 'course', id: 5, title: 'Budget communal', excerpt: null, parent_id: null, updated_at: '2026-11-20T09:00:00Z' }] },
+    ],
+    unavailable: ['calendar'],
+  };
+
+  it('lists the results of the same-origin GET /search with links into their modules', async () => {
+    vi.mocked(frontUrl).mockImplementation((key) => fronts[key]);
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify(answer), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+    vi.stubGlobal('fetch', fetchMock);
+    try {
+      render(<DashboardPage initialData={bootstrap as never} />);
+      fireEvent.change(screen.getByRole('combobox'), { target: { value: ' budget ' } });
+      const option = await screen.findByRole('option', { name: /Voter le budget/ });
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+      expect(url).toBe('/search?q=budget');
+      expect(init.credentials).toBe('same-origin');
+      expect(option).toHaveAttribute('data-href', 'https://projects.test/?project=7&task=9');
+      expect(screen.getByRole('option', { name: /Réunion budget/ })).toHaveAttribute('data-href', 'https://messages.test/?conversation=4&message=12');
+      expect(screen.getByRole('option', { name: /Budget communal/ })).toHaveAttribute('data-href', 'https://elearning.test/?course=5');
+      // An agent account gets no link into Administration, and the module that did not answer is named.
+      expect(screen.getByRole('option', { name: /Budget Bernard/ })).not.toHaveAttribute('data-href');
+      expect(screen.getByRole('note')).toHaveTextContent('Calendrier ne répond pas');
+    } finally {
+      vi.unstubAllGlobals();
+      vi.mocked(frontUrl).mockImplementation(() => undefined);
+    }
+  });
+
+  it('does not call the search below two characters and reports a failed search', async () => {
+    const fetchMock = vi.fn(async () => new Response('{}', { status: 502 }));
+    vi.stubGlobal('fetch', fetchMock);
+    try {
+      render(<DashboardPage initialData={bootstrap as never} />);
+      const field = screen.getByRole('combobox');
+      fireEvent.change(field, { target: { value: 'b' } });
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      expect(fetchMock).not.toHaveBeenCalled();
+      fireEvent.change(field, { target: { value: 'budget' } });
+      await waitFor(() => expect(screen.getByRole('note')).toHaveTextContent('La recherche est indisponible'));
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });

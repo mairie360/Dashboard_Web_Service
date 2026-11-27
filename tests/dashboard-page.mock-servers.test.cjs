@@ -555,3 +555,52 @@ test('MAIR-1110: a bare formation id opens the training too, any other id the ca
   setBrowserFrontUrls({});
   assert.equal(trainingHref('training-4'), undefined);
 });
+
+test('MAIR-1230 journey: typing in the header search lists results with links into the other modules', async () => {
+  setBrowserFrontUrls({
+    LOGIN_FRONT_URL: 'https://login.test.example/',
+    CALENDAR_FRONT_URL: 'https://calendar.test.example/',
+    PROJECT_FRONT_URL: 'https://project.test.example/',
+    MESSAGE_FRONT_URL: 'https://message.test.example/',
+    ELEARNING_FRONT_URL: 'https://elearning.test.example/',
+    SETTINGS_FRONT_URL: 'https://settings.test.example/',
+    ADMINISTRATION_FRONT_URL: 'https://admin.test.example/',
+  });
+  dashboardBff.on('get', '/search', { body: {
+    groups: [
+      { module: 'agents', items: [{ kind: 'agent', id: 3, title: 'Bernard Budget', excerpt: null, parent_id: null, updated_at: '2026-11-20T09:00:00Z' }] },
+      { module: 'projects', items: [
+        { kind: 'project', id: 7, title: 'Budget participatif 2027', excerpt: null, parent_id: null, updated_at: '2026-11-20T09:00:00Z' },
+        { kind: 'task', id: 9, title: 'Voter le budget', excerpt: 'Avant le conseil', parent_id: 7, updated_at: '2026-11-20T09:00:00Z' },
+      ] },
+      { module: 'calendar', items: [{ kind: 'event', id: 4, title: 'Conseil budget', excerpt: null, parent_id: null, updated_at: '2026-12-03T12:00:00Z' }] },
+      { module: 'messages', items: [{ kind: 'message', id: 12, title: 'Réunion budget', excerpt: 'Ordre du jour', parent_id: 5, updated_at: '2026-11-20T09:00:00Z' }] },
+      { module: 'elearning', items: [{ kind: 'course', id: 6, title: 'Budget communal', excerpt: null, parent_id: null, updated_at: '2026-11-20T09:00:00Z' }] },
+    ],
+    unavailable: [],
+  } });
+  await renderLoadedPage();
+
+  await view.fire((props, _text, tag) => tag === 'input' && props.role === 'combobox', 'onChange', { target: { value: 'budget' } });
+  const html = await view.waitFor((current) => current.includes('Voter le budget'));
+
+  const searches = dashboardBff.requests.filter((call) => call.template === '/search');
+  assert.equal(searches.length, 1, 'one search for the debounced term');
+  assert.equal(searches[0].headers.authorization, `Bearer ${TOKEN}`);
+  const decode = (value) => value.replace(/&amp;/g, '&').replace(/&#x27;/g, "'").replace(/&quot;/g, '"');
+  const options = [...html.matchAll(/<li ([^>]*role="option"[^>]*)>(.*?)<\/li>/g)].map(([, attributes, inner]) => ({
+    text: decode(inner.replace(/<[^>]+>/g, ' ')),
+    href: attributes.match(/data-href="([^"]*)"/) ? decode(attributes.match(/data-href="([^"]*)"/)[1]) : undefined,
+  }));
+  assert.equal(options.length, 6, JSON.stringify(options));
+  const href = (title) => options.find(({ text }) => text.includes(title))?.href;
+  assert.equal(href('Budget participatif 2027'), 'https://project.test.example/?project=7');
+  assert.equal(href('Voter le budget'), 'https://project.test.example/?project=7&task=9');
+  assert.match(href('Conseil budget'), /^https:\/\/calendar\.test\.example\/\?date=2026-12-0[34]&event=4$/);
+  assert.equal(href('Réunion budget'), 'https://message.test.example/?conversation=5&message=12');
+  assert.equal(href('Budget communal'), 'https://elearning.test.example/?course=6');
+  // An agent session gets the agent listed but no link into Administration.
+  assert.equal(href('Bernard Budget'), undefined);
+  for (const label of ['Agents', 'Projets', 'Calendrier', 'Messagerie', 'E-learning']) assert.ok(html.includes(label), label);
+  assert.ok(html.includes('aria-expanded="true"'));
+});
