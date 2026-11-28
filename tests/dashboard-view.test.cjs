@@ -23,6 +23,7 @@ describe('toDashboardModuleData', () => {
     // A fixed day a month before the task deadlines keeps their absolute date.
     assert.deepEqual(toDashboardModuleData(valid(), new Date('2026-10-01T10:00:00Z')), {
       hasUnavailableSource: false,
+      unavailableSources: [],
       unusableEventCount: 0,
       projects: [
         { id: 'project-42', name: 'Budget participatif', progress: 50, status: 'in-progress', dueDate: '1 déc. 2026' },

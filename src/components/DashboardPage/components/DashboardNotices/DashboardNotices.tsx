@@ -11,6 +11,8 @@ export interface DashboardNoticesProps {
   loading: boolean;
   /** At least one BFF source answered unavailable. */
   hasUnavailableSource: boolean;
+  /** Sources that did not answer, named in the banner description (MAIR-1255). */
+  unavailableSources?: readonly UnavailableSource[];
   /** Events received with an unreadable date or time. */
   unusableEventCount: number;
   /** The last confirmed cards are still displayed under the error. */
@@ -34,7 +36,18 @@ export const reloadLabel = ({ error, unusableEventCount }: Pick<DashboardNotices
  * The alerts above the dashboard on the lib Alert (size m, not dismissible, MAIR-915), their one recovery
  * action and the toast that announces its result. Errors are `alert`, warnings `status` (lib roles).
  */
-export const DashboardNotices = ({ error, logoutError, loading, hasUnavailableSource, unusableEventCount, hasData, onReload }: DashboardNoticesProps) => {
+export type UnavailableSource = "projects" | "tasks" | "calendar";
+const unavailableLabels: Record<UnavailableSource, string> = { projects: "les projets récents", tasks: "les tâches en attente", calendar: "les événements à venir" };
+
+/** « Les événements à venir ne peuvent pas être affichés pour le moment. » (artifact banner, MAIR-1255). */
+export const unavailableSourcesText = (sources: readonly UnavailableSource[] = []) => {
+  const labels = sources.map((source) => unavailableLabels[source]);
+  if (labels.length === 0) return undefined;
+  const list = labels.length === 1 ? labels[0] : `${labels.slice(0, -1).join(", ")} et ${labels[labels.length - 1]}`;
+  return `${list.charAt(0).toUpperCase()}${list.slice(1)} ne peuvent pas être affichés pour le moment.`;
+};
+
+export const DashboardNotices = ({ error, logoutError, loading, hasUnavailableSource, unavailableSources, unusableEventCount, hasData, onReload }: DashboardNoticesProps) => {
   const toast = useToast();
   const recoverable = Boolean(error) || hasUnavailableSource || unusableEventCount > 0;
   const recover = async () => {
@@ -49,7 +62,7 @@ export const DashboardNotices = ({ error, logoutError, loading, hasUnavailableSo
     <div className="dashboard-notices space-y-3">
       {logoutError && <ErrorAlert size="m" title={NOTICE_TEXTS.logoutFailed} />}
       {error && <ErrorAlert size="m" title={NOTICE_TEXTS.readFailed} description={error !== NOTICE_TEXTS.readFailed ? error : undefined} />}
-      {hasUnavailableSource && <WarningAlert size="m" title={NOTICE_TEXTS.unavailableSource} />}
+      {hasUnavailableSource && <WarningAlert size="m" title={NOTICE_TEXTS.unavailableSource} description={unavailableSourcesText(unavailableSources)} />}
       {unusableEventCount > 0 && <WarningAlert size="m" title={NOTICE_TEXTS.unusableEvents} />}
       {recoverable && (
         <div className="flex flex-wrap items-center gap-3">

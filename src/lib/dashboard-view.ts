@@ -90,6 +90,8 @@ export function toDashboardModuleData(data: DashboardBootstrap, now: Date | null
     // The banner covers projects, tasks and calendar; « Mes formations » shows its own unavailable state
     // (ELearning API is optional for BFF_Dashboard: an instance without it would otherwise always warn).
     hasUnavailableSource: [data.sources.projects, data.sources.tasks, data.sources.calendar].includes('unavailable'),
+    // MAIR-1255: the banner names what cannot be shown (artifact: « Les événements à venir ne peuvent pas être affichés »).
+    unavailableSources: (['projects', 'tasks', 'calendar'] as const).filter((source) => data.sources[source] === 'unavailable'),
     trainingsUnavailable: (data.sources.trainings ?? 'unavailable') === 'unavailable',
     unusableEventCount: data.events.length - events.length,
     projects: data.projects.slice(0, DASHBOARD_TILE_ROWS).map((project) => ({

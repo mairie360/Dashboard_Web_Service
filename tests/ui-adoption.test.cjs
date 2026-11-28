@@ -8,7 +8,7 @@ const DashboardPanel = require('../src/components/DashboardPage/components/Dashb
 
 for (const [unavailable, message] of [
   [false, 'Aucun projet récent.'],
-  [true, 'Les projets sont temporairement indisponibles.'],
+  [true, 'Projets indisponibles.'],
 ]) test(`an empty projects panel names its ${unavailable ? 'unavailable source' : 'confirmed empty result'} and retains its configured destination`, () => {
   const html = renderToStaticMarkup(React.createElement(DashboardPanel, {
     title: 'Projets récents', action: 'Voir les projets', href: 'https://projects.example/',

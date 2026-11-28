@@ -81,13 +81,13 @@ export default function DashboardPage({ initialData, renderedAt }: { initialData
       onLogout={() => logoutAndRedirect().catch(() => setLogoutError("La déconnexion est temporairement indisponible."))}
     >
       <ToastProvider regionLabel="Notifications du tableau de bord" placement="bottom-end">
-        <DashboardNotices error={error} logoutError={logoutError} loading={loading} hasUnavailableSource={Boolean(view?.hasUnavailableSource)} unusableEventCount={view?.unusableEventCount ?? 0} hasData={Boolean(data)} onReload={reload} />
+        <DashboardNotices error={error} logoutError={logoutError} loading={loading} hasUnavailableSource={Boolean(view?.hasUnavailableSource)} unavailableSources={view?.unavailableSources} unusableEventCount={view?.unusableEventCount ?? 0} hasData={Boolean(data)} onReload={reload} />
         {/* The content takes the full width of the shell, as in the reference screen. */}
         <section className="dashboard-page">
           {/* MAIR-899: the final page is drawn at once; only the rows wait for the data. */}
           <DashboardHeader userFirstName={userFirstName} now={now} />
           {!data || !view ? <DashboardLoading loading={loading} failed={Boolean(error)} /> : null}
-          {data || loading ? <DashboardGrid data={data} view={view} /> : null}
+          {data || loading ? <DashboardGrid data={data} view={view} onRetry={() => void reload()} /> : null}
         </section>
         {/* The welcome tour, until the user finished or skipped it. */}
         <DashboardOnboarding onboardingCompleted={data?.onboardingCompleted} />

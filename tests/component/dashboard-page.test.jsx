@@ -210,7 +210,10 @@ describe("Dashboard page", () => {
     await openDashboard();
 
     expect(pageStatus().textContent).toContain("temporairement indisponibles");
-    expect(screen.getByText("Les événements sont temporairement indisponibles.")).toBeTruthy();
+    expect(screen.getByText("Événements indisponibles.")).toBeTruthy();
+    // MAIR-1255 (artifact): the banner names the missing data and the tile names the module that did not answer.
+    expect(screen.getByText("Les événements à venir ne peuvent pas être affichés pour le moment.")).toBeTruthy();
+    expect(screen.getByText("Le calendrier ne répond pas.")).toBeTruthy();
     expect(screen.queryByText("Aucun événement à venir.")).toBeNull();
     expect(screen.queryByRole("button", { name: /Événement test/ })).toBeNull();
   });

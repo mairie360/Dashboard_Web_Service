@@ -129,3 +129,7 @@ Figma: [feature index](https://www.figma.com/design/U4LxYJ8TDpZxqB8BmpBuRh?node-
   Unavailable trainings (ELearning API down or not configured on BFF_Dashboard) show the tile's own state, without the
   page banner. A bootstrap from an older BFF (without these fields) stays usable: no role, no commune, trainings
   unavailable.
+- Tile states (MAIR-1255, artifact): an empty tile shows the illustrated lib `DataState` (size m) with a hint (« Les
+  projets que vous suivez apparaîtront ici. »…); a tile whose source is down shows « <Module> indisponibles. », the
+  module that did not answer (« Le calendrier ne répond pas. ») and « Réessayer », which reloads the dashboard. The
+  page banner names the missing data (« Les événements à venir ne peuvent pas être affichés pour le moment. »).

@@ -132,3 +132,8 @@ Figma : [index des features](https://www.figma.com/design/U4LxYJ8TDpZxqB8BmpBuRh
   <date> » n'est pas affiché. Des formations indisponibles (ELearning API en panne ou non configurée sur
   BFF_Dashboard) affichent l'état propre à la tuile, sans le bandeau de page. Un bootstrap d'un BFF plus ancien (sans
   ces champs) reste utilisable : pas de rôle, pas de commune, formations indisponibles.
+- États des tuiles (MAIR-1255, artefact) : une tuile vide affiche le `DataState` illustré de la lib (taille m) avec
+  une aide (« Les projets que vous suivez apparaîtront ici. »…) ; une tuile dont la source est en panne affiche
+  « <Module> indisponibles. », le module qui n'a pas répondu (« Le calendrier ne répond pas. ») et « Réessayer », qui
+  recharge le tableau de bord. Le bandeau de page nomme les données absentes (« Les événements à venir ne peuvent pas
+  être affichés pour le moment. »).

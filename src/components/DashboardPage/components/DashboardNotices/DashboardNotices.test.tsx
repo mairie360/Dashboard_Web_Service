@@ -5,7 +5,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@mairie360/lib-components/primitives';
 
-import { DashboardNotices, NOTICE_TEXTS, reloadLabel, reloadToast } from '.';
+import { DashboardNotices, NOTICE_TEXTS, reloadLabel, reloadToast, unavailableSourcesText } from '.';
 
 const ready = { userFirstName: 'Alice', projects: [], tasks: [], events: [], metrics: { totalProjects: 0 }, sources: { projects: 'available', tasks: 'available', calendar: 'available' } } as never;
 const withSources = (sources: Record<string, string>) => ({ ...(ready as object), sources }) as never;
@@ -60,5 +60,11 @@ describe('DashboardNotices (MAIR-915)', () => {
     // A source still unavailable and unreadable dates: the toast says both.
     const both = { ...(unreadable as object), sources: { projects: 'available', tasks: 'available', calendar: 'unavailable', trainings: 'available' } } as never;
     expect(reloadToast({ ok: true, data: both }, true)).toEqual({ tone: 'error', title: 'Le calendrier est toujours indisponible', message: 'Certaines dates restent illisibles ; les autres données restent affichées.' });
+  });
+  // MAIR-1255 (design-match, artifact banner): the warning names the data that cannot be shown.
+  it('MAIR-1255 names the unavailable sources in the banner', () => {
+    expect(unavailableSourcesText(['calendar'])).toBe('Les événements à venir ne peuvent pas être affichés pour le moment.');
+    expect(unavailableSourcesText(['projects', 'tasks', 'calendar'])).toBe('Les projets récents, les tâches en attente et les événements à venir ne peuvent pas être affichés pour le moment.');
+    expect(unavailableSourcesText([])).toBeUndefined();
   });
 });

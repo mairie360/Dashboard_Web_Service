@@ -35,16 +35,16 @@ it('the server layout derives the initial display role and runtime URLs without 
   expect(fetch).not.toHaveBeenCalled();
 });
 it.each([
-  ['projects', 'Aucun projet récent.', 'Les projets sont temporairement indisponibles.'],
-  ['tasks', 'Aucune tâche en attente.', 'Les tâches sont temporairement indisponibles.'],
-  ['events', 'Aucun événement à venir.', 'Les événements sont temporairement indisponibles.'],
-])('a %s panel distinguishes confirmed empty data, unavailable data and retained records', (kind, emptyMessage, unavailableMessage) => {
+  ['projects', 'Aucun projet récent.', 'Les projets sont temporairement indisponibles.', 'Projets indisponibles.'],
+  ['tasks', 'Aucune tâche en attente.', 'Les tâches sont temporairement indisponibles.', 'Tâches indisponibles.'],
+  ['events', 'Aucun événement à venir.', 'Les événements sont temporairement indisponibles.', 'Événements indisponibles.'],
+])('a %s panel distinguishes confirmed empty data, unavailable data and retained records', (kind, emptyMessage, unavailableMessage, unavailableTitle) => {
   const { rerender } = render(<DashboardPanel title="Source" action="Ouvrir" kind={kind} empty unavailable={false}>Retained record</DashboardPanel>);
   expect(screen.getByText(emptyMessage)).toBeTruthy();
   expect(screen.getByRole('button', { name: 'Ouvrir' }).disabled).toBe(true);
   expect(screen.queryByText('Retained record')).toBeNull();
   rerender(<DashboardPanel title="Source" action="Ouvrir" kind={kind} empty unavailable>Retained record</DashboardPanel>);
-  expect(screen.getByText(unavailableMessage)).toBeTruthy();
+  expect(screen.getByText(unavailableTitle)).toBeTruthy();
   rerender(<DashboardPanel title="Source" action="Ouvrir" href="/confirmed" kind={kind} empty={false} unavailable>Retained record</DashboardPanel>);
   expect(screen.getByText(unavailableMessage)).toBeTruthy();
   expect(screen.getByText('Retained record')).toBeTruthy();

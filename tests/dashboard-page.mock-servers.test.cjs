@@ -568,7 +568,8 @@ test('MAIR-1110: « Mes formations » lists the trainings and opens them in the 
 
 test('MAIR-1110: unavailable trainings show their own state without the page banner', async () => {
   await renderLoadedPage(bootstrapResponse({ trainings: [], sources: { projects: 'available', tasks: 'available', calendar: 'available', trainings: 'unavailable' } }));
-  assert.match(view.text(), /Les formations sont temporairement indisponibles\./);
+  // MAIR-1255 (artifact): the tile names the module that did not answer and offers « Réessayer ».
+  assert.match(view.text(), /Formations indisponibles\. Le module E-learning ne répond pas\. Réessayer/);
   assert.doesNotMatch(view.text(), /Certaines données sont temporairement indisponibles/);
 });
 
