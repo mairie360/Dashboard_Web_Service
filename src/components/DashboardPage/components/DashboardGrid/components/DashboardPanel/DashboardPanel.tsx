@@ -39,7 +39,7 @@ export default function DashboardPanel({ title, action, href, kind, empty, unava
   const messages = panelMessages[kind];
   const showState = !loading && empty;
   return (
-    <Panel title={title} action={<DashboardPanelAction label={action} href={href} />} data-loading={loading || undefined} className={`dashboard-panel ${className}`.trim()} data-kind={kind} data-empty={showState || undefined} data-unavailable={(!loading && unavailable) || undefined}>
+    <Panel divider title={title} action={<DashboardPanelAction label={action} href={href} />} data-loading={loading || undefined} className={`dashboard-panel ${className}`.trim()} data-kind={kind} data-empty={showState || undefined} data-unavailable={(!loading && unavailable) || undefined}>
       {!loading && unavailable && !empty ? <WarningAlert size="s" title={messages.unavailable} className="dashboard-source-notice mb-4" /> : null}
       {showState
         ? <DataState state={unavailable ? "unavailable" : "empty"} size="s" title={unavailable ? messages.unavailable : messages.empty} description={null} className="dashboard-empty-state" />

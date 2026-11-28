@@ -21,7 +21,7 @@ export const ProjectRow = ({ project, onSelect }: ProjectRowProps) => {
     <button type="button" disabled={!onSelect} data-project-status={project.status} className="dashboard-row dashboard-project-row" onClick={() => onSelect?.(project)}>
       <span className="dashboard-row-line">
         <Text weight="semibold" truncate>{project.name}</Text>
-        <StatusBadge status={projectStatusBadge[project.status]} label={projectStatusLabels[project.status]} size="s" />
+        <StatusBadge status={projectStatusBadge[project.status]} label={projectStatusLabels[project.status]} size="s" dot />
       </span>
       <span className="dashboard-row-line dashboard-row-progress-line">
         <BodySmall as="span" tone="muted" className="dashboard-row-meta"><Icon icon={CalendarClock} size="xs" /><span className="sr-only">Échéance : </span>{project.dueDate}</BodySmall>

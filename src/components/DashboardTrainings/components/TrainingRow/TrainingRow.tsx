@@ -21,7 +21,7 @@ export const TrainingRow = ({ training, onSelect }: TrainingRowProps) => {
     <button type="button" disabled={!onSelect} data-training-status={training.status} className="dashboard-row dashboard-training-row" onClick={() => onSelect?.(training)}>
       <span className="dashboard-row-line">
         <Text weight="semibold" truncate>{training.title}</Text>
-        <StatusBadge status={trainingStatusBadge[training.status]} size="s" />
+        <StatusBadge status={trainingStatusBadge[training.status]} size="s" dot />
       </span>
       <span className="dashboard-row-line dashboard-row-progress-line">
         <BodySmall as="span" tone="muted" className="dashboard-row-meta"><Icon icon={BookOpen} size="xs" />{trainingModuleLabel(training)}</BodySmall>

@@ -92,7 +92,7 @@ Figma: [feature index](https://www.figma.com/design/U4LxYJ8TDpZxqB8BmpBuRh?node-
 - Shared header (lib-components 2.5.1): the same header and navigation as every other front; the shell gets the
   commune through its single `commune` prop. The content sits 24 px from the sides and 16 px above the bottom, the
   welcome's 28 px margin being the gap under the header, as in the mockup.
-- Global search (lib-components 2.7.0, now 2.8.0): the header search field searches every module. After a short pause on 2
+- Global search (lib-components 2.7.0, now 2.9.0): the header search field searches every module. After a short pause on 2
   characters or more it calls the same-origin `GET /search`, which the proxy forwards to BFF_Dashboard, and lists the
   results by module (Agents, Projets, Calendrier, Messagerie, E-learning) with a link into the module that opens the
   target (`?project=7&task=9`, `?date=…&event=4`, `?conversation=…&message=…`, `?course=…`); Administration results
@@ -106,8 +106,9 @@ Figma: [feature index](https://www.figma.com/design/U4LxYJ8TDpZxqB8BmpBuRh?node-
 - Compact rows (MAIR-907, F1/F5): at most 3 per tile (first projects and tasks, soonest events), no background, a
   `--mairie-border` rule between rows, 10 px inset, `--mairie-surface-raised` on hover, `--mairie-accent` focus ring.
   Projects: name and status, then a calendar icon with the deadline (« 15 déc. 2026 »), the progress track over the
-  rest of the line and its percentage on the right (trainings use the same line); tasks: title and priority, then the
-  deadline (no coloured dot any more); events: date badge (bold day without leading zero, lowercase abbreviated month
+  rest of the line and its percentage on the right (trainings use the same line); tasks: title and priority pill (with
+  its dot, like the status pills), then the deadline, relative up to six days ahead (« Aujourd’hui », « Demain »,
+  « Dans 3 jours », « En retard · <date> », MAIR-1255); each tile header is separated from its rows by a rule; events: date badge (bold day without leading zero, lowercase abbreviated month
   « déc. », `--mairie-module-calendar` top edge), title, « heure · lieu ».
 - Loading (MAIR-899, F1): the final page is drawn at once (welcome, tiles with their titles and links); each tile shows
   3 skeleton rows the size of the real ones, « Chargement du tableau de bord… » is announced to screen readers only,

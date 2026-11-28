@@ -33,4 +33,10 @@ describe('TrainingRow (MAIR-1110)', () => {
     expect(screen.getByRole('button')).toBeDisabled();
     expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '100');
   });
+
+  it('MAIR-1255 draws the status pill with its leading dot', () => {
+    render(<TrainingRow training={training} />);
+    const pill = screen.getByText('En cours');
+    expect(pill.querySelector(':scope > span[aria-hidden="true"]')).not.toBeNull();
+  });
 });

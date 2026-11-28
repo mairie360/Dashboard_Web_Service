@@ -5,7 +5,7 @@ const { ROOT } = require('./support/load-ts.cjs');
 const { bootstrapResponse } = require('./support/fixtures.cjs');
 const { OpenApiContract } = require('./support/openapi-contract.ts');
 const dashboardView = require('../src/lib/dashboard-view.ts');
-const { toDashboardModuleData, formatDueDate } = dashboardView;
+const { toDashboardModuleData, formatDueDate, formatTaskDue } = dashboardView;
 
 // Mapping de la réponse /dashboard/bootstrap vers DashboardModule, alimenté par des charges valides
 // selon contracts/openapi.json (reconstruit du paquet publié @mairie360/bff-dashboard-openapi).
@@ -20,7 +20,8 @@ const valid = (overrides) => {
 
 describe('toDashboardModuleData', () => {
   test('maps contract fields onto DashboardModule props', () => {
-    assert.deepEqual(toDashboardModuleData(valid()), {
+    // A fixed day a month before the task deadlines keeps their absolute date.
+    assert.deepEqual(toDashboardModuleData(valid(), new Date('2026-10-01T10:00:00Z')), {
       hasUnavailableSource: false,
       unusableEventCount: 0,
       projects: [
@@ -200,4 +201,33 @@ test('MAIR-907: a tile shows the first 3 projects and tasks and the 3 soonest ev
   assert.deepEqual(view.tasks.map((task) => task.title), ['T0', 'T1', 'T2']);
   assert.deepEqual(view.events.map((event) => event.title), ['2026-10-05', '2026-10-06', '2026-10-07']);
   assert.equal(view.unusableEventCount, 0);
+});
+
+describe('MAIR-1255 relative task deadlines', () => {
+  const now = new Date('2026-11-28T09:00:00Z');
+  test('reads today, tomorrow and the next six days relatively, then the date', () => {
+    assert.equal(formatTaskDue('2026-11-28', now), 'Aujourd’hui');
+    assert.equal(formatTaskDue('2026-11-29', now), 'Demain');
+    assert.equal(formatTaskDue('2026-12-01', now), 'Dans 3 jours');
+    assert.equal(formatTaskDue('2026-12-04', now), 'Dans 6 jours');
+    assert.equal(formatTaskDue('2026-12-05', now), formatDueDate('2026-12-05'));
+    assert.equal(formatTaskDue('28-11-2026', now), 'Aujourd’hui');
+  });
+  test('marks a past deadline late, with its date', () => {
+    assert.equal(formatTaskDue('2026-11-20', now), `En retard · ${formatDueDate('2026-11-20')}`);
+  });
+  test('reads an instant on its day in the instance time zone', () => {
+    assert.equal(formatTaskDue('2026-11-29T10:00:00.000Z', now), 'Demain');
+  });
+  test('shows an unreadable value as is', () => {
+    assert.equal(formatTaskDue('bientôt', now), 'bientôt');
+    assert.equal(formatTaskDue('2026-02-30', now), '2026-02-30');
+  });
+  test('the tasks tile uses the relative label, « Sans échéance » without a deadline', () => {
+    const view = toDashboardModuleData(valid({ tasks: [
+      { id: 't1', projectId: 'p', title: 'Valider le budget', dueDate: '2026-11-28', priority: 'high', completed: false },
+      { id: 't2', projectId: 'p', title: 'Relire', dueDate: '', priority: 'low', completed: false },
+    ] }), now);
+    assert.deepEqual(view.tasks.map((task) => task.dueLabel), ['Aujourd’hui', 'Sans échéance']);
+  });
 });

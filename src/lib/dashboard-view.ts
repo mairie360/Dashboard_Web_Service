@@ -43,10 +43,36 @@ export function formatDueDate(value: string): string {
   return (dateOnly ? dateOnlyFormat : instantFormat()).format(timestamp);
 }
 
+// Civil day « YYYY-MM-DD » of an instant in a time zone.
+const civilDay = (timestamp: number, timeZone: string) =>
+  new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit', timeZone }).format(timestamp);
+const DAY_MS = 86_400_000;
+
+/**
+ * Task deadline relative to today, as in the artifact (MAIR-1255): « Aujourd’hui », « Demain », « Dans 3 jours »
+ * up to six days ahead, then « 15 déc. 2026 »; a past deadline reads « En retard · 2 déc. 2026 ».
+ * Today is the day of `now` in the instance time zone; an unrecognised value is shown as is.
+ */
+export function formatTaskDue(value: string, now: Date = new Date()): string {
+  const normalized = isoDate(value.trim());
+  const absolute = formatDueDate(value);
+  const dateOnly = DATE_ONLY.test(normalized);
+  const civilDate = dateOnly ? normalized : ISO_DATE_TIME_START.exec(normalized)?.[1];
+  if (!civilDate || !isCivilDate(civilDate) || absolute === value) return absolute;
+  const timeZone = getInstanceTimeZone();
+  const due = dateOnly ? normalized : civilDay(Date.parse(normalized), timeZone);
+  const days = Math.round((Date.parse(`${due}T00:00:00Z`) - Date.parse(`${civilDay(now.getTime(), timeZone)}T00:00:00Z`)) / DAY_MS);
+  if (days < 0) return `En retard · ${absolute}`;
+  if (days === 0) return 'Aujourd’hui';
+  if (days === 1) return 'Demain';
+  if (days <= 6) return `Dans ${days} jours`;
+  return absolute;
+}
+
 /** Rows shown per tile so the dashboard fits the screen without scrolling (MAIR-907). */
 export const DASHBOARD_TILE_ROWS = 3;
 
-export function toDashboardModuleData(data: DashboardBootstrap) {
+export function toDashboardModuleData(data: DashboardBootstrap, now: Date = new Date()) {
   const events = data.events.flatMap((event) => {
     const date = isoDate(event.date);
     const time = event.startTime ?? '00:00';
@@ -73,7 +99,7 @@ export function toDashboardModuleData(data: DashboardBootstrap) {
     tasks: data.tasks.slice(0, DASHBOARD_TILE_ROWS).map((task) => ({
       id: `${task.projectId}:${task.id}`,
       title: task.title,
-      dueLabel: task.dueDate.trim() ? formatDueDate(task.dueDate) : 'Sans échéance',
+      dueLabel: task.dueDate.trim() ? formatTaskDue(task.dueDate, now) : 'Sans échéance',
       priority: task.priority,
     })),
     events: upcoming,

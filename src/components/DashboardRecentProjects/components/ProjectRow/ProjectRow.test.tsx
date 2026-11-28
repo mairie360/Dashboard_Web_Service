@@ -45,4 +45,11 @@ describe('ProjectRow (MAIR-608)', () => {
     expect(projectStatusBadge).toEqual({ 'in-progress': 'inprogress', completed: 'done', paused: 'draft' });
     expect([clampProgress(-5), clampProgress(42.4), clampProgress(Number.NaN)]).toEqual([0, 42.4, 0]);
   });
+
+  it('MAIR-1255 draws the status pill with its leading dot', () => {
+    render(<ProjectRow project={defaultDashboardProjects[0]} />);
+    const pill = document.querySelector('[data-m360-component~="StatusPill"]') as HTMLElement;
+    expect(pill).not.toBeNull();
+    expect(pill.querySelector(':scope > span[aria-hidden="true"]')).not.toBeNull();
+  });
 });

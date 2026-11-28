@@ -40,4 +40,10 @@ describe('DashboardPanel (lib Panel, MAIR-608)', () => {
     render(<DashboardPanelAction label="Ouvrir le calendrier" />);
     expect(screen.getByRole('button', { name: 'Ouvrir le calendrier' })).toHaveAttribute('title', 'Destination temporairement indisponible');
   });
+
+  it('MAIR-1255 separates the panel header from its rows with a divider, as the artifact', () => {
+    render(<DashboardPanel title="Mes formations" action="Voir les formations" kind="trainings" empty={false} unavailable={false}><p>Lignes</p></DashboardPanel>);
+    const header = screen.getByRole('heading', { name: 'Mes formations' }).closest('header');
+    expect(header).toHaveAttribute('data-divider', 'true');
+  });
 });

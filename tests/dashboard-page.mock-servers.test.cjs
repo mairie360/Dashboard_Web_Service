@@ -166,7 +166,7 @@ test('MAIR-1255 business journey: the dashboard opens, each panel shows its item
   assert.doesNotMatch(html, /dashboard-panel-indicator/);
   // Each panel shows what the BFF returned, dates written « 1 déc. 2026 », never « 01/12/2026 ».
   for (const expected of ['Budget participatif', '1 déc. 2026', 'Rénovation de la médiathèque', '30 juin 2026',
-    'Validation', 'Échéance : 1 nov. 2026', 'Conseil municipal', 'Permanence', 'Accueil du public', 'Protection des données']) {
+    'Validation', 'Échéance : En retard · 1 nov. 2026', 'Conseil municipal', 'Permanence', 'Accueil du public', 'Protection des données']) {
     assert.ok(text.includes(expected), `${expected} is rendered`);
   }
   assert.doesNotMatch(text, /\d{2}\/\d{2}\/\d{4}/);
@@ -312,7 +312,8 @@ test('the shared sidebar opens the configured Settings front without exposing an
   assert.equal(navigation.isAdmin, false);
   assert.doesNotMatch(html, />Administration</);
   // MAIR-1106: Agent entries, « E-learning » instead of « Formation », no Workflows.
-  assert.deepEqual(navigation.sidebarProps.items.map((item) => item.label), ['Tableau de bord', 'Projets', 'Messagerie', 'E-learning', 'Calendrier', 'Administration', 'Paramètres']);
+  // MAIR-1260 (lib 2.9.0): the artifact order of the shared navigation.
+  assert.deepEqual(navigation.sidebarProps.items.map((item) => item.label), ['Tableau de bord', 'Projets', 'Calendrier', 'Messagerie', 'E-learning', 'Administration', 'Paramètres']);
   assert.doesNotMatch(html, />Formation<|Workflows/);
   // MAIR-883 / MAIR-1223: the commune of the bootstrap through the shell's single `commune` prop, shown by the shared
   // header and navigation, never the lib's placeholder name.
