@@ -4,7 +4,8 @@ const { test, describe } = require('node:test');
 const { ROOT } = require('./support/load-ts.cjs');
 const { bootstrapResponse } = require('./support/fixtures.cjs');
 const { OpenApiContract } = require('./support/openapi-contract.ts');
-const { toDashboardModuleData, formatDueDate, projectsIndicator, eventsIndicator } = require('../src/lib/dashboard-view.ts');
+const dashboardView = require('../src/lib/dashboard-view.ts');
+const { toDashboardModuleData, formatDueDate, formatTaskDue } = dashboardView;
 
 // Mapping de la réponse /dashboard/bootstrap vers DashboardModule, alimenté par des charges valides
 // selon contracts/openapi.json (reconstruit du paquet publié @mairie360/bff-dashboard-openapi).
@@ -19,15 +20,17 @@ const valid = (overrides) => {
 
 describe('toDashboardModuleData', () => {
   test('maps contract fields onto DashboardModule props', () => {
-    assert.deepEqual(toDashboardModuleData(valid()), {
+    // A fixed day a month before the task deadlines keeps their absolute date.
+    assert.deepEqual(toDashboardModuleData(valid(), new Date('2026-10-01T10:00:00Z')), {
       hasUnavailableSource: false,
+      unavailableSources: [],
       unusableEventCount: 0,
       projects: [
-        { id: 'project-42', name: 'Budget participatif', progress: 50, status: 'in-progress', dueDate: '01/12/2026' },
-        { id: 'project-7', name: 'Rénovation de la médiathèque', progress: 100, status: 'completed', dueDate: '30/06/2026' },
+        { id: 'project-42', name: 'Budget participatif', progress: 50, status: 'in-progress', dueDate: '1 déc. 2026' },
+        { id: 'project-7', name: 'Rénovation de la médiathèque', progress: 100, status: 'completed', dueDate: '30 juin 2026' },
       ],
       tasks: [
-        { id: 'project-42:task-2', title: 'Validation', dueLabel: '01/11/2026', priority: 'high' },
+        { id: 'project-42:task-2', title: 'Validation', dueLabel: '1 nov. 2026', priority: 'high' },
         { id: 'project-7:task-5', title: 'Relecture', dueLabel: 'Sans échéance', priority: 'low' },
       ],
       events: [
@@ -36,10 +39,9 @@ describe('toDashboardModuleData', () => {
       ],
       trainingsUnavailable: false,
       trainings: [
-        { id: 'training-4', title: 'Accueil du public', status: 'in-progress', completedModules: 2, totalModules: 5, progress: 40, dueLabel: '15/12/2026' },
+        { id: 'training-4', title: 'Accueil du public', status: 'in-progress', completedModules: 2, totalModules: 5, progress: 40, dueLabel: '15 déc. 2026' },
         { id: 'training-9', title: 'Protection des données', status: 'done', completedModules: 3, totalModules: 3, progress: 100 },
       ],
-      indicators: { projects: '17 projets', events: '2 en septembre' },
     });
   });
 
@@ -74,7 +76,6 @@ describe('toDashboardModuleData', () => {
     }));
     assert.equal(view.hasUnavailableSource, true);
     assert.deepEqual([view.projects, view.tasks, view.events], [[], [], []]);
-    assert.deepEqual(view.indicators, { projects: null, events: null });
   });
 
   test('normalizes DD-MM-YYYY event dates and skips events whose date cannot be displayed', () => {
@@ -90,31 +91,12 @@ describe('toDashboardModuleData', () => {
 
 });
 
-describe('MAIR-1177 tile indicators', () => {
-  test('MAIR-1177 the projects indicator counts every visible project, singular up to one', () => {
-    assert.equal(projectsIndicator({ totalProjects: 12 }), '12 projets');
-    assert.equal(projectsIndicator({ totalProjects: 1 }), '1 projet');
-    assert.equal(projectsIndicator({ totalProjects: 0 }), '0 projet');
-  });
-
-  test('MAIR-1177 the events indicator names the month of its period in French', () => {
-    const month = (from, to, count = 7) => eventsIndicator({ totalProjects: 1, eventsThisMonth: count, eventsPeriod: { from, to } });
-    assert.equal(month('2026-11-01', '2026-11-30'), '7 en novembre');
-    assert.equal(month('2027-01-01', '2027-01-31', 0), '0 en janvier');
-    assert.equal(month('2026-02-01', '2026-02-28', 1), '1 en février');
-    assert.equal(month('2026-08-01', '2026-08-31', 31), '31 en août');
-    assert.equal(month('2026-12-01', '2026-12-31'), '7 en décembre');
-  });
-
-  test('MAIR-1177 an unavailable or malformed count gives no indicator, so the title stays alone', () => {
-    for (const metrics of [undefined, {}, { totalProjects: null }, { totalProjects: -1 }, { totalProjects: 1.5 }, { totalProjects: Infinity }]) {
-      assert.equal(projectsIndicator(metrics), null);
-    }
-    for (const metrics of [undefined, { eventsThisMonth: null, eventsPeriod: { from: '2026-11-01', to: '2026-11-30' } },
-      { eventsThisMonth: 3 }, { eventsThisMonth: 3, eventsPeriod: { from: '', to: '' } }, { eventsThisMonth: 3, eventsPeriod: { from: '2026-13-01', to: '2026-13-31' } },
-      { eventsThisMonth: -2, eventsPeriod: { from: '2026-11-01', to: '2026-11-30' } }, { eventsThisMonth: 4, eventsPeriod: { from: '2026-11-01', to: '2026-11-99' } }]) {
-      assert.equal(eventsIndicator(metrics), null);
-    }
+describe('MAIR-1255 no counter after the tile titles', () => {
+  test('MAIR-1255 the view carries no tile indicator and the indicator helpers are gone', () => {
+    const view = toDashboardModuleData(valid());
+    assert.equal('indicators' in view, false);
+    assert.equal(dashboardView.projectsIndicator, undefined);
+    assert.equal(dashboardView.eventsIndicator, undefined);
   });
 });
 
@@ -127,19 +109,23 @@ describe('formatDueDate', () => {
   });
 
   test('valid leap days and genuine ISO instants use the configured instance timezone', () => {
-    for (const [value, expected] of [['2000-02-29', '29/02/2000'], ['2028-02-29', '29/02/2028'],
-      ['29-02-2028', '29/02/2028'], ['2026-10-25T23:30:00+04:00', '25/10/2026']]) {
+    for (const [value, expected] of [['2000-02-29', '29 févr. 2000'], ['2028-02-29', '29 févr. 2028'],
+      ['29-02-2028', '29 févr. 2028'], ['2026-10-25T23:30:00+04:00', '25 oct. 2026']]) {
       assert.equal(formatDueDate(value), expected);
     }
   });
-  test('formats contract dates with the numeric reference labels', t => {
+  test('MAIR-1255 formats contract dates as « 15 déc. 2026 », like the reference screen', t => {
     const previous = process.env.INSTANCE_TIMEZONE; process.env.INSTANCE_TIMEZONE = 'Europe/Paris';
     t.after(() => previous === undefined ? delete process.env.INSTANCE_TIMEZONE : process.env.INSTANCE_TIMEZONE = previous);
-    assert.equal(formatDueDate('2026-12-01'), '01/12/2026');
-    assert.equal(formatDueDate('05-10-2026'), '05/10/2026');
-    // Instant ISO 8601 de BFF Project : jour de l'échéance à Paris.
-    assert.equal(formatDueDate('2026-03-14T10:00:00.000Z'), '14/03/2026');
-    assert.equal(formatDueDate('2024-12-31T23:59:59Z'), '01/01/2025');
+    assert.equal(formatDueDate('2026-12-15'), '15 déc. 2026');
+    assert.equal(formatDueDate('2026-12-01'), '1 déc. 2026');
+    assert.equal(formatDueDate('2026-09-01'), '1 sept. 2026');
+    assert.equal(formatDueDate('05-10-2026'), '5 oct. 2026');
+    // BFF Project ISO 8601 instant: day of the deadline in Paris.
+    assert.equal(formatDueDate('2026-03-14T10:00:00.000Z'), '14 mars 2026');
+    assert.equal(formatDueDate('2024-12-31T23:59:59Z'), '1 janv. 2025');
+    // No numeric « 27/11/2026 » form any more.
+    assert.doesNotMatch(formatDueDate('2026-11-27'), /\d{2}\/\d{2}\/\d{4}/);
   });
 
   test('retains calendar days and configured Paris instants across host timezones and DST boundaries', () => {
@@ -149,13 +135,13 @@ describe('formatDueDate', () => {
       for (const timezone of ['UTC', 'America/Los_Angeles', 'Pacific/Kiritimati']) {
         process.env.TZ = timezone;
         for (const [value, expected] of [
-          ['2026-09-09', '09/09/2026'],
-          ['09-09-2026', '09/09/2026'],
-          ['2026-03-28T23:30:00Z', '29/03/2026'],
-          ['2026-03-29T22:30:00Z', '30/03/2026'],
-          ['2026-10-24T22:30:00Z', '25/10/2026'],
-          ['2026-10-25T22:30:00Z', '25/10/2026'],
-          ['2026-10-25T23:30:00Z', '26/10/2026'],
+          ['2026-09-09', '9 sept. 2026'],
+          ['09-09-2026', '9 sept. 2026'],
+          ['2026-03-28T23:30:00Z', '29 mars 2026'],
+          ['2026-03-29T22:30:00Z', '30 mars 2026'],
+          ['2026-10-24T22:30:00Z', '25 oct. 2026'],
+          ['2026-10-25T22:30:00Z', '25 oct. 2026'],
+          ['2026-10-25T23:30:00Z', '26 oct. 2026'],
         ]) assert.equal(formatDueDate(value), expected, `${timezone}: ${value}`);
       }
     } finally {
@@ -216,4 +202,38 @@ test('MAIR-907: a tile shows the first 3 projects and tasks and the 3 soonest ev
   assert.deepEqual(view.tasks.map((task) => task.title), ['T0', 'T1', 'T2']);
   assert.deepEqual(view.events.map((event) => event.title), ['2026-10-05', '2026-10-06', '2026-10-07']);
   assert.equal(view.unusableEventCount, 0);
+});
+
+describe('MAIR-1255 relative task deadlines', () => {
+  const now = new Date('2026-11-28T09:00:00Z');
+  test('reads today, tomorrow and the next six days relatively, then the date', () => {
+    assert.equal(formatTaskDue('2026-11-28', now), 'Aujourd’hui');
+    assert.equal(formatTaskDue('2026-11-29', now), 'Demain');
+    assert.equal(formatTaskDue('2026-12-01', now), 'Dans 3 jours');
+    assert.equal(formatTaskDue('2026-12-04', now), 'Dans 6 jours');
+    assert.equal(formatTaskDue('2026-12-05', now), formatDueDate('2026-12-05'));
+    assert.equal(formatTaskDue('28-11-2026', now), 'Aujourd’hui');
+  });
+  test('marks a past deadline late, with its date', () => {
+    assert.equal(formatTaskDue('2026-11-20', now), `En retard · ${formatDueDate('2026-11-20')}`);
+  });
+  test('reads an instant on its day in the instance time zone', () => {
+    assert.equal(formatTaskDue('2026-11-29T10:00:00.000Z', now), 'Demain');
+  });
+  test('keeps the absolute date without a clock, so the server render and the hydration agree', () => {
+    assert.equal(formatTaskDue('2026-11-29', null), formatDueDate('2026-11-29'));
+    const view = toDashboardModuleData(valid({ tasks: [{ id: 't1', projectId: 'p', title: 'Valider', dueDate: '2026-11-28', priority: 'high', completed: false }] }), null);
+    assert.equal(view.tasks[0].dueLabel, formatDueDate('2026-11-28'));
+  });
+  test('shows an unreadable value as is', () => {
+    assert.equal(formatTaskDue('bientôt', now), 'bientôt');
+    assert.equal(formatTaskDue('2026-02-30', now), '2026-02-30');
+  });
+  test('the tasks tile uses the relative label, « Sans échéance » without a deadline', () => {
+    const view = toDashboardModuleData(valid({ tasks: [
+      { id: 't1', projectId: 'p', title: 'Valider le budget', dueDate: '2026-11-28', priority: 'high', completed: false },
+      { id: 't2', projectId: 'p', title: 'Relire', dueDate: '', priority: 'low', completed: false },
+    ] }), now);
+    assert.deepEqual(view.tasks.map((task) => task.dueLabel), ['Aujourd’hui', 'Sans échéance']);
+  });
 });

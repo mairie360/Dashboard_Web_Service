@@ -14,7 +14,7 @@ export const TaskRow = ({ task, onSelect }: TaskRowProps) => (
   <button type="button" disabled={!onSelect} data-task-priority={task.priority} className="dashboard-row dashboard-task-row" onClick={() => onSelect?.(task)}>
     <span className="dashboard-row-line">
       <Text weight="semibold" truncate>{task.title}</Text>
-      <PriorityPill level={task.priority} size="s" />
+      <PriorityPill level={task.priority} size="s" dot />
     </span>
     <BodySmall as="span" tone="muted" className="dashboard-row-meta"><Icon icon={Clock} size="xs" />Échéance : {task.dueLabel}</BodySmall>
   </button>

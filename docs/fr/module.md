@@ -17,7 +17,7 @@ Domaine fonctionnel: Tableau de bord.
 - Reprise explicite d'une lecture refusée sans remplacer les cartes confirmées par un vide inventé. Seule une réponse vide confirmée remplace les cartes ; la reprise ne masque pas une erreur de déconnexion indépendante et ne déclenche aucune mutation.
 - Refus d'un bootstrap réussi mais inexploitable avant remplacement des cartes ou de l'identité confirmées. La page vérifie le prénom, les collections, les champs affichés et les sources ; forme invalide : erreur française contrôlée et reprise GET volontaire (MAIR-455 / issue #84). Gardes d'attente, d'annulation et de réponse obsolète inchangées.
 - Heure/lieu facultatifs et identifiants d'événement string/number conservés. Les dates textuelles non reconnues gardent leur traitement d'affichage distinct ; statistiques et champs non consommés ne sont pas réinterprétés. Aucune unicité d'identifiant, permission de date ou rôle utilisateur inventé.
-- Échéances projet et tâche en JJ/MM/AAAA avec zéros initiaux, comme la référence locale. Les dates seules gardent leur jour UTC ; les instants ISO gardent le jour Europe/Paris existant, indépendamment du fuseau machine. Les tâches sans échéance et les valeurs non reconnues conservent leurs traitements existants ; le format des événements est inchangé.
+- Échéances des projets, tâches et formations au format « 15 déc. 2026 » (jour, mois abrégé, année), comme l'écran de référence. Les dates seules gardent leur jour UTC ; les instants ISO gardent le jour Europe/Paris existant, indépendamment du fuseau machine. Les échéances de tâches jusqu'à six jours sont relatives (« Aujourd’hui », « Demain », « Dans 3 jours ») et une échéance passée se lit « En retard · <date> » ; le libellé relatif est calculé dans le navigateur après le montage (le rendu serveur affiche la date), pour que l'hydratation ne dépende jamais de l'horloge du navigateur. Les tâches sans échéance et les valeurs non reconnues conservent leurs traitements existants. Les badges d'événement affichent le jour au-dessus du mois abrégé en minuscules (« 4 / déc. »).
 - Les dates civiles impossibles et les échéances ambiguës restent telles que reçues, sans jour deviné ni report automatique. Dates d’événement et heures HH:mm sont validées avant affichage ; les événements valides restent sélectionnables. Les événements illisibles sont signalés distinctement des collections vides confirmées, avec reprise explicite par GET bootstrap. Règles UTC/Paris des échéances et heure locale des événements inchangées.
 - Reprise de l’échelle racine de 17px et de la police système par défaut de la référence, y compris le header partagé en rem (68px par défaut). Les tailles standard des petits textes restent inchangées ; aucune préférence d’apparence sauvegardée n’est simulée.
 - Espacement du contenu de la maquette sur desktop et mobile : 24 px sur les côtés, 16 px en bas et la marge de 28 px de l'accueil comme écart sous le header. La classe de shell propre à Dashboard ne change ni les valeurs par défaut de la bibliothèque ni les autres fronts.
@@ -92,7 +92,7 @@ Figma : [index des features](https://www.figma.com/design/U4LxYJ8TDpZxqB8BmpBuRh
 - Bandeau commun (lib-components 2.5.1) : même en-tête et même navigation que les autres fronts ; le shell reçoit la
   commune par sa seule prop `commune`. Le contenu est à 24 px des bords et à 16 px du bas, la marge de 28 px de
   l'accueil servant d'écart sous l'en-tête, comme dans la maquette.
-- Recherche globale (lib-components 2.7.0) : le champ de recherche de l'en-tête cherche dans tous les modules. Après
+- Recherche globale (lib-components 2.7.0, désormais 2.9.0) : le champ de recherche de l'en-tête cherche dans tous les modules. Après
   une courte pause sur 2 caractères ou plus, il appelle `GET /search` à la même origine, que le proxy relaie à
   BFF_Dashboard, et liste les résultats par module (Agents, Projets, Calendrier, Messagerie, E-learning) avec un lien
   vers le module qui ouvre la cible (`?project=7&task=9`, `?date=…&event=4`, `?conversation=…&message=…`,
@@ -101,15 +101,18 @@ Figma : [index des features](https://www.figma.com/design/U4LxYJ8TDpZxqB8BmpBuRh
 - Tuiles (MAIR-1107, F1) : grille 2 × 2 de tuiles identiques qui remplit la hauteur sous l'accueil dès 900 px (une
   colonne en dessous, la page défile plutôt que de couper le contenu) ; liens « Voir les… » sans flèche ; états vide
   et indisponible centrés.
-- Indicateurs d'en-tête : « Projets récents · 12 projets » (`metrics.totalProjects`, tous les projets visibles, comme
-  la liste Projets) et « Événements à venir · 7 en novembre » (`metrics.eventsThisMonth`, les occurrences du mois en
-  cours en Europe/Paris comme la vue mois du Calendrier, le mois nommé en français d'après `metrics.eventsPeriod.from`),
-  en `Caption` de la lib après le titre. Un compteur `null` (son API indisponible) ou le chargement laisse le titre seul.
+- Titres de tuile seuls (« Projets récents », « Événements à venir ») : plus de compteur après eux, même si le
+  bootstrap porte toujours `metrics.totalProjects` et `metrics.eventsThisMonth`. Les liens « Voir les… » de l'en-tête
+  sont des liens texte soulignés (décalage de 3 px, le soulignement s'épaissit au survol). Le contenu occupe toute la
+  largeur de la coque.
 - Lignes compactes (MAIR-907, F1/F5) : 3 au plus par tuile (premiers projets et tâches, événements les plus proches),
   sans fond, filet `--mairie-border` entre les lignes, marge de 10 px, `--mairie-surface-raised` au survol, focus
-  `--mairie-accent`. Projets : nom et statut, puis « Échéance : … », la piste de progression et son pourcentage ;
-  tâches : titre et priorité, puis l'échéance (plus de point coloré) ; événements : badge date (jour en gras, mois
-  abrégé, liseré `--mairie-module-calendar`), titre, « heure · lieu ».
+  `--mairie-accent`. Projets : nom et statut, puis une icône calendrier avec l'échéance (« 15 déc. 2026 »), la piste de
+  progression sur le reste de la ligne et son pourcentage à droite (même ligne pour les formations) ; tâches : titre et
+  pastille de priorité (avec
+  son point, comme les pastilles de statut), puis l'échéance, relative jusqu'à six jours (« Aujourd’hui », « Demain »,
+  « Dans 3 jours », « En retard · <date> », MAIR-1255) ; l'en-tête de chaque tuile est séparé de ses lignes par un trait ; événements : badge date (jour en gras sans zéro initial, mois
+  abrégé en minuscules « déc. », liseré `--mairie-module-calendar`), titre, « heure · lieu ».
 - Chargement (MAIR-899, F1) : la page finale est dessinée d'emblée (accueil, tuiles avec titre et lien) ; chaque tuile
   montre 3 lignes squelettes à la taille des vraies, « Chargement du tableau de bord… » n'est annoncé qu'aux lecteurs
   d'écran, et l'animation s'arrête avec `prefers-reduced-motion`.
@@ -129,3 +132,8 @@ Figma : [index des features](https://www.figma.com/design/U4LxYJ8TDpZxqB8BmpBuRh
   <date> » n'est pas affiché. Des formations indisponibles (ELearning API en panne ou non configurée sur
   BFF_Dashboard) affichent l'état propre à la tuile, sans le bandeau de page. Un bootstrap d'un BFF plus ancien (sans
   ces champs) reste utilisable : pas de rôle, pas de commune, formations indisponibles.
+- États des tuiles (MAIR-1255, artefact) : une tuile vide affiche le `DataState` illustré de la lib (taille m) avec
+  une aide (« Les projets que vous suivez apparaîtront ici. »…) ; une tuile dont la source est en panne affiche
+  « <Module> indisponibles. », le module qui n'a pas répondu (« Le calendrier ne répond pas. ») et « Réessayer », qui
+  recharge le tableau de bord. Le bandeau de page nomme les données absentes (« Les événements à venir ne peuvent pas
+  être affichés pour le moment. »).

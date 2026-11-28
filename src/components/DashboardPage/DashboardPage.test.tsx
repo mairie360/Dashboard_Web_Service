@@ -8,6 +8,7 @@ import { hydrateRoot } from 'react-dom/client';
 import DashboardPage, { dashboardSidebarItems, dashboardUnreadCount, unreadBadge } from './DashboardPage';
 import { pageStatus } from '../../../tests/component/page-roles';
 import { frontUrl } from '@/lib/front-urls';
+import type { DashboardBootstrap } from '@/lib/dashboard-view';
 
 vi.mock('@/lib/front-urls', () => ({ frontUrl: vi.fn(() => undefined) }));
 vi.mock('@/lib/bff-client', () => ({ bffDashboard: { getDashboardBootstrap: vi.fn(() => new Promise(() => {})) } }));
@@ -37,6 +38,41 @@ describe('DashboardPage', () => {
       expect(recoverable).not.toHaveBeenCalled();
       expect(container.querySelector('h1')).toHaveTextContent('Bonsoir');
       act(() => root?.unmount());
+    } finally { vi.useRealTimers(); container.remove(); }
+  });
+
+  it('MAIR-1255: relative task deadlines do not break the hydration when the browser is on another day', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const recoverable = vi.fn();
+    const initialData: DashboardBootstrap = { userFirstName: 'Alice', userLastName: 'Martin', userRole: null, communeName: null,
+      projects: [], events: [], trainings: [], unreadMessages: null, onboardingCompleted: true,
+      metrics: { totalProjects: 0, eventsThisMonth: 0, eventsPeriod: { from: '2026-11-01', to: '2026-11-30' } },
+      tasks: [{ id: 't1', projectId: 'p', title: 'Valider le budget', dueDate: '2026-11-29', priority: 'high', completed: false }],
+      sources: { projects: 'available', tasks: 'available', calendar: 'available', trainings: 'available', messages: 'available' } };
+    try {
+      // The server renders on the 28th (« Demain »), the browser still believes it is the 15th of October.
+      vi.setSystemTime(new Date('2026-11-28T09:00:00Z'));
+      const renderedAt = new Date().toISOString();
+      container.innerHTML = renderToString(<DashboardPage initialData={initialData} renderedAt={renderedAt} />);
+      expect(container.textContent).toContain('Échéance : 29 nov. 2026');
+      vi.setSystemTime(new Date('2026-10-15T12:00:00Z'));
+      let root: ReturnType<typeof hydrateRoot> | undefined;
+      await act(async () => { root = hydrateRoot(container, <DashboardPage initialData={initialData} renderedAt={renderedAt} />, { onRecoverableError: recoverable }); });
+      expect(recoverable).not.toHaveBeenCalled();
+      // After mounting, the browser's own day gives the relative label (here more than six days ahead: the date).
+      expect(container.textContent).toContain('Échéance : 29 nov. 2026');
+      vi.setSystemTime(new Date('2026-11-28T09:00:00Z'));
+      act(() => root?.unmount());
+      const later = document.createElement('div');
+      document.body.appendChild(later);
+      later.innerHTML = renderToString(<DashboardPage initialData={initialData} renderedAt={renderedAt} />);
+      await act(async () => { root = hydrateRoot(later, <DashboardPage initialData={initialData} renderedAt={renderedAt} />, { onRecoverableError: recoverable }); });
+      expect(recoverable).not.toHaveBeenCalled();
+      expect(later.textContent).toContain('Échéance : Demain');
+      act(() => root?.unmount());
+      later.remove();
     } finally { vi.useRealTimers(); container.remove(); }
   });
 

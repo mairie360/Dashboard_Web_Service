@@ -19,9 +19,9 @@ export const defaultDashboardMetrics: DashboardMetric[] = [
 ];
 
 export const defaultDashboardProjects: DashboardProject[] = [
-  { id: 'library', name: 'Rénovation bibliothèque', progress: 75, status: 'in-progress', dueDate: '15 Nov 2024' },
-  { id: 'park', name: 'Aménagement parc central', progress: 30, status: 'in-progress', dueDate: '20 Mar 2025' },
-  { id: 'archives', name: 'Digitalisation archives', progress: 100, status: 'completed', dueDate: '30 Sep 2024' },
+  { id: 'library', name: 'Rénovation bibliothèque', progress: 75, status: 'in-progress', dueDate: '15 nov. 2024' },
+  { id: 'park', name: 'Aménagement parc central', progress: 30, status: 'in-progress', dueDate: '20 mars 2025' },
+  { id: 'archives', name: 'Digitalisation archives', progress: 100, status: 'completed', dueDate: '30 sept. 2024' },
 ];
 
 export const defaultDashboardTasks: DashboardTask[] = [

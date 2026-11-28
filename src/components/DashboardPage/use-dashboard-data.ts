@@ -81,5 +81,9 @@ export function useDashboardData(initialData?: DashboardBootstrap | null): Dashb
     return subscribePageReturn(refresh);
   }, [loadDashboard]);
   const reload = useCallback(() => { setLoading(true); return loadDashboard(); }, [loadDashboard]);
-  return { data, view: data ? toDashboardModuleData(data) : null, error, loading, reload };
+  // MAIR-1255: « Demain », « Dans 3 jours » depend on the clock of the browser, which may not be the server's
+  // day: the server render and the hydration show the absolute dates, the relative ones come after mounting.
+  const [now, setNow] = useState<Date | null>(null);
+  useEffect(() => setNow(new Date()), []);
+  return { data, view: data ? toDashboardModuleData(data, now) : null, error, loading, reload };
 }

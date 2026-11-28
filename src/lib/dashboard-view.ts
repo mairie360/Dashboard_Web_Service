@@ -24,13 +24,14 @@ const isCivilDate = (value: string) => {
   const monthDays = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
   return day <= monthDays[month - 1];
 };
-const frenchDate = (timeZone: string) => new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone });
-// Une date seule est lue en UTC par Date : elle est formatée en UTC pour ne pas changer de jour.
+// Day, abbreviated month and year, as in the reference screen (« 15 déc. 2026 », « 1 sept. 2026 »).
+const frenchDate = (timeZone: string) => new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short', year: 'numeric', timeZone });
+// A date alone is read as UTC by Date: it is formatted in UTC so the day does not shift.
 const dateOnlyFormat = frenchDate('UTC');
-// Les échéances BFF Project sont des instants ISO 8601 (toISOString) : jour affiché dans le fuseau de l’instance.
+// BFF Project deadlines are ISO 8601 instants (toISOString): the day is shown in the instance time zone.
 const instantFormat = () => frenchDate(getInstanceTimeZone());
 
-/** Échéance numérique de la référence (« 01/12/2026 ») ; une valeur non reconnue est affichée telle quelle. */
+/** Deadline as « 15 déc. 2026 »; an unrecognised value is shown as is. */
 export function formatDueDate(value: string): string {
   const normalized = isoDate(value.trim());
   const dateOnly = DATE_ONLY.test(normalized);
@@ -42,32 +43,39 @@ export function formatDueDate(value: string): string {
   return (dateOnly ? dateOnlyFormat : instantFormat()).format(timestamp);
 }
 
-const FRENCH_MONTHS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
-const isIndicatorCount = (value: unknown): value is number => typeof value === 'number' && Number.isInteger(value) && value >= 0;
-
-/** Header indicator of the projects tile: every visible project (« 12 projets »), null when the count is unavailable. */
-export function projectsIndicator(metrics: Partial<DashboardBootstrap['metrics']> | undefined): string | null {
-  const total = metrics?.totalProjects;
-  if (!isIndicatorCount(total)) return null;
-  return `${total} ${total > 1 ? 'projets' : 'projet'}`;
-}
+// Civil day « YYYY-MM-DD » of an instant in a time zone.
+const civilDay = (timestamp: number, timeZone: string) =>
+  new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit', timeZone }).format(timestamp);
+const DAY_MS = 86_400_000;
 
 /**
- * Header indicator of the events tile: the occurrences of the month the BFF counted (« 7 en novembre »), the month
- * named from `eventsPeriod.from`; null when the count or its period is unavailable.
+ * Task deadline relative to today, as in the artifact (MAIR-1255): « Aujourd’hui », « Demain », « Dans 3 jours »
+ * up to six days ahead, then « 15 déc. 2026 »; a past deadline reads « En retard · 2 déc. 2026 ».
+ * Today is the day of `now` in the instance time zone; an unrecognised value is shown as is, and a null `now`
+ * (before the browser mounted) keeps the absolute date.
  */
-export function eventsIndicator(metrics: Partial<DashboardBootstrap['metrics']> | undefined): string | null {
-  const count = metrics?.eventsThisMonth;
-  const from = metrics?.eventsPeriod?.from;
-  const to = metrics?.eventsPeriod?.to;
-  if (!isIndicatorCount(count) || typeof from !== 'string' || typeof to !== 'string' || !isCivilDate(from) || !isCivilDate(to)) return null;
-  return `${count} en ${FRENCH_MONTHS[Number(from.slice(5, 7)) - 1]}`;
+export function formatTaskDue(value: string, now: Date | null = new Date()): string {
+  const normalized = isoDate(value.trim());
+  const absolute = formatDueDate(value);
+  // Without a clock (server render, hydration) the deadline stays absolute.
+  if (!now) return absolute;
+  const dateOnly = DATE_ONLY.test(normalized);
+  const civilDate = dateOnly ? normalized : ISO_DATE_TIME_START.exec(normalized)?.[1];
+  if (!civilDate || !isCivilDate(civilDate) || absolute === value) return absolute;
+  const timeZone = getInstanceTimeZone();
+  const due = dateOnly ? normalized : civilDay(Date.parse(normalized), timeZone);
+  const days = Math.round((Date.parse(`${due}T00:00:00Z`) - Date.parse(`${civilDay(now.getTime(), timeZone)}T00:00:00Z`)) / DAY_MS);
+  if (days < 0) return `En retard · ${absolute}`;
+  if (days === 0) return 'Aujourd’hui';
+  if (days === 1) return 'Demain';
+  if (days <= 6) return `Dans ${days} jours`;
+  return absolute;
 }
 
 /** Rows shown per tile so the dashboard fits the screen without scrolling (MAIR-907). */
 export const DASHBOARD_TILE_ROWS = 3;
 
-export function toDashboardModuleData(data: DashboardBootstrap) {
+export function toDashboardModuleData(data: DashboardBootstrap, now: Date | null = new Date()) {
   const events = data.events.flatMap((event) => {
     const date = isoDate(event.date);
     const time = event.startTime ?? '00:00';
@@ -82,6 +90,8 @@ export function toDashboardModuleData(data: DashboardBootstrap) {
     // The banner covers projects, tasks and calendar; « Mes formations » shows its own unavailable state
     // (ELearning API is optional for BFF_Dashboard: an instance without it would otherwise always warn).
     hasUnavailableSource: [data.sources.projects, data.sources.tasks, data.sources.calendar].includes('unavailable'),
+    // MAIR-1255: the banner names what cannot be shown (artifact: « Les événements à venir ne peuvent pas être affichés »).
+    unavailableSources: (['projects', 'tasks', 'calendar'] as const).filter((source) => data.sources[source] === 'unavailable'),
     trainingsUnavailable: (data.sources.trainings ?? 'unavailable') === 'unavailable',
     unusableEventCount: data.events.length - events.length,
     projects: data.projects.slice(0, DASHBOARD_TILE_ROWS).map((project) => ({
@@ -94,12 +104,10 @@ export function toDashboardModuleData(data: DashboardBootstrap) {
     tasks: data.tasks.slice(0, DASHBOARD_TILE_ROWS).map((task) => ({
       id: `${task.projectId}:${task.id}`,
       title: task.title,
-      dueLabel: task.dueDate.trim() ? formatDueDate(task.dueDate) : 'Sans échéance',
+      dueLabel: task.dueDate.trim() ? formatTaskDue(task.dueDate, now) : 'Sans échéance',
       priority: task.priority,
     })),
     events: upcoming,
-    // Shown next to the tile titles; the title stays alone when a count is unavailable.
-    indicators: { projects: projectsIndicator(data.metrics), events: eventsIndicator(data.metrics) },
     // MAIR-1110: the BFF orders them (unfinished first) and caps them at 3.
     trainings: (data.trainings ?? []).slice(0, DASHBOARD_TILE_ROWS).map((training) => ({
       id: training.id, title: training.title, status: training.status,

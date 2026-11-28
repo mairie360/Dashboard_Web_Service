@@ -95,6 +95,12 @@ describe('Dashboard styles on the actual page and published components', () => {
     expect(stylesheet).toMatch(/\.dashboard-rows > \.dashboard-row:last-child \{ border-bottom-width: 0; \}/);
     expect(computed.padding).toBe('10px');
     expect(getComputedStyle(project.querySelector('.dashboard-row-line')).flexWrap).toBe('wrap');
+    // MAIR-1255: the deadline + progress line wraps at every width; the track keeps a 60 px basis instead of
+    // overflowing a narrow two-column tile.
+    const progressLine = project.querySelector('.dashboard-row-progress-line');
+    expect(getComputedStyle(progressLine).flexWrap).toBe('wrap');
+    expect(getComputedStyle(progressLine.querySelector('.dashboard-row-progress')).flexBasis).toBe('60px');
+    expect(stylesheet).not.toMatch(/\.dashboard-row-progress-line \{ flex-wrap: nowrap/);
     expect(getDashboardBootstrap).toHaveBeenCalledTimes(1);
   });
 
