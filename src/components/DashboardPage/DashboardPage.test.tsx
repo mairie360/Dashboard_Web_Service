@@ -8,6 +8,7 @@ import { hydrateRoot } from 'react-dom/client';
 import DashboardPage, { dashboardSidebarItems, dashboardUnreadCount, unreadBadge } from './DashboardPage';
 import { pageStatus } from '../../../tests/component/page-roles';
 import { frontUrl } from '@/lib/front-urls';
+import type { DashboardBootstrap } from '@/lib/dashboard-view';
 
 vi.mock('@/lib/front-urls', () => ({ frontUrl: vi.fn(() => undefined) }));
 vi.mock('@/lib/bff-client', () => ({ bffDashboard: { getDashboardBootstrap: vi.fn(() => new Promise(() => {})) } }));
@@ -45,9 +46,11 @@ describe('DashboardPage', () => {
     const container = document.createElement('div');
     document.body.appendChild(container);
     const recoverable = vi.fn();
-    const initialData = { userFirstName: 'Alice', projects: [], events: [], metrics: { totalProjects: 0 },
-      tasks: [{ id: 't1', projectId: 'p', title: 'Valider le budget', dueDate: '2026-11-29', priority: 'high' as const, completed: false }],
-      sources: { projects: 'available' as const, tasks: 'available' as const, calendar: 'available' as const } };
+    const initialData: DashboardBootstrap = { userFirstName: 'Alice', userLastName: 'Martin', userRole: null, communeName: null,
+      projects: [], events: [], trainings: [], unreadMessages: null, onboardingCompleted: true,
+      metrics: { totalProjects: 0, eventsThisMonth: 0, eventsPeriod: { from: '2026-11-01', to: '2026-11-30' } },
+      tasks: [{ id: 't1', projectId: 'p', title: 'Valider le budget', dueDate: '2026-11-29', priority: 'high', completed: false }],
+      sources: { projects: 'available', tasks: 'available', calendar: 'available', trainings: 'available', messages: 'available' } };
     try {
       // The server renders on the 28th (« Demain »), the browser still believes it is the 15th of October.
       vi.setSystemTime(new Date('2026-11-28T09:00:00Z'));
