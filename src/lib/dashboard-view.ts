@@ -51,11 +51,14 @@ const DAY_MS = 86_400_000;
 /**
  * Task deadline relative to today, as in the artifact (MAIR-1255): « Aujourd’hui », « Demain », « Dans 3 jours »
  * up to six days ahead, then « 15 déc. 2026 »; a past deadline reads « En retard · 2 déc. 2026 ».
- * Today is the day of `now` in the instance time zone; an unrecognised value is shown as is.
+ * Today is the day of `now` in the instance time zone; an unrecognised value is shown as is, and a null `now`
+ * (before the browser mounted) keeps the absolute date.
  */
-export function formatTaskDue(value: string, now: Date = new Date()): string {
+export function formatTaskDue(value: string, now: Date | null = new Date()): string {
   const normalized = isoDate(value.trim());
   const absolute = formatDueDate(value);
+  // Without a clock (server render, hydration) the deadline stays absolute.
+  if (!now) return absolute;
   const dateOnly = DATE_ONLY.test(normalized);
   const civilDate = dateOnly ? normalized : ISO_DATE_TIME_START.exec(normalized)?.[1];
   if (!civilDate || !isCivilDate(civilDate) || absolute === value) return absolute;
@@ -72,7 +75,7 @@ export function formatTaskDue(value: string, now: Date = new Date()): string {
 /** Rows shown per tile so the dashboard fits the screen without scrolling (MAIR-907). */
 export const DASHBOARD_TILE_ROWS = 3;
 
-export function toDashboardModuleData(data: DashboardBootstrap, now: Date = new Date()) {
+export function toDashboardModuleData(data: DashboardBootstrap, now: Date | null = new Date()) {
   const events = data.events.flatMap((event) => {
     const date = isoDate(event.date);
     const time = event.startTime ?? '00:00';

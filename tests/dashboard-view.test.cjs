@@ -219,6 +219,11 @@ describe('MAIR-1255 relative task deadlines', () => {
   test('reads an instant on its day in the instance time zone', () => {
     assert.equal(formatTaskDue('2026-11-29T10:00:00.000Z', now), 'Demain');
   });
+  test('keeps the absolute date without a clock, so the server render and the hydration agree', () => {
+    assert.equal(formatTaskDue('2026-11-29', null), formatDueDate('2026-11-29'));
+    const view = toDashboardModuleData(valid({ tasks: [{ id: 't1', projectId: 'p', title: 'Valider', dueDate: '2026-11-28', priority: 'high', completed: false }] }), null);
+    assert.equal(view.tasks[0].dueLabel, formatDueDate('2026-11-28'));
+  });
   test('shows an unreadable value as is', () => {
     assert.equal(formatTaskDue('bientôt', now), 'bientôt');
     assert.equal(formatTaskDue('2026-02-30', now), '2026-02-30');

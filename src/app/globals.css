@@ -83,15 +83,15 @@ button.dashboard-row:disabled { cursor: default; }
 /* Project and training rows: the meta keeps its width, the progress track takes the rest of the line and its
    percentage sits on its right (reference screen). The lib ProgressMeter draws « label + % » above the track:
    the row puts that header after the track and keeps its label for screen readers only (aria-labelledby). */
-.dashboard-row-progress-line { flex-wrap: nowrap; justify-content: flex-start; }
+.dashboard-row-progress-line { flex-wrap: wrap; justify-content: flex-start; }
 .dashboard-row-progress-line > .dashboard-row-meta { flex-shrink: 0; }
-.dashboard-row-progress { display: flex; flex-direction: row-reverse; align-items: center; gap: 8px; flex: 1 1 0; min-width: 60px; }
+/* Basis 60 px: when the meta and 60 px of track no longer fit in the tile, the track goes to its own line. */
+.dashboard-row-progress { display: flex; flex-direction: row-reverse; align-items: center; gap: 8px; flex: 1 1 60px; min-width: 60px; }
 .dashboard-row-progress > [role="progressbar"] { flex: 1 1 auto; width: auto; min-width: 0; }
 .dashboard-row-progress > div:first-child { flex-shrink: 0; min-width: 36px; justify-content: flex-end; color: var(--mairie-muted); font-variant-numeric: tabular-nums; }
 .dashboard-row-progress > div:first-child > span:first-child {
   position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap;
 }
-@media (max-width: 480px) { .dashboard-row-progress-line { flex-wrap: wrap; } }
 .dashboard-event-row { flex-direction: row; align-items: center; justify-content: flex-start; gap: 12px; }
 .dashboard-event-date {
   display: flex; flex-direction: column; align-items: center; justify-content: center; flex-shrink: 0;

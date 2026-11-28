@@ -40,6 +40,39 @@ describe('DashboardPage', () => {
     } finally { vi.useRealTimers(); container.remove(); }
   });
 
+  it('MAIR-1255: relative task deadlines do not break the hydration when the browser is on another day', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const recoverable = vi.fn();
+    const initialData = { userFirstName: 'Alice', projects: [], events: [], metrics: { totalProjects: 0 },
+      tasks: [{ id: 't1', projectId: 'p', title: 'Valider le budget', dueDate: '2026-11-29', priority: 'high' as const, completed: false }],
+      sources: { projects: 'available' as const, tasks: 'available' as const, calendar: 'available' as const } };
+    try {
+      // The server renders on the 28th (« Demain »), the browser still believes it is the 15th of October.
+      vi.setSystemTime(new Date('2026-11-28T09:00:00Z'));
+      const renderedAt = new Date().toISOString();
+      container.innerHTML = renderToString(<DashboardPage initialData={initialData} renderedAt={renderedAt} />);
+      expect(container.textContent).toContain('Échéance : 29 nov. 2026');
+      vi.setSystemTime(new Date('2026-10-15T12:00:00Z'));
+      let root: ReturnType<typeof hydrateRoot> | undefined;
+      await act(async () => { root = hydrateRoot(container, <DashboardPage initialData={initialData} renderedAt={renderedAt} />, { onRecoverableError: recoverable }); });
+      expect(recoverable).not.toHaveBeenCalled();
+      // After mounting, the browser's own day gives the relative label (here more than six days ahead: the date).
+      expect(container.textContent).toContain('Échéance : 29 nov. 2026');
+      vi.setSystemTime(new Date('2026-11-28T09:00:00Z'));
+      act(() => root?.unmount());
+      const later = document.createElement('div');
+      document.body.appendChild(later);
+      later.innerHTML = renderToString(<DashboardPage initialData={initialData} renderedAt={renderedAt} />);
+      await act(async () => { root = hydrateRoot(later, <DashboardPage initialData={initialData} renderedAt={renderedAt} />, { onRecoverableError: recoverable }); });
+      expect(recoverable).not.toHaveBeenCalled();
+      expect(later.textContent).toContain('Échéance : Demain');
+      act(() => root?.unmount());
+      later.remove();
+    } finally { vi.useRealTimers(); container.remove(); }
+  });
+
   it('renders the loading page while the bootstrap is pending', () => {
     render(<DashboardPage />);
     expect(pageStatus()).toHaveTextContent('Chargement du tableau de bord…');
